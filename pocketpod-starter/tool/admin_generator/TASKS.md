@@ -78,3 +78,14 @@ Implementation notes:
 - [x] Prove signed-in admin callers can reach the admin dashboard method.
 - [x] Verify the browser page can log in and call the protected dashboard endpoint over HTTP.
 - [x] Record validation in `TEST_REPORT.md`.
+
+## Cycle 4A: Clickable Collections And Record Browsing
+
+- [x] Add protected admin collection metadata models.
+- [x] Add protected `admin.listCollections` endpoint.
+- [x] Add protected `admin.listRecords` endpoint.
+- [x] Render generated collections as clickable sidebar items.
+- [x] Render Products and Posts record tables in the served admin screen.
+- [x] Show generated field/control metadata above each collection table.
+- [x] Verify Product and Post collection data over HTTP.
+- [x] Add integration coverage for collection and record listing.

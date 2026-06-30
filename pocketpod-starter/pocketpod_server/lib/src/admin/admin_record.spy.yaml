@@ -1,0 +1,4 @@
+class: AdminRecord
+fields:
+  id: String
+  cells: List<AdminRecordCell>

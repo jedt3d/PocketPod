@@ -16,12 +16,24 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'admin/admin_dashboard.dart' as _i5;
-import 'benchmarks/benchmark_record.dart' as _i6;
-import 'greetings/greeting.dart' as _i7;
+import 'admin/admin_collection.dart' as _i5;
+import 'admin/admin_collection_records.dart' as _i6;
+import 'admin/admin_dashboard.dart' as _i7;
+import 'admin/admin_field.dart' as _i8;
+import 'admin/admin_record.dart' as _i9;
+import 'admin/admin_record_cell.dart' as _i10;
+import 'benchmarks/benchmark_record.dart' as _i11;
+import 'greetings/greeting.dart' as _i12;
+import 'package:pocketpod_server/src/generated/admin/admin_collection.dart'
+    as _i13;
 import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
-    as _i8;
+    as _i14;
+export 'admin/admin_collection.dart';
+export 'admin/admin_collection_records.dart';
 export 'admin/admin_dashboard.dart';
+export 'admin/admin_field.dart';
+export 'admin/admin_record.dart';
+export 'admin/admin_record_cell.dart';
 export 'benchmarks/benchmark_record.dart';
 export 'greetings/greeting.dart';
 
@@ -101,30 +113,81 @@ class Protocol extends _i1.DatabaseSerializationManager {
       }
     }
 
-    if (t == _i5.AdminDashboard) {
-      return _i5.AdminDashboard.fromJson(data) as T;
+    if (t == _i5.AdminCollection) {
+      return _i5.AdminCollection.fromJson(data) as T;
     }
-    if (t == _i6.BenchmarkRecord) {
-      return _i6.BenchmarkRecord.fromJson(data) as T;
+    if (t == _i6.AdminCollectionRecords) {
+      return _i6.AdminCollectionRecords.fromJson(data) as T;
     }
-    if (t == _i7.Greeting) {
-      return _i7.Greeting.fromJson(data) as T;
+    if (t == _i7.AdminDashboard) {
+      return _i7.AdminDashboard.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.AdminDashboard?>()) {
-      return (data != null ? _i5.AdminDashboard.fromJson(data) : null) as T;
+    if (t == _i8.AdminField) {
+      return _i8.AdminField.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i6.BenchmarkRecord?>()) {
-      return (data != null ? _i6.BenchmarkRecord.fromJson(data) : null) as T;
+    if (t == _i9.AdminRecord) {
+      return _i9.AdminRecord.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i7.Greeting?>()) {
-      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
+    if (t == _i10.AdminRecordCell) {
+      return _i10.AdminRecordCell.fromJson(data) as T;
+    }
+    if (t == _i11.BenchmarkRecord) {
+      return _i11.BenchmarkRecord.fromJson(data) as T;
+    }
+    if (t == _i12.Greeting) {
+      return _i12.Greeting.fromJson(data) as T;
+    }
+    if (t == _i1.getType<_i5.AdminCollection?>()) {
+      return (data != null ? _i5.AdminCollection.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i6.AdminCollectionRecords?>()) {
+      return (data != null ? _i6.AdminCollectionRecords.fromJson(data) : null)
+          as T;
+    }
+    if (t == _i1.getType<_i7.AdminDashboard?>()) {
+      return (data != null ? _i7.AdminDashboard.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i8.AdminField?>()) {
+      return (data != null ? _i8.AdminField.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i9.AdminRecord?>()) {
+      return (data != null ? _i9.AdminRecord.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i10.AdminRecordCell?>()) {
+      return (data != null ? _i10.AdminRecordCell.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i11.BenchmarkRecord?>()) {
+      return (data != null ? _i11.BenchmarkRecord.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i12.Greeting?>()) {
+      return (data != null ? _i12.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i8.AdminField>) {
+      return (data as List).map((e) => deserialize<_i8.AdminField>(e)).toList()
+          as T;
+    }
+    if (t == List<_i9.AdminRecord>) {
+      return (data as List).map((e) => deserialize<_i9.AdminRecord>(e)).toList()
+          as T;
     }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
-    if (t == List<_i8.BenchmarkRecord>) {
+    if (t == List<_i10.AdminRecordCell>) {
       return (data as List)
-              .map((e) => deserialize<_i8.BenchmarkRecord>(e))
+              .map((e) => deserialize<_i10.AdminRecordCell>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i13.AdminCollection>) {
+      return (data as List)
+              .map((e) => deserialize<_i13.AdminCollection>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i14.BenchmarkRecord>) {
+      return (data as List)
+              .map((e) => deserialize<_i14.BenchmarkRecord>(e))
               .toList()
           as T;
     }
@@ -142,9 +205,14 @@ class Protocol extends _i1.DatabaseSerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.AdminDashboard => 'AdminDashboard',
-      _i6.BenchmarkRecord => 'BenchmarkRecord',
-      _i7.Greeting => 'Greeting',
+      _i5.AdminCollection => 'AdminCollection',
+      _i6.AdminCollectionRecords => 'AdminCollectionRecords',
+      _i7.AdminDashboard => 'AdminDashboard',
+      _i8.AdminField => 'AdminField',
+      _i9.AdminRecord => 'AdminRecord',
+      _i10.AdminRecordCell => 'AdminRecordCell',
+      _i11.BenchmarkRecord => 'BenchmarkRecord',
+      _i12.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -159,11 +227,21 @@ class Protocol extends _i1.DatabaseSerializationManager {
     }
 
     switch (data) {
-      case _i5.AdminDashboard():
+      case _i5.AdminCollection():
+        return 'AdminCollection';
+      case _i6.AdminCollectionRecords():
+        return 'AdminCollectionRecords';
+      case _i7.AdminDashboard():
         return 'AdminDashboard';
-      case _i6.BenchmarkRecord():
+      case _i8.AdminField():
+        return 'AdminField';
+      case _i9.AdminRecord():
+        return 'AdminRecord';
+      case _i10.AdminRecordCell():
+        return 'AdminRecordCell';
+      case _i11.BenchmarkRecord():
         return 'BenchmarkRecord';
-      case _i7.Greeting():
+      case _i12.Greeting():
         return 'Greeting';
     }
     className = _i3.Protocol().getClassNameForObject(data);
@@ -191,14 +269,29 @@ class Protocol extends _i1.DatabaseSerializationManager {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'AdminCollection') {
+      return deserialize<_i5.AdminCollection>(data['data']);
+    }
+    if (dataClassName == 'AdminCollectionRecords') {
+      return deserialize<_i6.AdminCollectionRecords>(data['data']);
+    }
     if (dataClassName == 'AdminDashboard') {
-      return deserialize<_i5.AdminDashboard>(data['data']);
+      return deserialize<_i7.AdminDashboard>(data['data']);
+    }
+    if (dataClassName == 'AdminField') {
+      return deserialize<_i8.AdminField>(data['data']);
+    }
+    if (dataClassName == 'AdminRecord') {
+      return deserialize<_i9.AdminRecord>(data['data']);
+    }
+    if (dataClassName == 'AdminRecordCell') {
+      return deserialize<_i10.AdminRecordCell>(data['data']);
     }
     if (dataClassName == 'BenchmarkRecord') {
-      return deserialize<_i6.BenchmarkRecord>(data['data']);
+      return deserialize<_i11.BenchmarkRecord>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i7.Greeting>(data['data']);
+      return deserialize<_i12.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
@@ -241,8 +334,8 @@ class Protocol extends _i1.DatabaseSerializationManager {
       }
     }
     switch (t) {
-      case _i6.BenchmarkRecord:
-        return _i6.BenchmarkRecord.t;
+      case _i11.BenchmarkRecord:
+        return _i11.BenchmarkRecord.t;
     }
     return null;
   }

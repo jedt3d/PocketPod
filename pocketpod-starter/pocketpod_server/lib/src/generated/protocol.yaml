@@ -2,6 +2,8 @@ adminAuth:
   - login:
 admin:
   - dashboard:
+  - listCollections:
+  - listRecords:
 benchmark:
   - reset:
   - seed:

@@ -19,9 +19,13 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i5;
 import 'package:pocketpod_server/src/generated/admin/admin_dashboard.dart'
     as _i6;
-import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
+import 'package:pocketpod_server/src/generated/admin/admin_collection.dart'
     as _i7;
-import 'package:pocketpod_server/src/generated/greetings/greeting.dart' as _i8;
+import 'package:pocketpod_server/src/generated/admin/admin_collection_records.dart'
+    as _i8;
+import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
+    as _i9;
+import 'package:pocketpod_server/src/generated/greetings/greeting.dart' as _i10;
 import 'package:pocketpod_server/src/generated/protocol.dart';
 import 'package:pocketpod_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -265,6 +269,67 @@ class _AdminEndpoint {
       }
     });
   }
+
+  _i4.Future<List<_i7.AdminCollection>> listCollections(
+    _i1.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'admin',
+            method: 'listCollections',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'admin',
+          methodName: 'listCollections',
+          parameters: _i1.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i4.Future<List<_i7.AdminCollection>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i4.Future<_i8.AdminCollectionRecords> listRecords(
+    _i1.TestSessionBuilder sessionBuilder,
+    String collectionKey,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'admin',
+            method: 'listRecords',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'admin',
+          methodName: 'listRecords',
+          parameters: _i1.testObjectToJson({'collectionKey': collectionKey}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i4.Future<_i8.AdminCollectionRecords>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
 }
 
 class _BenchmarkEndpoint {
@@ -336,7 +401,7 @@ class _BenchmarkEndpoint {
     });
   }
 
-  _i4.Future<_i7.BenchmarkRecord?> readOne(
+  _i4.Future<_i9.BenchmarkRecord?> readOne(
     _i1.TestSessionBuilder sessionBuilder,
     int id,
   ) async {
@@ -359,7 +424,7 @@ class _BenchmarkEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<_i7.BenchmarkRecord?>);
+                as _i4.Future<_i9.BenchmarkRecord?>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -367,7 +432,7 @@ class _BenchmarkEndpoint {
     });
   }
 
-  _i4.Future<List<_i7.BenchmarkRecord>> readList(
+  _i4.Future<List<_i9.BenchmarkRecord>> readList(
     _i1.TestSessionBuilder sessionBuilder,
     int limit,
   ) async {
@@ -390,7 +455,7 @@ class _BenchmarkEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<List<_i7.BenchmarkRecord>>);
+                as _i4.Future<List<_i9.BenchmarkRecord>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -472,7 +537,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i4.Future<_i8.Greeting> hello(
+  _i4.Future<_i10.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -495,7 +560,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<_i8.Greeting>);
+                as _i4.Future<_i10.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

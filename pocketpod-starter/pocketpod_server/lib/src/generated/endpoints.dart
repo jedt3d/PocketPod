@@ -94,6 +94,34 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async =>
                   (endpoints['admin'] as _i3.AdminEndpoint).dashboard(session),
         ),
+        'listCollections': _i1.MethodConnector(
+          name: 'listCollections',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint)
+                  .listCollections(session),
+        ),
+        'listRecords': _i1.MethodConnector(
+          name: 'listRecords',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint).listRecords(
+                session,
+                params['collectionKey'],
+              ),
+        ),
       },
     );
     connectors['benchmark'] = _i1.EndpointConnector(

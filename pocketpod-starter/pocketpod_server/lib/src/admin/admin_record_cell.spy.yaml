@@ -1,0 +1,4 @@
+class: AdminRecordCell
+fields:
+  field: String
+  value: String

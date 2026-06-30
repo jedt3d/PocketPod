@@ -53,6 +53,44 @@ void main() {
       expect(dashboard.scopeNames, contains(Scope.admin.name));
       expect(dashboard.generatedCollections, contains('Products'));
       expect(dashboard.message, contains('Serverpod Auth'));
+
+      final collections = await endpoints.admin.listCollections(adminSession);
+      expect(
+        collections.map((collection) => collection.key),
+        contains('products'),
+      );
+      expect(
+        collections.map((collection) => collection.key),
+        contains('posts'),
+      );
+      expect(
+        collections
+            .firstWhere((collection) => collection.key == 'products')
+            .rowCount,
+        greaterThan(0),
+      );
+
+      final products = await endpoints.admin.listRecords(
+        adminSession,
+        'products',
+      );
+      expect(products.collection.title, 'Products');
+      expect(products.rows, isNotEmpty);
+      expect(
+        products.rows.first.cells.map((cell) => cell.field),
+        contains('sku'),
+      );
+
+      final posts = await endpoints.admin.listRecords(
+        adminSession,
+        'posts',
+      );
+      expect(posts.collection.title, 'Posts');
+      expect(posts.rows, isNotEmpty);
+      expect(
+        posts.collection.fields.map((field) => field.control),
+        contains('textarea'),
+      );
     });
   });
 }

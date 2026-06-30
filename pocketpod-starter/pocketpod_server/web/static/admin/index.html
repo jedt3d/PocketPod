@@ -68,11 +68,17 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        width: 100%;
         min-height: 36px;
         margin: 3px 0;
+        border: 0;
         border-radius: 6px;
         padding: 0 10px;
+        background: transparent;
         color: #374151;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
       }
 
       .nav-item.active {
@@ -103,6 +109,7 @@
         border-radius: 8px;
         background: var(--panel);
         box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+        overflow: hidden;
       }
 
       .login-panel {
@@ -147,6 +154,14 @@
         color: var(--ink);
       }
 
+      button.nav-item:hover {
+        background: #e3e8ef;
+      }
+
+      button.nav-item.active:hover {
+        background: #d7f4ef;
+      }
+
       .error {
         display: none;
         margin-top: 14px;
@@ -186,6 +201,48 @@
         background: #f8fafc;
         font-size: 12px;
         text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .collection-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .collection-header h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .collection-header p {
+        margin: 4px 0 0;
+      }
+
+      .field-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 6px 6px 0;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 9px;
+        background: #f8fafc;
+        color: #374151;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .required-dot {
+        color: var(--danger);
+        font-weight: 800;
+      }
+
+      .empty-state {
+        padding: 22px;
         color: var(--muted);
       }
 
@@ -236,11 +293,9 @@
           <span id="scopeLine">Admin workspace</span>
         </div>
         <div class="nav-label">Collections</div>
-        <div class="nav-item active">Dashboard <span>3</span></div>
-        <div class="nav-item">Products <span>0</span></div>
-        <div class="nav-item">Posts <span>0</span></div>
+        <div id="collectionNav"></div>
         <div class="nav-label">System</div>
-        <div class="nav-item">Auth <span>on</span></div>
+        <button class="nav-item" type="button" disabled>Auth <span>on</span></button>
       </aside>
       <main>
         <div class="topbar">
@@ -266,17 +321,23 @@
           </div>
         </div>
 
-        <div class="panel">
-          <table>
-            <thead>
-              <tr>
-                <th>Collection</th>
-                <th>Generated Control Coverage</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="collectionsBody"></tbody>
-          </table>
+        <div class="panel" id="collectionPanel">
+          <div class="collection-header">
+            <div>
+              <h2 id="activeCollectionTitle">Collections</h2>
+              <p id="activeCollectionDescription" class="muted">
+                Choose a collection from the sidebar.
+              </p>
+            </div>
+            <button class="secondary" type="button" disabled>New record</button>
+          </div>
+          <div id="fieldSummary" style="padding: 14px 16px 8px;"></div>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead id="recordsHead"></thead>
+              <tbody id="recordsBody"></tbody>
+            </table>
+          </div>
         </div>
       </main>
     </section>
@@ -291,9 +352,16 @@
       const statusLine = document.getElementById('statusLine');
       const scopeLine = document.getElementById('scopeLine');
       const collectionCount = document.getElementById('collectionCount');
-      const collectionsBody = document.getElementById('collectionsBody');
+      const collectionNav = document.getElementById('collectionNav');
+      const activeCollectionTitle = document.getElementById('activeCollectionTitle');
+      const activeCollectionDescription = document.getElementById('activeCollectionDescription');
+      const fieldSummary = document.getElementById('fieldSummary');
+      const recordsHead = document.getElementById('recordsHead');
+      const recordsBody = document.getElementById('recordsBody');
 
       let authToken = localStorage.getItem('pocketpod.admin.token');
+      let collections = [];
+      let activeCollectionKey = null;
 
       async function callEndpoint(endpoint, method, body, token) {
         const headers = {'content-type': 'application/json'};
@@ -315,21 +383,97 @@
         return payload;
       }
 
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
       async function loadDashboard() {
         const dashboard = await callEndpoint('admin', 'dashboard', {}, authToken);
+        collections = await callEndpoint('admin', 'listCollections', {}, authToken);
 
         loginView.classList.add('hidden');
         adminView.classList.remove('hidden');
         statusLine.textContent = `${dashboard.message} User: ${dashboard.signedInUserId}`;
         scopeLine.textContent = dashboard.scopeNames.join(', ');
-        collectionCount.textContent = dashboard.generatedCollections.length;
-        collectionsBody.innerHTML = dashboard.generatedCollections.map((name) => `
-          <tr>
-            <td>${name}</td>
-            <td>text, textarea, checkbox, datetime, dropdown</td>
-            <td>Generated</td>
-          </tr>
+        collectionCount.textContent = collections.length;
+        renderCollectionNav();
+
+        const preferredCollection = collections.find(
+          (collection) => collection.key === activeCollectionKey,
+        ) ?? collections[0];
+
+        if (preferredCollection) {
+          await selectCollection(preferredCollection.key);
+        }
+      }
+
+      function renderCollectionNav() {
+        collectionNav.innerHTML = collections.map((collection) => `
+          <button
+            class="nav-item ${collection.key === activeCollectionKey ? 'active' : ''}"
+            type="button"
+            data-collection-key="${escapeHtml(collection.key)}"
+          >
+            ${escapeHtml(collection.title)}
+            <span>${collection.rowCount}</span>
+          </button>
         `).join('');
+      }
+
+      async function selectCollection(collectionKey) {
+        activeCollectionKey = collectionKey;
+        renderCollectionNav();
+
+        const response = await callEndpoint('admin', 'listRecords', {
+          collectionKey,
+        }, authToken);
+
+        const collection = response.collection;
+        const rows = response.rows;
+        activeCollectionTitle.textContent = collection.title;
+        activeCollectionDescription.textContent = collection.description;
+        fieldSummary.innerHTML = collection.fields.map((field) => `
+          <span class="field-chip">
+            ${escapeHtml(field.label)}
+            ${field.required ? '<span class="required-dot">*</span>' : ''}
+            <span class="muted">${escapeHtml(field.control)}</span>
+          </span>
+        `).join('');
+
+        recordsHead.innerHTML = `
+          <tr>
+            <th>ID</th>
+            ${collection.fields.map((field) => `<th>${escapeHtml(field.label)}</th>`).join('')}
+          </tr>
+        `;
+
+        if (!rows.length) {
+          recordsBody.innerHTML = `
+            <tr>
+              <td colspan="${collection.fields.length + 1}">
+                <div class="empty-state">No records in this collection yet.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        recordsBody.innerHTML = rows.map((row) => {
+          const values = Object.fromEntries(row.cells.map((cell) => [cell.field, cell.value]));
+          return `
+            <tr>
+              <td>${escapeHtml(row.id)}</td>
+              ${collection.fields.map((field) => `
+                <td>${escapeHtml(values[field.name] ?? '')}</td>
+              `).join('')}
+            </tr>
+          `;
+        }).join('');
       }
 
       loginForm.addEventListener('submit', async (event) => {
@@ -353,8 +497,20 @@
       logoutButton.addEventListener('click', () => {
         localStorage.removeItem('pocketpod.admin.token');
         authToken = null;
+        activeCollectionKey = null;
         adminView.classList.add('hidden');
         loginView.classList.remove('hidden');
+      });
+
+      collectionNav.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-collection-key]');
+        if (!button) {
+          return;
+        }
+
+        selectCollection(button.dataset.collectionKey).catch((error) => {
+          statusLine.textContent = `Collection load failed: ${error.message}`;
+        });
       });
 
       if (authToken) {

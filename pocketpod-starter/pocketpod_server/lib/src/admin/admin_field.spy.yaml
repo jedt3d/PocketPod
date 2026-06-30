@@ -1,0 +1,7 @@
+class: AdminField
+fields:
+  name: String
+  label: String
+  dartType: String
+  control: String
+  required: bool

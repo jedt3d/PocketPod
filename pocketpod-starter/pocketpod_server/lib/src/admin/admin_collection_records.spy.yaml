@@ -1,0 +1,4 @@
+class: AdminCollectionRecords
+fields:
+  collection: AdminCollection
+  rows: List<AdminRecord>

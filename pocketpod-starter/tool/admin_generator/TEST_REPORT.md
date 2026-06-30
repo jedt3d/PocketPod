@@ -310,3 +310,45 @@ flutter analyze: No issues found.
 flutter test test/admin test/admin_generator: 13 tests passed.
 pocketpod_flutter widget smoke test: passed.
 ```
+
+## Cycle 4A: Clickable Collections And Record Browsing
+
+Status: complete for protected collection navigation and sample row browsing.
+
+Changes:
+- Added typed admin collection metadata models: `AdminCollection`, `AdminField`, `AdminCollectionRecords`, `AdminRecord`, and `AdminRecordCell`.
+- Added protected `admin.listCollections` and `admin.listRecords` methods under the existing `Scope.admin` endpoint guard.
+- Updated the served admin page so the sidebar collections are clickable.
+- Rendered Products, Posts, and Admin Input Examples as real collection views with record tables.
+- Added field/control chips above each table so the user can see the generated form-control intent.
+- Kept the data as server-provided sample rows for this checkpoint; persistent generated CRUD remains a later cycle.
+
+Validation:
+
+```sh
+dart run bin/serverpod_cli.dart generate \
+  --directory /Users/worajedt/IdeaProjects/PocketPod/PocketPod/pocketpod-starter/pocketpod_server \
+  --force
+flutter analyze
+cd pocketpod_server && flutter test --reporter expanded
+node collection-api-check.js
+```
+
+Manual HTTP result:
+
+```text
+PASS
+adminAuth.login: returned serverpod.admin JWT.
+admin.listCollections: returned 3 collections.
+admin.listRecords(products): returned 3 rows, first ID SKU-1001.
+admin.listRecords(posts): returned 2 rows, first ID post-1.
+```
+
+Automated result:
+
+```text
+PASS
+flutter analyze: No issues found.
+pocketpod_server full integration test suite: passed.
+admin endpoint integration test now covers Products and Posts record listing.
+```

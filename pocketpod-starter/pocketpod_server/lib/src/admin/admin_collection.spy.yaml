@@ -1,0 +1,7 @@
+class: AdminCollection
+fields:
+  key: String
+  title: String
+  description: String
+  fields: List<AdminField>
+  rowCount: int
