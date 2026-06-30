@@ -31,7 +31,13 @@ Commit:
 
 ## Cycle 1: Generator Foundation
 
-Status: pending.
+Status: complete.
+
+Changes:
+- Added direct root dependencies for `yaml` and `test`.
+- Added `product.spy.yaml` and `post.spy.yaml` fixtures.
+- Added `AdminGenerator`, `AdminModel`, and `AdminField` parsing/generation code.
+- Added unit tests for YAML parsing, deterministic Flutter source generation, and invalid YAML rejection.
 
 Validation:
 
@@ -44,7 +50,10 @@ flutter analyze
 Result:
 
 ```text
-PENDING
+PASS
+flutter test test/admin_generator: 3 tests passed.
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator: pass.
+flutter analyze: No issues found.
 ```
 
 ## Cycle 2: CLI And Preview

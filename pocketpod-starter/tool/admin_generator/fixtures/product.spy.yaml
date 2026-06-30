@@ -1,0 +1,10 @@
+class: Product
+table: product
+fields:
+  name: String
+  slug: String
+  description: String?
+  price: double
+  stock: int
+  active: bool
+  createdAt: DateTime

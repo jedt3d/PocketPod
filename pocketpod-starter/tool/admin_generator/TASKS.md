@@ -10,11 +10,11 @@ This task list tracks the Phase 3 implementation lifecycle on the `feature/phase
 
 ## Cycle 1: Generator Foundation
 
-- [ ] Add representative Serverpod model fixtures.
-- [ ] Add a reusable YAML model parser.
-- [ ] Generate deterministic Flutter admin source from fixtures.
-- [ ] Add unit tests for parsing and generated output.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Add representative Serverpod model fixtures.
+- [x] Add a reusable YAML model parser.
+- [x] Generate deterministic Flutter admin source from fixtures.
+- [x] Add unit tests for parsing and generated output.
+- [x] Record validation in `TEST_REPORT.md`.
 
 ## Cycle 2: CLI And Preview
 

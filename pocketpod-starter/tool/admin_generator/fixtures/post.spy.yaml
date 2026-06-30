@@ -1,0 +1,9 @@
+class: Post
+table: post
+fields:
+  title: String
+  slug: String
+  excerpt: String?
+  body: String
+  published: bool
+  publishedAt: DateTime?
