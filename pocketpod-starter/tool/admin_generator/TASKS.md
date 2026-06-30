@@ -103,6 +103,7 @@ Move from read-only sample rows to editable SQLite-backed records for the starte
 - [x] Add protected get/update endpoints for editable Product and Post records.
 - [x] Render an edit form from the existing generated field/control metadata.
 - [x] Use textarea for long body fields, checkbox for booleans, datetime control for date fields, and select-style controls for enum/relation placeholders.
+- [x] Make the primary record field clickable for editing (`name` for Products, `title` for Posts).
 - [x] Save edits through protected admin endpoints and refresh the active collection table.
 - [x] Show validation errors and save success/failure states in the admin screen.
 - [x] Add tests proving unauthenticated and non-admin callers cannot edit records.

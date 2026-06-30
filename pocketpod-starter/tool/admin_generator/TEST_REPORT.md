@@ -375,6 +375,7 @@ Completed in this slice:
 - Added protected `admin.getRecord` and `admin.updateRecord` methods.
 - Added a generated browser edit form for Product and Post rows.
 - Used textarea, checkbox, datetime, number, and select controls according to field metadata.
+- Made each editable collection's primary display field open the edit form: Product `name` and Post `title`.
 - Added success/error UI for save attempts.
 - Added integration tests for unauthenticated rejection, non-admin rejection, and admin edit persistence.
 - Verified Product and Post edits over real HTTP against the running server.

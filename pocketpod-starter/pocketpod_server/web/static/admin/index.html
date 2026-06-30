@@ -178,6 +178,24 @@
         color: var(--accent);
       }
 
+      button.record-link {
+        height: auto;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--accent);
+        font: inherit;
+        font-weight: 700;
+        text-align: left;
+      }
+
+      button.record-link:hover {
+        background: transparent;
+        color: var(--accent-strong);
+        text-decoration: underline;
+      }
+
       button.nav-item:hover {
         background: #e3e8ef;
       }
@@ -554,7 +572,7 @@
             <tr>
               <td>${escapeHtml(row.id)}</td>
               ${collection.fields.map((field) => `
-                <td>${escapeHtml(values[field.name] ?? '')}</td>
+                <td>${renderRecordCell(collection, row, field, values[field.name] ?? '')}</td>
               `).join('')}
               <td>
                 ${isEditableCollection(collection.key)
@@ -568,6 +586,30 @@
 
       function isEditableCollection(collectionKey) {
         return collectionKey === 'products' || collectionKey === 'posts';
+      }
+
+      function primaryEditField(collectionKey) {
+        if (collectionKey === 'products') {
+          return 'name';
+        }
+        if (collectionKey === 'posts' || collectionKey === 'admin_input_examples') {
+          return 'title';
+        }
+        return null;
+      }
+
+      function renderRecordCell(collection, row, field, value) {
+        if (
+          isEditableCollection(collection.key) &&
+          field.name === primaryEditField(collection.key)
+        ) {
+          return `
+            <button class="record-link" type="button" data-edit-id="${escapeHtml(row.id)}">
+              ${escapeHtml(value)}
+            </button>
+          `;
+        }
+        return escapeHtml(value);
       }
 
       function toInputDateTime(value) {
