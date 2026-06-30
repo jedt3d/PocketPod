@@ -1,0 +1,1622 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+import 'package:serverpod/serverpod.dart' hide LogLevel;
+import 'package:serverpod_database/serverpod_database.dart';
+import 'package:serverpod_shared/log.dart';
+import 'package:serverpod_shared/serverpod_shared.dart';
+import 'package:serverpod/src/server/log_manager/session_log.dart';
+import 'package:serverpod/src/server/log_manager/serverpod_logging.dart';
+import 'package:serverpod/src/cloud_storage/public_endpoint.dart';
+import 'package:serverpod/src/config/version.dart';
+import 'package:serverpod/src/server/command_line_args.dart';
+import 'package:serverpod/src/server/diagnostic_events/diagnostic_events.dart';
+import 'package:serverpod/src/server/features.dart';
+import 'package:serverpod/src/server/future_call_manager/future_call_diagnostics_service.dart';
+import 'package:serverpod/src/server/health_check_manager.dart';
+import 'package:serverpod/src/server/log_manager/log_cleanup.dart';
+import 'package:serverpod/src/server/log_manager/log_settings.dart';
+import 'package:serverpod/src/server/tasks/tasks.dart';
+
+import '../authentication/default_authentication_handler.dart';
+import '../authentication/service_authentication.dart';
+import '../cache/caches.dart';
+import '../generated/endpoints.dart' as internal;
+import '../generated/protocol.dart' as internal;
+
+/// Performs a set of custom health checks on a [Serverpod].
+typedef HealthCheckHandler =
+    Future<List<internal.ServerHealthMetric>> Function(
+      Serverpod pod,
+      DateTime timestamp,
+    );
+
+/// Replaces the default [Database] for a [Session].
+///
+/// The [inner] database is the framework-provided instance. Return a custom
+/// [Database] implementation to layer behavior on top of it.
+typedef DatabaseInterceptor =
+    Database Function(
+      Session session,
+      Database inner,
+    );
+
+/// The [Serverpod] handles all setup and manages the main [Server]. In addition
+/// to the user managed server, it also runs a server for handling the
+/// [DistributedCache] and other connections through the [InsightsEndpoint].
+class Serverpod {
+  static Serverpod? _instance;
+
+  /// The [ServerpodLogSetup] driving this Serverpod's log output,
+  /// constructed via [ServerpodLogSetup.installDefaults]. Shutdown
+  /// closes it.
+  final ServerpodLogSetup _loggingSetup = ServerpodLogSetup.installDefaults();
+
+  late Session _internalSession;
+
+  late Session _internalLoggingSession;
+
+  DateTime? _startedTime;
+
+  /// The time the [Serverpod] was started.
+  DateTime get startedTime {
+    assert(_startedTime != null, 'Server has not been started');
+    return _startedTime!;
+  }
+
+  /// Whether the server has completed its startup sequence.
+  ///
+  /// Returns `true` if [start] has been called and completed successfully.
+  /// Note: This remains `true` even after [shutdown] is called.
+  bool get isStartupComplete => _startedTime != null;
+
+  static final _shouldPrintLifecycleMessages =
+      Platform.environment['SERVERPOD_SILENCE_LIFECYCLE_MESSAGES'] != '1';
+
+  void _writeLifecycleMessage(String message) {
+    if (_shouldPrintLifecycleMessages) {
+      log.info(message);
+    }
+  }
+
+  /// The last created [Serverpod]. In most cases the [Serverpod] is a singleton
+  /// object, although it may be possible to run multiple instances in the same
+  /// program it's not recommended.
+  static Serverpod get instance {
+    if (_instance == null) {
+      throw StateError(
+        'Serverpod has not been initialized. You need to create '
+        'the Serverpod object before calling this method.',
+      );
+    }
+    return _instance!;
+  }
+
+  /// The servers run mode as specified in [ServerpodRunMode].
+  String get runMode => config.runMode;
+
+  late final CommandLineArgs _commandLineArgs;
+
+  /// The server configuration, as read from the config/ directory.
+  late ServerpodConfig config;
+
+  /// A function to override the server configuration.
+  ///
+  /// This function is called with the default server configuration after it is
+  /// loaded from the config/ directory and before it is used to start the server.
+  /// This can be used to override the server configuration with a custom
+  /// configuration.
+  final ServerpodConfig Function(ServerpodConfig)? _configOverride;
+
+  Map<String, String> _passwords = <String, String>{};
+
+  late PasswordManager _passwordManager;
+
+  /// Custom [AuthenticationHandler] used to authenticate users.
+  AuthenticationHandler? authenticationHandler;
+
+  /// [HealthCheckHandler] for any custom health checks. This can be used to
+  /// check remotely if all services the server is depending on is up and
+  /// running.
+  ///
+  /// This parameter serves two purposes:
+  /// 1. Registering custom health checks on the legacy health endpoint.
+  /// 2. Registering custom health metrics that are stored in the database.
+  ///
+  /// For the first purpose, this parameter is deprecated in favor of the
+  /// [HealthConfig] with custom [HealthIndicator] implementations.
+  final HealthCheckHandler? healthCheckHandler;
+
+  /// Configuration for the health check system.
+  final HealthConfig _healthConfig;
+
+  late final HealthCheckService _healthCheckService;
+
+  final ExperimentalApi _experimental;
+
+  /// Access experimental features.
+  ///
+  /// Note: These features are experimental and may change or be removed
+  /// in minor version releases.
+  ExperimentalApi get experimental => _experimental;
+
+  /// [SerializationManager] used to serialize [SerializableModel], both
+  /// when sending data to a method in an [Endpoint], but also for caching, and
+  /// [FutureCall]s.
+  final DatabaseSerializationManager serializationManager;
+  late DatabaseSerializationManager _internalSerializationManager;
+
+  /// Definition of endpoints used by the server. This is typically generated.
+  final EndpointDispatch endpoints;
+
+  DatabasePoolManager? _databasePoolManager;
+
+  /// The last time a database operation was performed. This can be used to
+  /// determine if the database is sleeping.
+  DateTime? get lastDatabaseOperationTime =>
+      _databasePoolManager?.lastDatabaseOperationTime;
+
+  late Caches _caches;
+
+  /// The Redis controller used by Serverpod.
+  RedisController? redisController;
+
+  /// Caches used by the server.
+  Caches get caches => _caches;
+
+  /// The id of this [Serverpod].
+  String serverId = 'default';
+
+  /// The main server managed by this [Serverpod].
+  late Server server;
+
+  Server? _insightsServer;
+
+  /// The service server managed by this [Serverpod].
+  Server get serviceServer {
+    var service = _insightsServer;
+    if (service == null) {
+      throw StateError(
+        'Insights server is disabled, supply a Insights configuration '
+        'to enable this feature.',
+      );
+    }
+
+    return service;
+  }
+
+  WebServer? _webServer;
+
+  /// The web server managed by this [Serverpod].
+  WebServer get webServer {
+    var server = _webServer;
+    if (server == null) {
+      throw StateError(
+        'Web server is disabled, supply a web server configuration '
+        'to enable this feature.',
+      );
+    }
+    return server;
+  }
+
+  LogSettingsManager? _logSettingsManager;
+
+  LogCleanupManager? _logCleanupManager;
+
+  FutureCallManager? _futureCallManager;
+
+  final TaskManagerImpl _requestReceivingShutdownTasks = TaskManagerImpl();
+  final TaskManagerImpl _internalServicesShutdownTasks = TaskManagerImpl();
+
+  /// Cloud storages used by the serverpod. By default two storages are set up,
+  /// if the database integration is enabled. The storages are named
+  /// `public` and `private`. The default storages are using the database,
+  /// which may not be ideal for larger scale applications. Consider replacing
+  /// the storages with another service such as Google Cloud or Amazon S3,
+  /// especially in production environments.
+  final storage = <String, CloudStorage>{};
+
+  /// Adds a [CloudStorage] to the Serverpod. You can use this method to
+  /// override the default [DatabaseCloudStorage] to use S3 or Google Cloud
+  /// Storage. E.g. see the serverpod_cloud_storage_s3 pub package.
+  void addCloudStorage(CloudStorage cloudStorage) {
+    storage[cloudStorage.storageId] = cloudStorage;
+  }
+
+  internal.RuntimeSettings _defaultRuntimeSettings(String runMode) {
+    return internal.RuntimeSettings(
+      logSettings: internal.LogSettings(
+        logAllSessions: runMode == ServerpodRunMode.development,
+        logAllQueries: false,
+        logSlowSessions: true,
+        logSlowQueries: true,
+        logFailedSessions: true,
+        logFailedQueries: true,
+        logStreamingSessionsContinuously: true,
+        logLevel: runMode == ServerpodRunMode.development
+            ? internal.LogLevel.debug
+            : internal.LogLevel.info,
+        slowSessionDuration: 1.0,
+        slowQueryDuration: 1.0,
+      ),
+      logMalformedCalls: false,
+      logServiceCalls: false,
+      logSettingsOverrides: [],
+    );
+  }
+
+  late internal.RuntimeSettings _runtimeSettings;
+
+  /// Serverpod runtime settings as read from the database.
+  internal.RuntimeSettings get runtimeSettings => _runtimeSettings;
+
+  void _updateLogSettings(internal.RuntimeSettings settings) {
+    _runtimeSettings = settings;
+    _logSettingsManager = LogSettingsManager(settings);
+  }
+
+  /// Initializes the servers internal shutdown task managers and registers
+  /// shutdown tasks.
+  ///
+  /// This method is called during server startup and sets up the servers
+  /// internal task managers with all the necessary tasks to properly shutdown
+  /// the server.
+  void _initializeShutdownTaskManagers() {
+    _requestReceivingShutdownTasks.addTask(
+      'Server',
+      server.shutdown,
+    );
+
+    _requestReceivingShutdownTasks.addTask(
+      'Web Server',
+      () async => _webServer?.stop(),
+    );
+
+    _requestReceivingShutdownTasks.addTask(
+      'Service Server',
+      () async => _insightsServer?.shutdown(),
+    );
+
+    _requestReceivingShutdownTasks.addTask(
+      'Future Call Manager',
+      () async => _futureCallManager?.stop(unregisterAll: true),
+    );
+
+    _internalServicesShutdownTasks.addTask(
+      'Test Auditor',
+      () async => _shutdownTestAuditor(),
+    );
+
+    _internalServicesShutdownTasks.addTask(
+      'Internal Session',
+      _internalSession.close,
+    );
+
+    _internalServicesShutdownTasks.addTask(
+      'Internal Logging Session',
+      _internalLoggingSession.close,
+    );
+
+    _internalServicesShutdownTasks.addTask(
+      'Redis Controller',
+      () async => redisController?.stop(),
+    );
+
+    _internalServicesShutdownTasks.addTask(
+      'Health Check Manager',
+      () async => _healthCheckManager?.stop(),
+    );
+  }
+
+  /// Updates the runtime settings and writes the new settings to the database.
+  Future<void> updateRuntimeSettings(internal.RuntimeSettings settings) async {
+    _updateLogSettings(settings);
+    if (Features.enableDatabase) {
+      await _storeRuntimeSettings(settings);
+    }
+  }
+
+  /// Reloads the runtime settings from the database.
+  Future<void> reloadRuntimeSettings() async {
+    if (!Features.enableDatabase) {
+      throw StateError(
+        'The database is disabled, runtime settings are not stored in '
+        'the database.',
+      );
+    }
+
+    try {
+      var settings = await internal.RuntimeSettings.db.findFirstRow(
+        internalSession,
+      );
+      if (settings != null) {
+        _updateLogSettings(settings);
+      }
+    } catch (e, stackTrace) {
+      const message = 'Failed to reload runtime settings.';
+      _reportException(e, stackTrace, message: message);
+      return;
+    }
+  }
+
+  Future<void> _storeRuntimeSettings(internal.RuntimeSettings settings) async {
+    try {
+      var oldRuntimeSettings = await internal.RuntimeSettings.db.findFirstRow(
+        internalSession,
+      );
+      if (oldRuntimeSettings == null) {
+        settings.id = null;
+        settings = await internal.RuntimeSettings.db.insertRow(
+          internalSession,
+          settings,
+        );
+      } else {
+        settings.id = oldRuntimeSettings.id;
+        await internal.RuntimeSettings.db.updateRow(internalSession, settings);
+      }
+    } catch (e, stackTrace) {
+      _reportException(
+        e,
+        stackTrace,
+        message: 'Failed to store runtime settings',
+      );
+    }
+  }
+
+  /// Currently not used.
+  List<String>? whitelistedExternalCalls;
+
+  /// Files that are allowed to be accessed through the [InsightsEndpoint].
+  /// File paths are relative to the root directory of the server. Complete
+  /// directories (including sub directories) can be whitelisted by adding a
+  /// trailing slash.
+  Set<String> filesWhitelistedForInsights = {
+    'lib/src/generated/protocol.yaml',
+  };
+
+  HealthCheckManager? _healthCheckManager;
+
+  /// HTTP headers used by all API responses. Defaults to allowing any
+  /// cross origin resource sharing (CORS).
+  final Headers httpResponseHeaders;
+
+  /// HTTP headers used for OPTIONS responses. These headers are sent in
+  /// addition to the [httpResponseHeaders] when the request method is OPTIONS.
+  final Headers httpOptionsResponseHeaders;
+
+  static final _defaultHttpResponseHeaders = Headers.build((mh) {
+    mh.accessControlAllowOrigin =
+        const AccessControlAllowOriginHeader.wildcard();
+    mh.accessControlAllowMethods = AccessControlAllowMethodsHeader.methods(
+      [Method.post],
+    );
+  });
+
+  static final _defaultHttpOptionsResponseHeaders = Headers.build((mh) {
+    mh.accessControlAllowHeaders = AccessControlAllowHeadersHeader.headers(
+      [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'User-Agent',
+        'X-Requested-With',
+      ],
+    );
+  });
+
+  /// Security context if the insights server is running over https.
+  final SecurityContextConfig? _securityContextConfig;
+
+  /// Directory the server package lives in. Resolved against this when
+  /// loading `config/<runMode>.yaml`, `config/passwords.yaml`, and
+  /// `migrations/<module>/...`. Captured at construction time from the
+  /// `serverDirectory` parameter, falling back to [Directory.current].
+  ///
+  /// Pass this explicitly when boot-time cwd is not the server package root
+  /// (e.g. test isolates, MCP-triggered actions, or any process whose cwd
+  /// was inherited from a parent shell).
+  final Directory serverDirectory;
+
+  /// Runtime parameters builder to apply to all sessions of the connection pool.
+  ///
+  /// Use the callback function to discover runtime parameters:
+  /// ```dart
+  ///   runtimeParametersBuilder: (params) => [
+  ///     params.hnswIndexQuery(efSearch: 100),
+  ///     params.vectorIndexQuery(enableSeqScan: false),
+  ///   ],
+  /// ```
+  final RuntimeParametersListBuilder? runtimeParametersBuilder;
+
+  /// Optional interceptor that replaces the default [Database] for each session.
+  ///
+  /// Called once per session with the framework-provided [Database] as [inner].
+  /// The returned [Database] becomes [Session.db] for that session. Useful for
+  /// injecting cross-cutting behavior such as logging, tracing, metrics, tenant
+  /// scoping, policy enforcement, retries, or safety guards.
+  ///
+  /// Be aware that the [Database] class is part of the `serverpod_database`
+  /// internal package and may face breaking changes in minor version bumps.
+  final DatabaseInterceptor? databaseInterceptor;
+
+  /// Creates a new Serverpod.
+  ///
+  /// ## Experimental features
+  ///
+  /// Features marked as experimental are new and
+  /// the API and names may change from one minor release to another.
+  Serverpod(
+    List<String> args,
+    this.serializationManager,
+    this.endpoints, {
+    Directory? serverDirectory,
+    ServerpodConfig? config,
+    ServerpodConfig Function(ServerpodConfig)? configOverride,
+    this.authenticationHandler,
+    this.healthCheckHandler,
+    HealthConfig? healthConfig,
+    Headers? httpResponseHeaders,
+    Headers? httpOptionsResponseHeaders,
+    SecurityContextConfig? securityContextConfig,
+    ExperimentalFeatures? experimentalFeatures,
+    this.runtimeParametersBuilder,
+    this.databaseInterceptor,
+  }) : serverDirectory = Directory(
+         p.normalize(p.absolute((serverDirectory ?? Directory.current).path)),
+       ),
+       httpResponseHeaders = httpResponseHeaders ?? _defaultHttpResponseHeaders,
+       httpOptionsResponseHeaders =
+           httpOptionsResponseHeaders ?? _defaultHttpOptionsResponseHeaders,
+       _configOverride = configOverride,
+       _securityContextConfig = securityContextConfig,
+       _healthConfig = healthConfig ?? const HealthConfig(),
+       _experimental = ExperimentalApi._(
+         config: config,
+         experimentalFeatures: experimentalFeatures,
+       ) {
+    try {
+      _initializeServerpod(
+        args,
+        config: config,
+      );
+    } on ExitException catch (e) {
+      // Construction failed - the object is half-initialized so we
+      // can't let control return to the caller. Emit the message
+      // synchronously and exit before any async drain could return.
+      if (e.message.isNotEmpty) {
+        stderr.writeln(e.message);
+      }
+      exit(e.exitCode);
+    } catch (e, stackTrace) {
+      stderr.writeln('Error initializing Serverpod: $e');
+      stderr.writeln(stackTrace);
+      exit(1);
+    }
+  }
+
+  /// Drains the framework log chain and flushes the OS-level stdio
+  /// buffers (not drained by [exit] on non-terminal pipes), then exits.
+  void _exitAfterFlush(int code, {String? message}) {
+    () async {
+      if (message != null && message.isNotEmpty) {
+        log.error(message);
+      }
+      try {
+        await _drainLogging();
+        await (stdout.flush(), stderr.flush()).wait;
+      } catch (_) {}
+      exit(code);
+    }();
+  }
+
+  /// Drains the log chains and disposes the writers [_loggingSetup]
+  /// added.
+  Future<void> _drainLogging() async {
+    await _loggingSetup.close();
+  }
+
+  void _initializeServerpod(
+    List<String> args, {
+    ServerpodConfig? config,
+  }) {
+    _writeLifecycleMessage(
+      'SERVERPOD version: $serverpodVersion, dart: ${Platform.version}, time: ${DateTime.now().toUtc()}',
+    );
+
+    // Read command line arguments.
+    _commandLineArgs = CommandLineArgs(args);
+
+    final {
+      CliArgsConstants.runMode: String? runModeFromCommandLine,
+      CliArgsConstants.serverId: String? serverId,
+      CliArgsConstants.loggingMode: ServerpodLoggingMode? loggingMode,
+      CliArgsConstants.role: ServerpodRole? role,
+      CliArgsConstants.applyMigrations: bool? applyMigrations,
+      CliArgsConstants.applyRepairMigration: bool? applyRepairMigration,
+    } = _commandLineArgs
+        .toMap();
+
+    final runMode = _calculateRunMode(
+      runModeFromCommandLine: runModeFromCommandLine,
+      runModeFromConfig: config?.runMode,
+    );
+
+    // Load passwords
+    _passwordManager = PasswordManager(runMode: runMode);
+    _passwords = _passwordManager.loadPasswords(
+      serverDir: serverDirectory.path,
+    );
+
+    // Because `.copyWith` is not a real copyWith method (`null` is not a valid
+    // value for any of the fields), this works due to CommandLineArgs.toMap()
+    // returning a map with `null` values for any fields that were not provided.
+    // If we ever change the implementation of `.copyWith` with a real
+    // copyWith, this will break.
+    //
+    // This is a workaround to allow the command line arguments to override the
+    // config if the user provides a config object.
+    try {
+      this.config =
+          config?.copyWith(
+            runMode: runMode,
+            serverId: serverId,
+            loggingMode: loggingMode,
+            role: role,
+            applyMigrations: applyMigrations,
+            applyRepairMigration: applyRepairMigration,
+          ) ??
+          ServerpodConfig.load(
+            runMode,
+            serverId,
+            _passwords,
+            commandLineArgs: _commandLineArgs.toMap(),
+            serverDir: serverDirectory.path,
+          );
+    } on ArgumentError catch (e) {
+      throw ExitException(1, 'Error loading ServerpodConfig: ${e.message}');
+    }
+
+    // Override the server configuration with a custom configuration.
+    this.config = _configOverride?.call(this.config) ?? this.config;
+
+    // Sync instance serverId from config so Server, Caches, and log entries
+    // use the same id (e.g. from --server-id) instead of staying 'default'.
+    this.serverId = this.config.serverId;
+
+    // Sync Log's level with the configured loggingMode now that config is
+    // loaded. Without this, [logVerbose] (which dispatches through
+    // log.debug) would be silently filtered even when the user asked for
+    // verbose output.
+    if (this.config.loggingMode == ServerpodLoggingMode.verbose) {
+      log.logLevel = LogLevel.debug;
+    }
+
+    // Now that config is loaded, let the logging setup add the
+    // config-dependent session writers (text / json echo and the
+    // database persistence writer).
+    _loggingSetup.applyConfig(this.config);
+
+    _writeLifecycleMessage(_getCommandLineArgsString());
+
+    _internalLogVerbose(this.config.toString());
+
+    try {
+      _innerInitializeServerpod();
+    } catch (e, stackTrace) {
+      _reportException(
+        e,
+        stackTrace,
+        message: 'Error in Serverpod initialization',
+      );
+      rethrow;
+    }
+
+    // Initializes shutdown task manager
+    _initializeShutdownTaskManagers();
+
+    _writeLifecycleMessage(
+      'SERVERPOD initialized, time: ${DateTime.now().toUtc()}',
+    );
+  }
+
+  void _innerInitializeServerpod() {
+    _instance = this;
+    _internalSerializationManager = internal.Protocol();
+    Features(config);
+
+    // Create a temporary log manager with default settings, until we have
+    // loaded settings from the database.
+    _updateLogSettings(_defaultRuntimeSettings(runMode));
+
+    // Setup database
+    var databaseConfiguration = config.database;
+    if (Features.enableDatabase && databaseConfiguration != null) {
+      final databaseDialect = databaseConfiguration.dialect;
+      final databaseProvider = DatabaseProvider.forDialect(databaseDialect);
+      _databasePoolManager = databaseProvider.createPoolManager(
+        serializationManager,
+        runtimeParametersBuilder,
+        databaseConfiguration,
+        serverDirectory: serverDirectory,
+      );
+    }
+
+    if (Features.enableDatabase) {
+      storage.addAll({
+        'public': DatabaseCloudStorage('public'),
+        'private': DatabaseCloudStorage('private'),
+      });
+    }
+
+    // Setup Redis
+    var redis = config.redis;
+    if (Features.enableRedis && redis != null) {
+      redisController = RedisController(
+        host: redis.host,
+        port: redis.port,
+        user: redis.user,
+        password: redis.password,
+        requireSsl: redis.requireSsl,
+      );
+    }
+
+    _caches = Caches(
+      serializationManager,
+      config,
+      serverId,
+      redisController,
+    );
+
+    server = Server(
+      serverpod: this,
+      serverId: serverId,
+      port: config.apiServer.port,
+      serializationManager: serializationManager,
+      databasePoolManager: _databasePoolManager,
+      passwords: _passwords,
+      runMode: runMode,
+      caches: caches,
+      whitelistedExternalCalls: whitelistedExternalCalls,
+      endpoints: endpoints,
+      httpResponseHeaders: httpResponseHeaders,
+      httpOptionsResponseHeaders: httpOptionsResponseHeaders,
+      securityContext: _securityContextConfig?.apiServer,
+    );
+
+    endpoints.initializeEndpoints(server);
+
+    _internalSession = InternalSession(server: server, enableLogging: false);
+
+    // Attach the internal session to the database log writer (if installed)
+    // now that the database pool is up and a Session can be constructed.
+    _loggingSetup.databaseWriter?.attach(_internalSession);
+    _internalLoggingSession = InternalSession(
+      server: server,
+      enableLogging: true,
+    );
+
+    _healthCheckService = HealthCheckService(this, _healthConfig);
+
+    if (Features.enableFutureCalls) {
+      _futureCallManager = FutureCallManager(
+        server.serverpod.config.futureCall,
+        serializationManager,
+        diagnosticsService: ServerpodFutureCallDiagnosticsService(server),
+        internalSession: internalSession,
+        logSession: _internalLoggingSession,
+        sessionProvider: (String futureCallName) => FutureCallSession(
+          server: server,
+          futureCallName: futureCallName,
+        ),
+        initializeFutureCall: (FutureCall futureCall, String name) {
+          futureCall.initialize(
+            server,
+            name,
+          );
+        },
+      );
+    }
+
+    if (Features.enableScheduledHealthChecks) {
+      _healthCheckManager = HealthCheckManager(
+        this,
+        _onCompletedHealthChecks,
+        interval: config.healthCheckInterval,
+      );
+    }
+
+    if (Features.enableWebServer()) {
+      _webServer = WebServer(
+        serverpod: this,
+        securityContext: _securityContextConfig?.webServer,
+      );
+    }
+
+    if (Features.enableInsights) {
+      if (_isValidSecret(config.serviceSecret)) {
+        _insightsServer = _configureInsightsServer();
+      } else {
+        log.warning(
+          'Invalid serviceSecret in password file, Insights server disabled.',
+        );
+      }
+    }
+  }
+
+  int _exitCode = 0;
+
+  /// Starts the Serverpod and all [Server]s that it manages.
+  ///
+  /// If [runInGuardedZone] is set to true (the default),
+  /// the start function will be executed inside `runZonedGuarded`.
+  /// Any errors during the start up sequence will cause the process to exit.
+  /// Any runtime errors will be in their own error zone and will not crash the server.
+  ///
+  /// If [runInGuardedZone] is set to false, the start function will be executed in the same error zone as the caller.
+  /// An [ExitException] will be thrown if the start up sequence fails.
+  Future<void> start({bool runInGuardedZone = true}) async {
+    _startedTime = DateTime.now().toUtc();
+
+    void onZoneError(Object error, StackTrace stackTrace) {
+      if (error is ExitException) {
+        _exitAfterFlush(error.exitCode, message: error.message);
+        return;
+      }
+
+      _exitCode = 1;
+      _reportException(
+        error,
+        stackTrace,
+        message: 'Internal server error. Zoned exception.',
+      );
+    }
+
+    if (runInGuardedZone) {
+      await runZonedGuarded(() async {
+        await _unguardedStart();
+      }, onZoneError);
+    } else {
+      await _unguardedStart();
+      if (_exitCode != 0) {
+        throw ExitException(_exitCode);
+      }
+    }
+  }
+
+  Future<void> _unguardedStart() async {
+    // Register cloud store endpoint if we're using the database cloud store
+    var hasDatabaseStorage = storage.entries.any(
+      (storage) => storage.value is DatabaseCloudStorage,
+    );
+
+    if (hasDatabaseStorage) {
+      CloudStoragePublicEndpoint().register(this);
+    }
+
+    // Ensure the database pool manager has started.
+    // The call to start() is necessary in case this method is being invoked
+    // after a shutdown. Otherwise, the pool manager won't be started again.
+    _databasePoolManager?.start();
+    await _databasePoolManager?.started;
+
+    if (Features.enableMigrations) {
+      int? maxAttempts = config.role == ServerpodRole.maintenance ? 6 : null;
+      try {
+        await _connectToDatabase(
+          session: internalSession,
+          maxAttempts: maxAttempts,
+        );
+      } catch (e, stackTrace) {
+        const message = 'Failed to connect to the database.';
+        _reportException(e, stackTrace, message: message);
+        throw ExitException(1, '$message: $e');
+      }
+
+      await _applyMigrations(
+        applyRepairMigration: config.applyRepairMigration,
+        applyMigrations: config.applyMigrations,
+      );
+
+      await _loadRuntimeSettings();
+    } else if (config.applyMigrations || config.applyRepairMigration) {
+      log.warning(
+        'Migrations are disabled in this project, skipping applying migration(s).',
+      );
+      _exitCode = 1;
+    }
+
+    _updateLogSettings(_runtimeSettings);
+
+    // Connect to Redis
+    if (Features.enableRedis) {
+      _internalLogVerbose('Connecting to Redis.');
+      await redisController?.start(
+        // In local development, we want to fail fast if Redis is not available
+        // to avoid waiting for a potentially long connect timeout. This is
+        // specially important when running tests.
+        connectTimeout: runMode != ServerpodRunMode.production
+            ? const Duration(seconds: 1)
+            : null,
+        handleError: (e) {
+          if (runMode == ServerpodRunMode.production) return false;
+          log.warning(
+            'Failed to connect to Redis. Falling back to local cache.',
+          );
+          redisController = null;
+          _caches = Caches(serializationManager, config, serverId, null);
+          return true;
+        },
+      );
+    } else {
+      _internalLogVerbose('Redis is disabled, skipping.');
+    }
+
+    // Start servers.
+    if (config.role == ServerpodRole.monolith ||
+        config.role == ServerpodRole.serverless) {
+      var serversStarted = true;
+
+      ProcessSignal.sigint.watch().listen(_onInterruptSignal);
+      if (!Platform.isWindows) {
+        ProcessSignal.sigterm.watch().listen(_onShutdownSignal);
+      }
+
+      // Serverpod Insights.
+      if (Features.enableInsights) {
+        serversStarted &=
+            await _insightsServer?.start(
+              authenticationHandler: serviceAuthenticationHandler,
+            ) ??
+            true;
+      }
+
+      serversStarted &= await _startUserFacingServers();
+
+      if (!serversStarted) {
+        throw ExitException(
+          1,
+          'Failed to start the Serverpod servers, see logs for details.',
+        );
+      }
+
+      _internalLogVerbose('All servers started.');
+    }
+
+    if (_futureCallManager != null) {
+      _internalLogVerbose('Initializing future calls.');
+      endpoints.futureCalls?.initialize(
+        _futureCallManager!,
+        serverId,
+      );
+    }
+
+    // Start maintenance tasks. If we are running in maintenance mode, we
+    // will only run the maintenance tasks once. If we are applying migrations
+    // no other maintenance tasks will be run.
+    var appliedMigrations =
+        (config.applyMigrations || config.applyRepairMigration);
+    if (config.role == ServerpodRole.monolith ||
+        (config.role == ServerpodRole.maintenance && !appliedMigrations)) {
+      _internalLogVerbose('Starting maintenance tasks.');
+
+      // Start future calls
+      _completedFutureCalls = _futureCallManager == null;
+      if (!config.futureCallExecutionEnabled) {
+        _internalLogVerbose('Future call execution is disabled.');
+        _completedFutureCalls = true;
+      } else if (config.role == ServerpodRole.maintenance) {
+        unawaited(
+          _futureCallManager?.runScheduledFutureCalls().whenComplete(
+            _onCompletedFutureCalls,
+          ),
+        );
+      } else {
+        await _futureCallManager?.start();
+      }
+
+      // Start health check manager
+      _completedHealthChecks = _healthCheckManager == null;
+      await _healthCheckManager?.start();
+    }
+
+    _internalLogVerbose('Serverpod start complete.');
+
+    if (config.role == ServerpodRole.maintenance && appliedMigrations) {
+      _internalLogVerbose('Finished applying database migrations.');
+      throw ExitException(_exitCode);
+    }
+
+    if (Features.enableDatabase &&
+        config.sessionLogs.persistentEnabled == true) {
+      if (_databasePoolManager?.dialect == DatabaseDialect.sqlite) {
+        stderr.writeln(
+          'Persistent logging is not supported when using SQLite database '
+          'because it does not allow concurrent writes. Use console logging '
+          'instead.',
+        );
+      } else {
+        if (config.sessionLogs.cleanupInterval != null) {
+          _logCleanupManager = LogCleanupManager(config.sessionLogs);
+        }
+      }
+    }
+  }
+
+  Future<void> _applyMigrations({
+    required bool applyRepairMigration,
+    required bool applyMigrations,
+  }) async {
+    MigrationsApplyResult? result;
+
+    try {
+      _internalLogVerbose(
+        'Applying migrations and verifying database integrity.',
+      );
+      result = await applyMigrationsAndVerify(
+        session: internalSession,
+        projectDirectory: serverDirectory,
+        runMode: runMode,
+        applyRepairMigration: applyRepairMigration,
+        applyMigrations: applyMigrations,
+      );
+    } catch (e, stackTrace) {
+      const message = 'Failed to apply database migrations.';
+      _reportException(e, stackTrace, message: message);
+    }
+
+    final verified = result?.databaseMatchesTargetState ?? false;
+    if (!verified && config.runMode == ServerpodRunMode.development) {
+      throw ExitException(1);
+    }
+  }
+
+  Future<void> _loadRuntimeSettings() async {
+    _internalLogVerbose('Loading runtime settings.');
+
+    internal.RuntimeSettings? runtimeSettings;
+    try {
+      runtimeSettings = await internal.RuntimeSettings.db.findFirstRow(
+        internalSession,
+      );
+    } catch (e, stackTrace) {
+      _exitCode = 1;
+      const message = 'Failed to load runtime settings.';
+      _reportException(e, stackTrace, message: message);
+    }
+
+    if (runtimeSettings == null) {
+      _internalLogVerbose(
+        'Runtime settings not found, creating default settings.',
+      );
+      try {
+        runtimeSettings = await internal.RuntimeSettings.db.insertRow(
+          internalSession,
+          _runtimeSettings,
+        );
+        _runtimeSettings = runtimeSettings;
+      } catch (e, stackTrace) {
+        _exitCode = 1;
+        const message = 'Failed to store runtime settings.';
+        _reportException(e, stackTrace, message: message);
+      }
+    } else {
+      _runtimeSettings = runtimeSettings;
+      _internalLogVerbose('Runtime settings loaded.');
+    }
+  }
+
+  /// Calculates the run mode based on the command line arguments, the config,
+  /// and the environment variables.
+  ///
+  /// The command line arguments take precedence over the config and the environment variables.
+  /// The config takes precedence over the environment variables.
+  /// The environment variables take precedence over the config.
+  String _calculateRunMode({
+    String? runModeFromCommandLine,
+    String? runModeFromConfig,
+  }) {
+    if (runModeFromCommandLine != null) {
+      return runModeFromCommandLine;
+    }
+
+    if (runModeFromConfig != null) {
+      return runModeFromConfig;
+    }
+
+    final runModeFromEnv =
+        Platform.environment[ServerpodEnv.runMode.envVariable];
+    if (runModeFromEnv != null) {
+      return switch (runModeFromEnv) {
+        ServerpodRunMode.development ||
+        ServerpodRunMode.test ||
+        ServerpodRunMode.staging ||
+        ServerpodRunMode.production => runModeFromEnv,
+        _ => throw ArgumentError(
+          'Invalid run mode from environment (${ServerpodEnv.runMode.envVariable}): $runModeFromEnv',
+        ),
+      };
+    }
+
+    return ServerpodRunMode.development;
+  }
+
+  bool _completedHealthChecks = false;
+  bool _completedFutureCalls = false;
+
+  void _onCompletedHealthChecks() {
+    _internalLogVerbose('Health checks completed.');
+    _completedHealthChecks = true;
+    _checkMaintenanceTasksCompletion();
+  }
+
+  void _onCompletedFutureCalls() {
+    _internalLogVerbose('Future calls completed.');
+    _completedFutureCalls = true;
+    _checkMaintenanceTasksCompletion();
+  }
+
+  void _checkMaintenanceTasksCompletion() {
+    if (_completedFutureCalls && _completedHealthChecks) {
+      _writeLifecycleMessage('All maintenance tasks completed. Exiting.');
+      // This will exit the process in maintenance mode (and only that mode) after future calls and health checks are done.
+      throw ExitException(_exitCode);
+    }
+  }
+
+  void _onShutdownSignal(ProcessSignal signal) {
+    _writeLifecycleMessage(
+      '${signal.name} (${signal.signalNumber}) received'
+      ', time: ${DateTime.now().toUtc()}',
+    );
+    shutdown(exitProcess: true, signalNumber: signal.signalNumber);
+  }
+
+  bool _interruptSignalSent = false;
+
+  void _onInterruptSignal(ProcessSignal signal) {
+    _writeLifecycleMessage(
+      '${signal.name} (${signal.signalNumber}) received'
+      ', time: ${DateTime.now().toUtc()}',
+    );
+
+    if (_interruptSignalSent) {
+      _writeLifecycleMessage(
+        'SERVERPOD immediate exit, time: ${DateTime.now().toUtc()}',
+      );
+      _exitAfterFlush(128 + signal.signalNumber);
+      return;
+    }
+
+    _interruptSignalSent = true;
+    shutdown(exitProcess: true, signalNumber: signal.signalNumber);
+  }
+
+  Server _configureInsightsServer() {
+    var endpoints = internal.Endpoints();
+
+    var insightsServer = Server(
+      serverpod: this,
+      serverId: serverId,
+      port: config.insightsServer!.port,
+      serializationManager: _internalSerializationManager,
+      databasePoolManager: _databasePoolManager,
+      passwords: _passwords,
+      runMode: runMode,
+      name: 'Insights',
+      caches: caches,
+      endpoints: endpoints,
+      httpResponseHeaders: httpResponseHeaders,
+      httpOptionsResponseHeaders: httpOptionsResponseHeaders,
+      securityContext: _securityContextConfig?.insightsServer,
+    );
+    endpoints.initializeEndpoints(insightsServer);
+
+    return insightsServer;
+  }
+
+  /// Registers a [FutureCall] with the [Serverpod] and associates it with
+  /// the specified name.
+  void registerFutureCall(FutureCall call, String name) {
+    var futureCallManager = _futureCallManager;
+    if (futureCallManager == null) {
+      throw StateError('Future calls are disabled.');
+    }
+    _futureCallManager?.registerFutureCall(call, name);
+  }
+
+  /// Calls a [FutureCall] by its name after the specified delay, optionally
+  /// passing a [SerializableModel] object as parameter.
+  @Deprecated('Use generated future call methods instead.')
+  Future<void> futureCallWithDelay(
+    String callName,
+    SerializableModel? object,
+    Duration delay, {
+    String? identifier,
+  }) async {
+    assert(
+      server.running,
+      'Server is not running, call start() before using future calls',
+    );
+    var futureCallManager = _futureCallManager;
+    if (futureCallManager == null) {
+      throw StateError('Future calls are disabled.');
+    }
+    await _futureCallManager?.scheduleFutureCall(
+      callName,
+      object,
+      DateTime.now().toUtc().add(delay),
+      serverId,
+      identifier,
+    );
+  }
+
+  /// Calls a [FutureCall] by its name at the specified time, optionally passing
+  /// a [SerializableModel] object as parameter.
+  @Deprecated('Use generated future call methods instead.')
+  Future<void> futureCallAtTime(
+    String callName,
+    SerializableModel? object,
+    DateTime time, {
+    String? identifier,
+  }) async {
+    var futureCallManager = _futureCallManager;
+    assert(
+      server.running,
+      'Server is not running, call start() before using future calls',
+    );
+    if (futureCallManager == null) {
+      throw StateError('Future calls are disabled.');
+    }
+
+    await _futureCallManager?.scheduleFutureCall(
+      callName,
+      object,
+      time,
+      serverId,
+      identifier,
+    );
+  }
+
+  /// Cancels a [FutureCall] with the specified identifier. If no future call
+  /// with the specified identifier is found, this call will have no effect.
+  @Deprecated('Use generated future call methods instead.')
+  Future<void> cancelFutureCall(String identifier) async {
+    var futureCallManager = _futureCallManager;
+    if (futureCallManager == null) {
+      throw StateError('Future calls are disabled.');
+    }
+    await _futureCallManager?.cancelFutureCall(identifier);
+  }
+
+  /// Retrieves a password for the given key. Passwords are loaded from the
+  /// config/passwords.yaml file.
+  String? getPassword(String key) {
+    return _passwords[key];
+  }
+
+  /// Registers passwords to be loaded from the env variables.
+  /// The password can be accessed with the [getPassword] method.
+  /// The envName is the name of the environment variable that
+  /// contains the password. The alias is the key used to access the
+  /// the password with the [getPassword] method.
+  /// The alias also maps to the name in the config/passwords.yaml file.
+  /// This method may throw a [ArgumentError] if any Serverpod reserved passwords
+  /// are used as aliases or environment variables.
+  void loadCustomPasswords(
+    List<({String envName, String alias})> envPasswords,
+  ) {
+    _passwords = _passwordManager.mergePasswords(
+      envPasswords,
+      _passwords,
+      environment: Platform.environment,
+    );
+  }
+
+  /// Creates a new [InternalSession]. Used to access the database and do
+  /// logging outside of sessions triggered by external events. If you are
+  /// creating a [Session] you are responsible of calling the [close] method
+  /// when you are done.
+  Future<InternalSession> createSession({bool enableLogging = true}) async {
+    var session = InternalSession(
+      server: server,
+      enableLogging: enableLogging,
+    );
+    return session;
+  }
+
+  /// Creates a new [InternalSession], runs [callback] with it, and closes
+  /// the session afterwards. Used to access the database and do logging
+  /// outside of sessions triggered by external events, without having to
+  /// manage the session lifecycle manually.
+  ///
+  /// If [callback] throws, the session is closed with the error and
+  /// [StackTrace] attached (so they are written to the logs) before the
+  /// error is rethrown.
+  Future<T> withSession<T>(
+    Future<T> Function(Session session) callback, {
+    bool enableLogging = true,
+  }) async {
+    var session = await createSession(enableLogging: enableLogging);
+    try {
+      var result = await callback(session);
+      await session.close();
+      return result;
+    } catch (e, stackTrace) {
+      await session.close(error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Stops accepting new requests on the user-facing servers (the API
+  /// server and, if enabled, the web server), waits for in-flight requests
+  /// to settle, runs [action], then resumes request handling.
+  ///
+  /// Used during runtime operations that require the pod to be quiescent -
+  /// e.g. applying migrations through
+  /// [InsightsEndpoint.applyMigrations] - to provide the same safety
+  /// guarantees as a pod restart.
+  ///
+  /// The operator-facing Insights server is not paused, so the call that
+  /// invoked [action] can complete and return its result.
+  Future<T> withPausedRequestHandling<T>(
+    Future<T> Function() action,
+  ) async {
+    await server.shutdown();
+    await _webServer?.stop();
+    try {
+      return await action();
+    } finally {
+      await _startUserFacingServers();
+    }
+  }
+
+  /// Starts the API server and, if configured, the web server.
+  ///
+  /// The Insights server is intentionally not included - it's started
+  /// once during pod boot and stays up across pause/resume cycles
+  /// initiated through its own endpoints (e.g. applyMigrations).
+  Future<bool> _startUserFacingServers() async {
+    var ok = await server.start(
+      authenticationHandler:
+          authenticationHandler ?? defaultAuthenticationHandler,
+    );
+    if (Features.enableWebServer(_webServer)) {
+      _internalLogVerbose('Starting web server.');
+      ok &= await webServer.start();
+    } else {
+      _internalLogVerbose('Web server not configured, skipping.');
+    }
+    return ok;
+  }
+
+  /// Shuts down the Serverpod and all associated servers.
+  /// If [exitProcess] is set to false, the process will not exit at the end of
+  /// the shutdown.
+  Future<void> shutdown({
+    bool exitProcess = true,
+    int? signalNumber,
+  }) async {
+    _writeLifecycleMessage(
+      'SERVERPOD initiating shutdown, time: ${DateTime.now().toUtc()}',
+    );
+
+    Object? shutdownError;
+
+    await _requestReceivingShutdownTasks.executeTasks(
+      onTaskError: (error, stack, id) {
+        shutdownError = error;
+        _reportException(
+          error,
+          stack,
+          message: 'Error in request receiving shutdown "$id"',
+        );
+      },
+    );
+
+    await experimental._shutdownTasks.executeTasks(
+      onTaskError: (error, stack, id) {
+        shutdownError = error;
+        _reportException(error, stack, message: 'Error in shutdown task "$id"');
+      },
+    );
+
+    await _internalServicesShutdownTasks.executeTasks(
+      onTaskError: (error, stack, id) {
+        shutdownError = error;
+        _reportException(
+          error,
+          stack,
+          message: 'Error in service shutdown "$id"',
+        );
+      },
+    );
+
+    // Drain the database log writer before tearing the pool down so its
+    // in-flight close rows reach the database instead of racing pool.stop().
+    // Dispose is idempotent; if the caller owns the log setup and later
+    // closes it, the duplicate dispose is a no-op.
+    try {
+      final dbWriter = _loggingSetup.databaseWriter;
+      if (dbWriter != null) {
+        sessionLogWriter.remove(dbWriter);
+        await dbWriter.dispose();
+      }
+    } catch (e, stackTrace) {
+      shutdownError = e;
+      _reportException(
+        e,
+        stackTrace,
+        message: 'Error draining database log writer',
+      );
+    }
+
+    // This needs to be closed last as it is used by the other services.
+    try {
+      await _databasePoolManager?.stop();
+    } catch (e, stackTrace) {
+      shutdownError = e;
+      _reportException(
+        e,
+        stackTrace,
+        message: 'Error in database pool manager shutdown',
+      );
+    }
+
+    _writeLifecycleMessage(
+      'SERVERPOD shutdown completed, time: ${DateTime.now().toUtc()}',
+    );
+
+    await _drainLogging();
+
+    if (exitProcess) {
+      // On non-terminals (docker pipes, redirects) stdout is
+      // block-buffered and [exit] does not drain it, so flush
+      // explicitly before exiting.
+      await stdout.flush().catchError((_) {});
+      await stderr.flush().catchError((_) {});
+
+      // SIGTERM -> 0 (graceful), SIGINT and others -> 128 + signalNumber.
+      final conventionalExitCode = switch (signalNumber) {
+        15 => 0, // SIGTERM
+        null => 0,
+        _ => 128 + signalNumber,
+      };
+      exit(shutdownError != null ? 1 : conventionalExitCode);
+    }
+
+    if (shutdownError != null) {
+      throw shutdownError!;
+    }
+  }
+
+  /// Logs a message to the console if the logging command line argument is set
+  /// to verbose.
+  ///
+  /// Writes directly to stdout rather than through the [log] chain so that
+  /// framework-level verbose output (e.g. the error path in [Session.close]
+  /// when session logging is disabled) is visible regardless of
+  /// `sessionLogs.consoleEnabled` or writer configuration.
+  void logVerbose(String message) {
+    if (config.loggingMode == ServerpodLoggingMode.verbose) {
+      stdout.writeln(message);
+    }
+  }
+
+  /// Logs a message to the console if the logging command line argument is set
+  /// to verbose and lifecycle messages are enabled.
+  void _internalLogVerbose(String message) {
+    if (config.loggingMode == ServerpodLoggingMode.verbose) {
+      _writeLifecycleMessage(message);
+    }
+  }
+
+  void _reportException(
+    Object e,
+    StackTrace stackTrace, {
+    String? message,
+  }) {
+    log.error(
+      message ?? 'Unhandled exception',
+      error: e,
+      stackTrace: stackTrace,
+    );
+
+    internalSubmitEvent(
+      ExceptionEvent(e, stackTrace, message: message),
+      space: OriginSpace.framework,
+      context: DiagnosticEventContext(
+        serverId: serverId,
+        serverRunMode: runMode,
+        serverName: '',
+      ),
+    );
+  }
+
+  /// Establishes a connection to the database. This method will retry
+  /// connecting to the database until it succeeds.
+  Future<Session> _connectToDatabase({
+    required Session session,
+    int? maxAttempts,
+  }) async {
+    bool printedDatabaseConnectionError = false;
+    int attempts = 0;
+    while (true) {
+      attempts++;
+      try {
+        await session.db.testConnection();
+        return session;
+      } catch (e, stackTrace) {
+        if ((e is DatabaseQueryException) &&
+            e.code == PgErrorCode.invalidPassword) {
+          const passwordAuthFailedMessage =
+              'Failed to connect to the database. Password authentication failed.\n'
+              'If you are running PostgreSQL through the provided docker-compose.yaml, make sure that the password '
+              'in your passwords.yaml and the password used in the setup of the database match (check the '
+              'docker-compose.yaml).\n\n'
+              'If you are currently starting a new project and previously had a project with the same name, '
+              'the passwords will not match (each project has a randomly generated password), so you need to '
+              'delete the storage of the old project.\n\n'
+              'If you are using the included docker compose file, you can run `docker compose down -v` to '
+              'remove any volumes and start over. This will remove all data in the database. So be careful '
+              'if you are using this.';
+
+          _reportException(
+            e,
+            stackTrace,
+            message: passwordAuthFailedMessage,
+          );
+        } else {
+          const message = 'Failed to connect to the database.';
+          _reportException(e, stackTrace, message: message);
+        }
+
+        log.warning('Retrying to connect to the database in 10 seconds.');
+        if (!printedDatabaseConnectionError) {
+          log.warning('Database configuration: ${config.database}');
+          printedDatabaseConnectionError = true;
+        }
+
+        if (maxAttempts != null && attempts >= maxAttempts) {
+          throw TimeoutException(
+            'Failed to connect to the database after $maxAttempts attempts.',
+          );
+        }
+
+        await Future.delayed(const Duration(seconds: 10));
+      }
+    }
+  }
+
+  bool _isValidSecret(String? secret) {
+    return secret != null && secret.isNotEmpty && secret.length > 20;
+  }
+
+  String _getCommandLineArgsString() {
+    final ServerpodConfig(
+      :runMode,
+      :serverId,
+      :role,
+      :loggingMode,
+      :applyMigrations,
+      :applyRepairMigration,
+    ) = config;
+
+    return 'runMode: $runMode\n'
+        'serverId: $serverId\n'
+        'role: ${role.name}\n'
+        'loggingMode: ${loggingMode.name}\n'
+        'applyMigrations: $applyMigrations\n'
+        'applyRepairMigration: $applyRepairMigration';
+  }
+
+  /// The health check service for orchestrator probes.
+  ///
+  /// Provides access to the service that manages `/livez`, `/readyz`,
+  /// and `/startupz` endpoints.
+  HealthCheckService get healthCheckService => _healthCheckService;
+}
+
+// _shutdownTestAuditor is a stop-gap test approach to verify the robustness
+// of the shutdown process.
+// It is not intended to be used in production and it is not an encouraged pattern.
+// The real solution is to enable dynamic service plugins for Serverpod,
+// with which could plug in custom services for test scenarios without affecting
+// production code like this.
+Future<void>? _shutdownTestAuditor() {
+  var testThrowerDelaySeconds = int.tryParse(
+    Platform.environment['_SERVERPOD_SHUTDOWN_TEST_AUDITOR'] ?? '',
+  );
+  if (testThrowerDelaySeconds == null) {
+    return null;
+  }
+  return Future(() {
+    if (testThrowerDelaySeconds == 0) {
+      throw Exception('serverpod shutdown test auditor throwing');
+    } else {
+      return Future.delayed(
+        Duration(seconds: testThrowerDelaySeconds),
+        () {
+          throw Exception('serverpod shutdown test auditor throwing');
+        },
+      );
+    }
+  });
+}
+
+/// Experimental API for Serverpod.
+///
+/// Note: These features are experimental and may change or be removed
+/// between minor version releases.
+class ExperimentalApi {
+  final DiagnosticEventHandler _eventDispatcher;
+
+  final TaskManagerImpl _shutdownTasks;
+
+  /// Shutdown tasks can be used to perform cleanup operations before the server
+  /// is shut down. The tasks will be executed asynchronously after the server
+  /// has received the shutdown signal.
+  ///
+  /// You can use this to add custom tasks using [shutdownTasks.addTask].
+  ///
+  /// Before the shutdown tasks are executed, the server will close the api
+  /// server, web server, insights server, and future call manager.
+  TaskManager get shutdownTasks => _shutdownTasks;
+
+  ExperimentalApi._({
+    ServerpodConfig? config,
+    ExperimentalFeatures? experimentalFeatures,
+  }) : _eventDispatcher = DiagnosticEventDispatcher(
+         experimentalFeatures?.diagnosticEventHandlers ?? const [],
+         timeout: config?.experimentalDiagnosticHandlerTimeout,
+       ),
+       _shutdownTasks = TaskManagerImpl();
+
+  /// Application method for submitting a diagnostic event
+  /// to registered event handlers.
+  /// They will execute asynchronously.
+  ///
+  /// This method is for application (user space) use.
+  void submitDiagnosticEvent(
+    DiagnosticEvent event, {
+    required Session session,
+  }) {
+    return _eventDispatcher.handleEvent(
+      event,
+      space: OriginSpace.application,
+      context: contextFromSession(session),
+    );
+  }
+}
+
+/// Internal methods used by the Serverpod. These methods are not intended to
+/// be exposed to end users.
+extension ServerpodInternalMethods on Serverpod {
+  /// Retrieve the log settings manager
+  LogSettingsManager get logSettingsManager => _logSettingsManager!;
+
+  /// Retrieve the log cleanup manager
+  LogCleanupManager? get logCleanupManager => _logCleanupManager;
+
+  /// Retrieve the global internal session used by the Serverpod.
+  /// Logging is turned off.
+  Session get internalSession => _internalSession;
+
+  /// Retrieve the global internal session used by the Serverpod for logging.
+  Session get internalLoggingSession => _internalLoggingSession;
+
+  /// Submits an event to registered event handlers.
+  /// They will execute asynchronously.
+  /// This method is for internal framework use only.
+  void internalSubmitEvent(
+    DiagnosticEvent event, {
+    required OriginSpace space,
+    required DiagnosticEventContext context,
+  }) {
+    return _experimental._eventDispatcher.handleEvent(
+      event,
+      space: space,
+      context: context,
+    );
+  }
+}

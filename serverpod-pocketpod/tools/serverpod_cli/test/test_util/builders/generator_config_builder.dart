@@ -1,0 +1,201 @@
+import 'dart:io';
+
+import 'package:serverpod_cli/src/config/config.dart';
+import 'package:serverpod_cli/src/config/experimental_feature.dart';
+import 'package:serverpod_cli/src/config/serverpod_feature.dart';
+import 'package:serverpod_cli/src/generator/types.dart';
+import 'package:serverpod_shared/serverpod_shared.dart';
+
+const _defaultName = 'example';
+const _defaultType = PackageType.server;
+
+class GeneratorConfigBuilder {
+  String _name;
+  PackageType _type;
+  String _serverPackage;
+  String _dartClientPackage;
+  bool _dartClientDependsOnServiceClient;
+  List<String> _serverPackageDirectoryPathParts;
+  Map<String, List<String>> _sharedModelsSourcePathsParts;
+  List<String> _relativeDartClientPackagePathParts;
+  List<ModuleConfig> _modules;
+  List<TypeDefinition> _extraClasses;
+  bool _serializeAsJsonbByDefault;
+  List<ServerpodFeature> _enabledFeatures;
+  DatabaseDialect _databaseDialect;
+  List<ExperimentalFeature> _enabledExperimentalFeatures;
+  List<String>? _relativeServerTestToolsPathParts;
+
+  GeneratorConfigBuilder()
+    : _name = _defaultName,
+      _type = _defaultType,
+      _serverPackage = 'example_server',
+      _dartClientPackage = 'example_client',
+      _dartClientDependsOnServiceClient = false,
+      _serverPackageDirectoryPathParts = [],
+      _sharedModelsSourcePathsParts = {},
+      _relativeDartClientPackagePathParts = ['..', 'example_client'],
+      _modules = [
+        ModuleConfig(
+          type: PackageType.internal,
+          name: 'serverpod',
+          nickname: 'serverpod',
+          migrationVersions: ['0000000000000000000'],
+          serverPackageDirectoryPathParts: [],
+        ),
+        ModuleConfig(
+          type: _defaultType,
+          name: _defaultName,
+          nickname: _defaultName,
+          migrationVersions: ['0000000000000000000'],
+          serverPackageDirectoryPathParts: [],
+        ),
+      ],
+      _extraClasses = [],
+      _serializeAsJsonbByDefault = false,
+      _enabledFeatures = [ServerpodFeature.database],
+      _databaseDialect = DatabaseDialect.postgres,
+      _enabledExperimentalFeatures = [];
+
+  GeneratorConfigBuilder withName(String name) {
+    _name = name;
+    _serverPackage = '${name}_server';
+    _dartClientPackage = '${name}_client';
+    _relativeDartClientPackagePathParts = ['..', '${name}_client'];
+    return this;
+  }
+
+  GeneratorConfigBuilder withPackageType(PackageType type) {
+    _type = type;
+    return this;
+  }
+
+  GeneratorConfigBuilder withDartClientDependsOnServiceClient(
+    bool dartClientDependsOnServiceClient,
+  ) {
+    _dartClientDependsOnServiceClient = dartClientDependsOnServiceClient;
+    return this;
+  }
+
+  GeneratorConfigBuilder withServerPackageDirectoryPathParts(
+    List<String> serverPackageDirectoryPathParts,
+  ) {
+    _serverPackageDirectoryPathParts = serverPackageDirectoryPathParts;
+    return this;
+  }
+
+  GeneratorConfigBuilder withSharedModelsSourcePathsParts(
+    Map<String, List<String>> sharedModelsSourcePathsParts,
+  ) {
+    _sharedModelsSourcePathsParts = sharedModelsSourcePathsParts;
+    return this;
+  }
+
+  GeneratorConfigBuilder withRelativeDartClientPackagePathParts(
+    List<String> relativeDartClientPackagePathParts,
+  ) {
+    _relativeDartClientPackagePathParts = relativeDartClientPackagePathParts;
+    return this;
+  }
+
+  GeneratorConfigBuilder withServerPackage(String serverPackage) {
+    _serverPackage = serverPackage;
+    return this;
+  }
+
+  GeneratorConfigBuilder withDartClientPackage(String dartClientPackage) {
+    _dartClientPackage = dartClientPackage;
+    return this;
+  }
+
+  GeneratorConfigBuilder withAuthModule() {
+    _modules.add(
+      ModuleConfig(
+        type: PackageType.module,
+        name: 'serverpod_auth',
+        nickname: 'auth',
+        migrationVersions: ['0000000000000000000'],
+        serverPackageDirectoryPathParts: [],
+      ),
+    );
+    return this;
+  }
+
+  GeneratorConfigBuilder withModules(List<ModuleConfig> modules) {
+    _modules = modules;
+    return this;
+  }
+
+  GeneratorConfigBuilder withExtraClasses(List<TypeDefinition> extraClasses) {
+    _extraClasses = extraClasses;
+    return this;
+  }
+
+  GeneratorConfigBuilder withEnabledSerializeAsJsonbByDefault() {
+    _serializeAsJsonbByDefault = true;
+    return this;
+  }
+
+  GeneratorConfigBuilder withEnabledFeatures(List<ServerpodFeature> features) {
+    _enabledFeatures = features;
+    return this;
+  }
+
+  GeneratorConfigBuilder withDatabaseDialect(DatabaseDialect databaseDialect) {
+    _databaseDialect = databaseDialect;
+    return this;
+  }
+
+  GeneratorConfigBuilder withEnabledExperimentalFeatures(
+    List<ExperimentalFeature> features,
+  ) {
+    _enabledExperimentalFeatures = features;
+    return this;
+  }
+
+  GeneratorConfigBuilder withRelativeServerTestToolsPathParts(
+    List<String>? relativeServerTestToolsPathParts,
+  ) {
+    _relativeServerTestToolsPathParts = relativeServerTestToolsPathParts;
+    return this;
+  }
+
+  GeneratorConfig build() {
+    return GeneratorConfig(
+      name: _name,
+      type: _type,
+      serverPackage: _serverPackage,
+      dartClientPackage: _dartClientPackage,
+      dartClientDependsOnServiceClient: _dartClientDependsOnServiceClient,
+      serverPackageDirectoryPathParts: _serverPackageDirectoryPathParts,
+      sharedModelsSourcePathsParts: _sharedModelsSourcePathsParts,
+      relativeDartClientPackagePathParts: _relativeDartClientPackagePathParts,
+      modules: _modules,
+      extraClasses: _extraClasses,
+      serializeAsJsonbByDefault: _serializeAsJsonbByDefault,
+      enabledFeatures: _enabledFeatures,
+      databaseDialect: _databaseDialect,
+      experimentalFeatures: _enabledExperimentalFeatures,
+      relativeServerTestToolsPathParts: _relativeServerTestToolsPathParts,
+    );
+  }
+}
+
+/// Builds a minimal server [GeneratorConfig] rooted at [projectDir], for
+/// integration tests that generate code from a temporary project.
+GeneratorConfig buildTestServerConfig(Directory projectDir) {
+  return GeneratorConfigBuilder()
+      .withName('test')
+      .withServerPackageDirectoryPathParts([projectDir.path])
+      .withRelativeDartClientPackagePathParts(['test_client'])
+      .withModules([
+        ModuleConfig(
+          type: PackageType.server,
+          name: 'test',
+          nickname: 'test',
+          migrationVersions: [],
+          serverPackageDirectoryPathParts: [projectDir.path],
+        ),
+      ])
+      .build();
+}

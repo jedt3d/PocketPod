@@ -1,0 +1,80 @@
+import 'package:code_builder/code_builder.dart';
+import 'package:dart_style/dart_style.dart';
+import 'package:pub_semver/pub_semver.dart';
+import 'package:serverpod_cli/analyzer.dart';
+import 'package:serverpod_cli/src/util/serverpod_cli_logger.dart';
+
+/// A code generator is responsible for generating the code for the target
+/// language.
+abstract class CodeGenerator {
+  /// Create a new [CodeGenerator].
+  const CodeGenerator();
+
+  /// Generates the content of files that only depend the [SerializableModel].
+  ///
+  /// Returns a map where they key is the path of the file and the value is
+  /// the file's content.
+  ///
+  /// Relative paths start at the server package directory.
+  ///
+  /// Called and generated before [generateProtocolCode].
+  Map<String, String> generateSerializableModelsCode({
+    required List<SerializableModelDefinition> models,
+    required GeneratorConfig config,
+  });
+
+  /// Generate the content of files that depend on the entire
+  /// [ProtocolDefinition].
+  ///
+  /// Returns a map where they key is the path of the file and the value is
+  /// the file's content.
+  ///
+  /// Relative paths start at the server package directory.
+  ///
+  /// At the time this is called, [generateSerializableModelsCode] should
+  /// already be called and generated.
+  Map<String, String> generateProtocolCode({
+    required ProtocolDefinition protocolDefinition,
+    required GeneratorConfig config,
+  });
+}
+
+extension GenerateCode on Library {
+  String generateCode({Allocator? allocator}) {
+    var code = accept(
+      DartEmitter(
+        useNullSafetySyntax: true,
+        allocator: allocator ?? Allocator.simplePrefixing(),
+      ),
+    ).toString();
+
+    try {
+      return DartFormatter(
+        languageVersion: Version(3, 10, 0),
+        trailingCommas: TrailingCommas.preserve,
+      ).format('$_fileHeader${ignoreForFile.isEmpty ? '\n' : ''}$code');
+    } on FormatterException catch (e) {
+      const maxErrorLength = 4000;
+      final message = e.toString();
+      log.error(
+        message.length > maxErrorLength
+            ? '${message.substring(0, maxErrorLength)}\n\n... (truncated, ${message.length - maxErrorLength} more characters)'
+            : message,
+      );
+    }
+    return code;
+  }
+}
+
+const _fileHeader = '''
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+''';

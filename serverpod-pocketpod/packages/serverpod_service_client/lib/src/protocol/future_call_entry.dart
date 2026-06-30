@@ -1,0 +1,159 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import 'future_call_scheduling.dart' as _i2;
+import 'package:serverpod_service_client/src/protocol/protocol.dart' as _i3;
+
+/// A serialized future call with bindings to the database.
+abstract class FutureCallEntry implements _i1.SerializableModel {
+  FutureCallEntry._({
+    this.id,
+    required this.name,
+    required this.time,
+    this.serializedObject,
+    required this.serverId,
+    this.identifier,
+    this.scheduling,
+  });
+
+  factory FutureCallEntry({
+    int? id,
+    required String name,
+    required DateTime time,
+    String? serializedObject,
+    required String serverId,
+    String? identifier,
+    _i2.FutureCallScheduling? scheduling,
+  }) = _FutureCallEntryImpl;
+
+  factory FutureCallEntry.fromJson(Map<String, dynamic> jsonSerialization) {
+    return FutureCallEntry(
+      id: jsonSerialization['id'] as int?,
+      name: jsonSerialization['name'] as String,
+      time: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['time']),
+      serializedObject: jsonSerialization['serializedObject'] as String?,
+      serverId: jsonSerialization['serverId'] as String,
+      identifier: jsonSerialization['identifier'] as String?,
+      scheduling: jsonSerialization['scheduling'] == null
+          ? null
+          : _i3.Protocol().deserialize<_i2.FutureCallScheduling>(
+              jsonSerialization['scheduling'],
+            ),
+    );
+  }
+
+  /// The database id, set if the object has been inserted into the
+  /// database or if it has been fetched from the database. Otherwise,
+  /// the id will be null.
+  int? id;
+
+  /// Name of the future call. Used to find the correct method to call.
+  String name;
+
+  /// Time to execute the call.
+  DateTime time;
+
+  /// The serialized object, used as a parameter to the call.
+  String? serializedObject;
+
+  /// The id of the server where the call was created.
+  String serverId;
+
+  /// An optional identifier which can be used to cancel the call.
+  String? identifier;
+
+  /// Specifies how recurring calls should be scheduled.
+  /// This field is null for one-off future calls.
+  _i2.FutureCallScheduling? scheduling;
+
+  /// Returns a shallow copy of this [FutureCallEntry]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  FutureCallEntry copyWith({
+    int? id,
+    String? name,
+    DateTime? time,
+    String? serializedObject,
+    String? serverId,
+    String? identifier,
+    _i2.FutureCallScheduling? scheduling,
+  });
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      '__className__': 'serverpod.FutureCallEntry',
+      if (id != null) 'id': id,
+      'name': name,
+      'time': time.toJson(),
+      if (serializedObject != null) 'serializedObject': serializedObject,
+      'serverId': serverId,
+      if (identifier != null) 'identifier': identifier,
+      if (scheduling != null) 'scheduling': scheduling?.toJson(),
+    };
+  }
+
+  @override
+  String toString() {
+    return _i1.SerializationManager.encode(this);
+  }
+}
+
+class _Undefined {}
+
+class _FutureCallEntryImpl extends FutureCallEntry {
+  _FutureCallEntryImpl({
+    int? id,
+    required String name,
+    required DateTime time,
+    String? serializedObject,
+    required String serverId,
+    String? identifier,
+    _i2.FutureCallScheduling? scheduling,
+  }) : super._(
+         id: id,
+         name: name,
+         time: time,
+         serializedObject: serializedObject,
+         serverId: serverId,
+         identifier: identifier,
+         scheduling: scheduling,
+       );
+
+  /// Returns a shallow copy of this [FutureCallEntry]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  @override
+  FutureCallEntry copyWith({
+    Object? id = _Undefined,
+    String? name,
+    DateTime? time,
+    Object? serializedObject = _Undefined,
+    String? serverId,
+    Object? identifier = _Undefined,
+    Object? scheduling = _Undefined,
+  }) {
+    return FutureCallEntry(
+      id: id is int? ? id : this.id,
+      name: name ?? this.name,
+      time: time ?? this.time,
+      serializedObject: serializedObject is String?
+          ? serializedObject
+          : this.serializedObject,
+      serverId: serverId ?? this.serverId,
+      identifier: identifier is String? ? identifier : this.identifier,
+      scheduling: scheduling is _i2.FutureCallScheduling?
+          ? scheduling
+          : this.scheduling?.copyWith(),
+    );
+  }
+}

@@ -1,0 +1,312 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
+import 'package:serverpod_database/serverpod_database.dart';
+import 'package:serverpod_service_client/serverpod_service_client.dart';
+import 'package:serverpod/protocol.dart' as serverProtocol;
+
+var _moduleName = 'serverpod_test';
+
+var _databaseDialect = DatabaseDialect.postgres;
+
+abstract class MigrationTestUtils {
+  static Future<void> createInitialState({
+    required List<Map<String, String>> migrationProtocols,
+    String tag = 'test',
+  }) async {
+    for (var protocols in migrationProtocols) {
+      var exitCode = await createMigrationFromProtocols(
+        protocols: protocols,
+        tag: tag,
+      );
+
+      assert(
+        exitCode == 0,
+        'Failed to create migration.',
+      );
+    }
+
+    assert(
+      await runApplyMigrations() == 0,
+      'Failed to create migration.',
+    );
+  }
+
+  static Future<int> createMigrationFromProtocols({
+    required Map<String, String> protocols,
+    String tag = 'test',
+    bool force = false,
+  }) async {
+    _removeMigrationTestProtocolFolder();
+    _migrationProtocolTestDirectory().createSync(recursive: true);
+
+    protocols.forEach((fileName, contents) {
+      var protocolFile = File(
+        path.join(
+          _migrationProtocolTestDirectory().path,
+          '$fileName.yaml',
+        ),
+      );
+
+      protocolFile.writeAsStringSync(contents);
+    });
+
+    var exitCode = await _runProcess(
+      'serverpod',
+      arguments: [
+        'create-migration',
+        '--tag',
+        tag,
+        if (force) '--force',
+        // '--verbose',
+        '--no-analytics',
+        '--experimental-features=all',
+      ],
+    );
+
+    // Ensures that another migration is never created with the same millisecond.
+    await Future.delayed(Duration(milliseconds: 2));
+
+    return exitCode;
+  }
+
+  static String readMigrationRegistryFile() {
+    var migrationRegistryFile = File(
+      path.join(
+        _migrationsProjectDirectory().path,
+        'migration_registry.txt',
+      ),
+    );
+
+    return migrationRegistryFile.readAsStringSync();
+  }
+
+  static Future<List<String>> loadMigrationRegistry() async {
+    var artifactStore = FileSystemMigrationArtifactStore(
+      projectDirectory: Directory.current,
+    );
+    return artifactStore.listVersions();
+  }
+
+  static Future<void> migrationTestCleanup({
+    String? resetSql,
+    required Client serviceClient,
+  }) async {
+    await migrationArtifactsCleanup();
+    if (resetSql != null) {
+      await _resetDatabase(resetSql: resetSql, serviceClient: serviceClient);
+    }
+    await _setDatabaseMigrationToLatestInRegistry(serviceClient: serviceClient);
+  }
+
+  /// Removes tagged migrations, repair migration, protocol test files, and
+  /// rewrites the migration registry from disk, without contacting the server.
+  ///
+  /// For tests that only run `create-migration` (no apply) and must not require
+  /// a running database.
+  static Future<void> migrationArtifactsCleanup() async {
+    removeAllTaggedMigrations();
+    removeRepairMigration();
+    _removeMigrationTestProtocolFolder();
+    await _recreateMigrationRegistryFile();
+  }
+
+  static Future<void> _recreateMigrationRegistryFile() async {
+    var artifactStore = FileSystemMigrationArtifactStore(
+      projectDirectory: Directory.current,
+    );
+    var versions = await artifactStore.listVersions();
+    await artifactStore.writeVersionRegistry(versions);
+  }
+
+  static void removeRepairMigration() {
+    var repairMigrationDirectory = _repairMigrationDirectory();
+    if (repairMigrationDirectory.existsSync()) {
+      repairMigrationDirectory.deleteSync(recursive: true);
+    }
+  }
+
+  static void removeAllTaggedMigrations() {
+    for (var model in _migrationsProjectDirectory().listSync()) {
+      if (model is Directory) {
+        if (path.basename(model.path).contains('-')) {
+          model.deleteSync(recursive: true);
+        }
+      }
+    }
+  }
+
+  static Future<int> runApplyMigrations() async {
+    return await _runProcess(
+      'dart',
+      arguments: [
+        'run',
+        'bin/main.dart',
+        '--apply-migrations',
+        '--role',
+        'maintenance',
+        '--mode',
+        'production',
+        // '--logging',
+        // 'verbose',
+      ],
+    );
+  }
+
+  static Future<int> runApplyRepairMigration() async {
+    return await _runProcess(
+      'dart',
+      arguments: [
+        'run',
+        'bin/main.dart',
+        '--apply-repair-migration',
+        '--role',
+        'maintenance',
+        '--mode',
+        'production',
+        // '--logging',
+        // 'verbose',
+      ],
+    );
+  }
+
+  static Future<int> runApplyBothRepairMigrationAndMigrations() async {
+    return await _runProcess(
+      'dart',
+      arguments: [
+        'run',
+        'bin/main.dart',
+        '--apply-repair-migration',
+        '--apply-migrations',
+        '--role',
+        'maintenance',
+        '--mode',
+        'production',
+        // '--logging',
+        // 'verbose',
+      ],
+    );
+  }
+
+  static Future<int> runCreateRepairMigration({
+    String tag = 'test',
+    bool force = false,
+    String? targetVersion,
+  }) async {
+    return await _runProcess(
+      'serverpod',
+      arguments: [
+        'create-repair-migration',
+        '--tag',
+        tag,
+        '--mode',
+        'production',
+        if (targetVersion != null) ...['--version', targetVersion],
+        if (force) '--force',
+        // '--verbose',
+        '--no-analytics',
+      ],
+    );
+  }
+
+  static File? tryLoadRepairMigrationFile() {
+    var repairMigrationDirectory = _repairMigrationDirectory();
+    if (!repairMigrationDirectory.existsSync()) {
+      return null;
+    }
+
+    var repairMigrationFiles = repairMigrationDirectory.listSync();
+    if (repairMigrationFiles.isEmpty) {
+      return null;
+    }
+
+    return repairMigrationFiles.first as File;
+  }
+
+  static void setModuleName(String moduleName) {
+    _moduleName = moduleName;
+  }
+
+  static void setDatabaseDialect(DatabaseDialect dialect) {
+    _databaseDialect = dialect;
+  }
+
+  static Directory _migrationProtocolTestDirectory() => Directory(
+    path.join(
+      Directory.current.path,
+      'lib',
+      'src',
+      'protocol',
+      'migration_test_protocol_files',
+    ),
+  );
+
+  static Directory _repairMigrationDirectory() => Directory(
+    path.join(
+      Directory.current.path,
+      'repair-migration',
+    ),
+  );
+
+  static Directory _migrationsProjectDirectory() => Directory(
+    path.join(
+      Directory.current.path,
+      'migrations',
+    ),
+  );
+
+  static void _removeMigrationTestProtocolFolder() {
+    var protocolDirectory = _migrationProtocolTestDirectory();
+    if (protocolDirectory.existsSync()) {
+      protocolDirectory.deleteSync(recursive: true);
+    }
+  }
+
+  static Future<void> _resetDatabase({
+    required Client serviceClient,
+    required String resetSql,
+  }) async {
+    await serviceClient.insights.executeSql(resetSql);
+  }
+
+  static Future<void> _setDatabaseMigrationToLatestInRegistry({
+    required Client serviceClient,
+  }) async {
+    var versions = await loadMigrationRegistry();
+    var latestMigration = versions.lastOrNull;
+
+    var timestampSql = switch (_databaseDialect) {
+      DatabaseDialect.sqlite => "(unixepoch('subsecond') * 1000)",
+      DatabaseDialect.postgres => 'now()',
+    };
+
+    await serviceClient.insights.executeSql('''
+INSERT INTO "${serverProtocol.DatabaseMigrationVersion.t.tableName}"
+    ("module", "version", "timestamp")
+    VALUES ('$_moduleName', '$latestMigration', $timestampSql)
+    ON CONFLICT ("module")
+    DO UPDATE SET "version" = '$latestMigration';
+''');
+  }
+
+  static Future<int> _runProcess(
+    String command, {
+    List<String>? arguments,
+    Directory? workingDirectory,
+  }) async {
+    var process = await Process.start(
+      command,
+      arguments ?? [],
+      workingDirectory: workingDirectory?.path ?? Directory.current.path,
+      environment: {
+        'SERVERPOD_HOME': path.join(Directory.current.path, '..', '..'),
+      },
+    );
+
+    process.stderr.transform(utf8.decoder).listen(print);
+    process.stdout.transform(utf8.decoder).listen(print);
+
+    return await process.exitCode;
+  }
+}

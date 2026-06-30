@@ -1,0 +1,63 @@
+# Files and directories created by pub
+.packages
+.pub/
+build/
+# If you're building an application, you may want to check-in your pubspec.lock
+pubspec.lock
+
+# Directory created by dartdoc
+# If you don't generate documentation locally you can remove this line.
+doc/api/
+
+*.iml
+*.ipr
+*.iws
+
+**/devtools_options.yaml
+**/pubspec_overrides.yaml
+
+
+.DS_Store
+.atom/
+.idea
+.vscode/
+.vscode-test/
+.packages
+.pub/
+.fvm/
+build/
+ios/.generated/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool
+google_client_secret.json
+firebase_service_account_key.json
+firebase_options.dart
+temp/
+tests/temp
+templates/serverpod_templates/projectname_flutter/android
+templates/serverpod_templates/projectname_flutter/ios
+templates/serverpod_templates/projectname_flutter/macos
+templates/serverpod_templates/projectname_server/deploy/gcp/.terraform
+templates/serverpod_templates/projectname_client/lib/src/
+templates/serverpod_templates/projectname_server/lib/src/generated/
+templates/serverpod_templates/projectname_server/test/integration/test_tools/
+templates/serverpod_templates/projectname_server_upgrade/test/
+templates/serverpod_templates/modulename_client/lib/src/
+templates/serverpod_templates/modulename_server/lib/src/generated/
+templates/serverpod_templates/modulename_server/test/integration/test_tools/
+.asdf
+.tool-versions
+.cursor
+.claude
+.augment
+.openhands
+
+# Embedded PostgreSQL runtime artifacts (data dir, sockets, pidfiles)
+.serverpod/
+
+# Integration test credentials (never commit)
+integrations/.env.test
+.env.test
+PLAN.md

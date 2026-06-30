@@ -1,0 +1,9 @@
+benchmark:
+  - reset:
+  - seed:
+  - readOne:
+  - readList:
+  - writeOne:
+  - count:
+greeting:
+  - hello:

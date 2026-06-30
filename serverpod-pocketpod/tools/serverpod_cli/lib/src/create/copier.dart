@@ -1,0 +1,138 @@
+import 'dart:io';
+
+import 'package:cli_tools/cli_tools.dart';
+import 'package:path/path.dart' as p;
+import 'package:serverpod_cli/src/util/serverpod_cli_logger.dart';
+
+class Copier {
+  static const _uncommentMarker = '#--UNCOMMENT_LINE--#';
+
+  Directory srcDir;
+  Directory dstDir;
+
+  List<Replacement> replacements;
+  List<Replacement> fileNameReplacements;
+
+  List<String> removePatterns;
+
+  Set<String> ignoreFileNames;
+
+  bool processUncommentMarker;
+
+  final List<String> _writtenPaths = [];
+
+  Copier({
+    required this.srcDir,
+    required this.dstDir,
+    required this.replacements,
+    required this.fileNameReplacements,
+    this.removePatterns = const <String>[],
+    List<String> ignoreFileNames = const <String>[],
+    this.processUncommentMarker = true,
+  }) : ignoreFileNames = ignoreFileNames.toSet()
+         // Automatically ignore files that might exist in the local clone of
+         // the Serverpod repository when using a local built CLI.
+         ..addAll(['pubspec.lock', 'pubspec_overrides.yaml']);
+
+  /// Copies the template tree into [dstDir] and returns the absolute
+  /// paths of every file written.
+  List<String> copyFiles() {
+    _copyDirectory(srcDir, '');
+    return _writtenPaths;
+  }
+
+  void _copyDirectory(Directory dir, String relativePath) {
+    for (var model in dir.listSync()) {
+      var modelName = p.basename(model.path);
+      if (ignoreFileNames.contains(modelName)) continue;
+      if (modelName.startsWith('.')) continue;
+
+      if (model is File) {
+        _copyFile(model, relativePath);
+      }
+      if (model is Directory) {
+        var dirName = p.basename(model.path);
+        _copyDirectory(model, p.join(relativePath, dirName));
+      }
+    }
+  }
+
+  void _copyFile(File srcFile, String relativePath) {
+    var fileName = p.basename(srcFile.path);
+    if (fileName.startsWith('.')) return;
+
+    // Ignore melos project files.
+    if (fileName.startsWith('melos_') && fileName.endsWith('.iml')) return;
+
+    var dstFileName = _replace(
+      p.join(relativePath, fileName),
+      fileNameReplacements,
+    );
+    log.debug(
+      p.join(dstDir.path, relativePath, fileName),
+      type: TextLogType.bullet,
+    );
+
+    var dstFile = File(p.join(dstDir.path, dstFileName));
+    var contents = srcFile.readAsStringSync();
+    contents = _replace(contents, replacements);
+    contents = _filterLines(contents, removePatterns);
+    if (processUncommentMarker) {
+      contents = _uncommentLines(contents);
+    }
+    dstFile.createSync(recursive: true);
+    dstFile.writeAsStringSync(contents);
+    _writtenPaths.add(dstFile.path);
+  }
+
+  String _replace(String str, List<Replacement> replacements) {
+    for (var replacement in replacements) {
+      str = str.replaceAll(replacement.slotName, replacement.replacement);
+    }
+    return str;
+  }
+
+  String _filterLines(String str, List<String> removePatterns) {
+    var processedLines = <String>[];
+    var lines = str.split('\n');
+
+    for (var line in lines) {
+      if (removePatterns.any((pattern) => line.contains(pattern))) continue;
+      processedLines.add(line);
+    }
+
+    return processedLines.join('\n');
+  }
+
+  String _uncommentLines(String str) {
+    var lines = str.split('\n');
+    var processedLines = <String>[];
+
+    for (var line in lines) {
+      var processedLine = line;
+      if (line.contains(_uncommentMarker)) {
+        processedLine = processedLine
+            .replaceAll(_uncommentMarker, '')
+            .trimRight();
+        // Remove leading #(s) while preserving indentation
+        final match = RegExp(r'^(\s*)#+(.*)$').firstMatch(processedLine);
+        if (match != null) {
+          processedLine = '${match.group(1)}${match.group(2)}';
+        }
+      }
+      processedLines.add(processedLine);
+    }
+
+    return processedLines.join('\n');
+  }
+}
+
+class Replacement {
+  final String slotName;
+  final String replacement;
+
+  const Replacement({
+    required this.slotName,
+    required this.replacement,
+  });
+}

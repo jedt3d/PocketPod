@@ -1,0 +1,117 @@
+import 'dart:async';
+
+import 'package:serverpod/serverpod.dart';
+
+import '../../../../../core.dart';
+import '../../../common/id_token_verifier/id_token_verifier_config.dart';
+import '../../../utils/get_passwords_extension.dart';
+import 'firebase_idp.dart';
+import 'firebase_idp_utils.dart';
+import 'firebase_service_account_credentials.dart';
+
+/// Function to be called to check whether Firebase account details match the
+/// requirements during registration.
+typedef FirebaseAccountDetailsValidation =
+    void Function(
+      FirebaseAccountDetails accountDetails,
+    );
+
+/// Callback to be invoked after a new Firebase account has been created and
+/// linked to an auth user. The [session] and [transaction] can be used to
+/// perform additional database operations.
+typedef AfterFirebaseAccountCreatedFunction =
+    FutureOr<void> Function(
+      Session session,
+      AuthUserModel authUser,
+      FirebaseAccount firebaseAccount, {
+      required Transaction? transaction,
+    });
+
+/// Configuration for the Firebase identity provider.
+class FirebaseIdpConfig extends IdentityProviderBuilder<FirebaseIdp> {
+  /// The Firebase service account credentials.
+  ///
+  /// Only the [FirebaseServiceAccountCredentials.projectId] is required for
+  /// token verification.
+  final FirebaseServiceAccountCredentials credentials;
+
+  /// Validation function for Firebase account details.
+  ///
+  /// This function should throw an exception if the account details do not
+  /// match the requirements. If the function returns normally, the account
+  /// is considered valid.
+  ///
+  /// It can be used to enforce additional requirements on the Firebase account
+  /// details before allowing the user to sign in, such as requiring a verified
+  /// email or specific email domains.
+  final FirebaseAccountDetailsValidation firebaseAccountDetailsValidation;
+
+  /// Callback to be invoked after a new Firebase account has been created
+  /// and linked to an auth user.
+  ///
+  /// This can be used to perform additional setup tasks after the Firebase
+  /// account has been created and linked.
+  final AfterFirebaseAccountCreatedFunction? onAfterFirebaseAccountCreated;
+
+  /// Tolerance for clock skew when validating Firebase ID token timestamps.
+  final Duration clockSkewTolerance;
+
+  /// Creates a new instance of [FirebaseIdpConfig].
+  const FirebaseIdpConfig({
+    required this.credentials,
+    this.firebaseAccountDetailsValidation = validateFirebaseAccountDetails,
+    this.onAfterFirebaseAccountCreated,
+    this.clockSkewTolerance = defaultIdTokenClockSkewTolerance,
+  });
+
+  /// Default validation function for extracted Firebase account details.
+  ///
+  /// By default, this validates that the email is verified. Override this
+  /// to implement custom validation logic.
+  static void validateFirebaseAccountDetails(
+    final FirebaseAccountDetails accountDetails,
+  ) {
+    // Firebase accounts may not have email if using phone auth
+    // Only validate verifiedEmail if email is present
+    if (accountDetails.email != null && accountDetails.verifiedEmail != true) {
+      throw FirebaseUserInfoMissingDataException();
+    }
+  }
+
+  @override
+  FirebaseIdp build({
+    required final TokenManager tokenManager,
+    required final AuthUsers authUsers,
+    required final UserProfiles userProfiles,
+  }) {
+    return FirebaseIdp(
+      this,
+      tokenIssuer: tokenManager,
+      authUsers: authUsers,
+      userProfiles: userProfiles,
+    );
+  }
+}
+
+/// Creates a new [FirebaseIdpConfig] from keys on the `passwords.yaml` file.
+///
+/// This constructor requires that a [Serverpod] instance has already been
+/// initialized.
+///
+/// The password key should be `firebaseServiceAccountKey` and contain the
+/// entire service account JSON as a string.
+class FirebaseIdpConfigFromPasswords extends FirebaseIdpConfig {
+  /// Creates a new [FirebaseIdpConfigFromPasswords] instance.
+  FirebaseIdpConfigFromPasswords({
+    super.firebaseAccountDetailsValidation,
+    super.onAfterFirebaseAccountCreated,
+    super.clockSkewTolerance,
+  }) : super(
+         credentials: FirebaseServiceAccountCredentials.fromJsonString(
+           Serverpod.instance.getPasswordOrThrow('firebaseServiceAccountKey'),
+         ),
+       );
+}
+
+/// Exception thrown when the user info from Firebase is missing required data.
+class FirebaseUserInfoMissingDataException implements Exception {}

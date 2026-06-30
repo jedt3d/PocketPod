@@ -1,0 +1,25 @@
+concreteBase:
+  - virtualMethod:
+  - concreteMethod:
+  - abstractBaseMethod:
+module:
+  - hello:
+  - modifyModuleObject:
+recordStreaming:
+  - streamModuleClass:
+streaming:
+  - wasStreamOpenCalled:
+  - wasStreamClosedCalled:
+  - intEchoStream:
+  - simpleInputReturnStream:
+unauthenticated:
+  - unauthenticatedMethod:
+  - unauthenticatedStream:
+partiallyUnauthenticated:
+  - unauthenticatedMethod:
+  - unauthenticatedStream:
+  - authenticatedMethod:
+  - authenticatedStream:
+myModuleFeature:
+  - myFeatureMethod:
+  - myFeatureModel:

@@ -1,0 +1,13 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "serverpod_start_sqlite",
+            "type": "shell",
+            "command": "dart run bin/main.dart --apply-migrations",
+            "options": {
+                "cwd": "${workspaceFolder}/pocketpod_server"
+            }
+        }
+    ]
+}

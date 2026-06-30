@@ -1,0 +1,15 @@
+name: modulename_server
+description: Starting point for a Serverpod module.
+
+environment:
+  sdk: DART_VERSION
+
+#resolution: workspace #--UNCOMMENT_LINE--#
+
+dependencies:
+  serverpod: SERVERPOD_VERSION
+
+dev_dependencies:
+  lints: '>=3.0.0 <7.0.0'
+  serverpod_test: SERVERPOD_VERSION
+  test: ^1.25.5

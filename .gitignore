@@ -1,0 +1,14 @@
+.DS_Store
+**/.DS_Store
+.dart_tool/
+.packages
+build/
+pocketpod-starter/pubspec.lock
+pocketpod-starter/pocketpod_server/config/passwords.yaml
+pocketpod-starter/pocketpod_server/.serverpod/benchmark/*.sqlite*
+pocketpod-starter/pocketpod_server/.serverpod/benchmark/pocketbase/
+pocketpod-starter/pocketpod_server/.serverpod/benchmark/pocketbase_bin/
+pocketpod-starter/tool/benchmarks/results/*.json
+!pocketpod-starter/tool/benchmarks/results/phase2-micro-baseline.json
+!pocketpod-starter/tool/benchmarks/results/production-target-serverpod.json
+serverpod-pocketpod/tests/serverpod_test_server/certificates/*.key

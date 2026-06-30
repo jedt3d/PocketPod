@@ -1,0 +1,28 @@
+apiServer:
+  port: 18080
+  publicHost: localhost
+  publicPort: 18080
+  publicScheme: http
+
+insightsServer:
+  port: 18081
+  publicHost: localhost
+  publicPort: 18081
+  publicScheme: http
+
+webServer:
+  port: 18082
+  publicHost: localhost
+  publicPort: 18082
+  publicScheme: http
+
+database:
+  filePath: .serverpod/benchmark/database.sqlite
+  maxConnectionCount: 5
+
+maxRequestSize: 524288
+
+sessionLogs:
+  persistentEnabled: false
+  consoleEnabled: false
+  consoleLogFormat: json

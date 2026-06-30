@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ ! -f util/.serverpod_util_root ]; then
+    echo "Run this script from the root of the Serverpod repository"
+    echo "I.e. util/run_tests_bootstrap"
+    exit 1
+fi
+
+export SERVERPOD_SILENCE_LIFECYCLE_MESSAGES="1"
+
+# Makes script exit on first non-zero error code
+set -e
+
+export SERVERPOD_HOME=$(pwd)
+cd tests/bootstrap_project
+
+# Run bootstrap tests
+dart test --concurrency=1 --reporter=failures-only
+
+# Run performCreate tests
+dart test test_perform_create --reporter=failures-only

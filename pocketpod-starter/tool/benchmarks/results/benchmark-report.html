@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PocketPod Benchmark Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #596575;
+      --line: #d9dee7;
+      --accent: #156f8f;
+      --accent-2: #7b5d1e;
+      --ok: #0e7a4f;
+      --warn: #9a5b00;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      padding: 28px 32px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+    .subtitle { color: var(--muted); max-width: 980px; }
+    main { padding: 20px 32px 40px; }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .tab-button {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 8px 11px;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .tab-button.active {
+      border-color: var(--accent);
+      background: #e9f5f9;
+      color: #08465c;
+      font-weight: 650;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .summary {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    .notes { margin: 0; padding-left: 20px; color: var(--muted); }
+    .highlights {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fbfcfd;
+    }
+    .metric-label { color: var(--muted); font-size: 12px; }
+    .metric-value { font-weight: 750; margin-top: 4px; font-size: 18px; }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card, .table-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      overflow: auto;
+    }
+    .chart-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    svg { width: 100%; height: 280px; display: block; }
+    .axis { stroke: #aeb7c4; stroke-width: 1; }
+    .grid { stroke: #edf0f4; stroke-width: 1; }
+    .label { fill: var(--muted); font-size: 11px; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+    .point-label {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+    .point:hover .point-label,
+    .point:focus .point-label {
+      opacity: 1;
+    }
+    .point-label-bg {
+      fill: #ffffff;
+      stroke: #aeb7c4;
+      stroke-width: 1;
+    }
+    .point-label-text {
+      fill: #111827;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+    th { color: var(--muted); font-weight: 700; background: #fbfcfd; position: sticky; top: 0; }
+    .good { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+    @media (max-width: 700px) {
+      header, main { padding-left: 16px; padding-right: 16px; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .tab-button { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PocketPod Benchmark Report</h1>
+    <div class="subtitle">Micro baseline plus production-oriented Serverpod SQLite target. Charts show p95 latency and throughput; tables include every saved result row for each tab.</div>
+  </header>
+  <main>
+    <nav id="tabs" class="tabs"></nav>
+    <section id="panels"></section>
+  </main>
+  <script>
+    const tabs = [{"id":"overview","title":"Overview","notes":["The first Phase 2 micro benchmark is preserved and visualized here beside the production target run.","The production target run used 10,000 seeded rows, 1,000 requests per scenario, and 50/75/100 concurrent request slots.","The selected production starting point is tuned Serverpod SQLite with 5 readers, WAL, synchronous=NORMAL, and a 5s busy timeout.","Every saved result completed with zero benchmark errors."],"highlights":[{"label":"Micro mixed C10 p95","value":"2.68 ms tuned vs 5.44 ms untuned"},{"label":"Micro burst C50 p95","value":"13.01 ms tuned vs 19.36 ms untuned"},{"label":"Production worst C100 p95","value":"39.31 ms"},{"label":"Production C100 errors","value":"0"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":4699.358537559623,"p50Ms":2.11,"p95Ms":2.683,"p99Ms":2.814,"maxMs":3.397},{"target":"serverpod-sqlite-tuned","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":5142.577974338536,"p50Ms":9.452,"p95Ms":13.007,"p99Ms":14.489,"maxMs":14.728},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":221184,"throughput":3354.5227352778384,"p50Ms":2.372,"p95Ms":5.438,"p99Ms":7.317,"maxMs":7.722},{"target":"serverpod-sqlite-untuned","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":245760,"throughput":2721.051414266473,"p50Ms":16.758,"p95Ms":19.359,"p99Ms":20.837,"maxMs":21.511},{"target":"serverpod-sqlite-tuned","scenario":"prod-catalog-browse","concurrency":100,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":4000.288020737493,"p50Ms":24.313,"p95Ms":31.761,"p99Ms":38.71,"maxMs":42.032},{"target":"serverpod-sqlite-tuned","scenario":"prod-detail-heavy","concurrency":100,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":7059.25538974149,"p50Ms":14.102,"p95Ms":16.917,"p99Ms":21.873,"maxMs":23.449},{"target":"serverpod-sqlite-tuned","scenario":"prod-content-commerce","concurrency":100,"requests":1000,"errors":0,"databaseBytes":1235816,"throughput":7652.04615714242,"p50Ms":13.816,"p95Ms":16.015,"p99Ms":18.726,"maxMs":19.676},{"target":"serverpod-sqlite-tuned","scenario":"prod-admin-write","concurrency":100,"requests":1000,"errors":0,"databaseBytes":3922056,"throughput":7204.1438235272935,"p50Ms":10.65,"p95Ms":39.313,"p99Ms":43.697,"maxMs":44.963},{"target":"serverpod-sqlite-tuned","scenario":"prod-peak-checkout","concurrency":100,"requests":1000,"errors":0,"databaseBytes":4615648,"throughput":8428.789372982359,"p50Ms":5.693,"p95Ms":37.767,"p99Ms":41.781,"maxMs":42.71}],"chartMode":"overview","meta":{}},{"id":"micro-smoke","title":"Micro: Smoke","notes":["Startup and basic mixed operation check. Use this as a sanity check, not a capacity claim.","Errors: none.","Lowest p95: direct-sqlite-dart at C1, 0.18 ms.","Highest throughput: direct-sqlite-dart at C1, 8680.6 req/s."],"highlights":[{"label":"Rows","value":"4"},{"label":"Lowest p95","value":"0.18 ms"},{"label":"Highest p95","value":"2.19 ms"},{"label":"Best throughput","value":"8680.6 req/s"}],"rows":[{"target":"direct-sqlite-dart","scenario":"smoke","concurrency":1,"requests":25,"errors":0,"databaseBytes":135776,"throughput":8680.555555555555,"p50Ms":0.102,"p95Ms":0.177,"p99Ms":0.224,"maxMs":0.224},{"target":"pocketbase-local","scenario":"smoke","concurrency":1,"requests":25,"errors":0,"databaseBytes":4402656,"throughput":4515.080368430557,"p50Ms":0.204,"p95Ms":0.37,"p99Ms":0.425,"maxMs":0.425},{"target":"serverpod-sqlite-tuned","scenario":"smoke","concurrency":1,"requests":25,"errors":0,"databaseBytes":263496,"throughput":652.0605112154408,"p50Ms":1.566,"p95Ms":2.189,"p99Ms":2.401,"maxMs":2.401},{"target":"serverpod-sqlite-untuned","scenario":"smoke","concurrency":1,"requests":25,"errors":0,"databaseBytes":188416,"throughput":699.2029086841001,"p50Ms":1.174,"p95Ms":1.974,"p99Ms":7.168,"maxMs":7.168}],"chartMode":"scenario","meta":{"profile":"micro","seed":1000,"requests":200}},{"id":"micro-read-only","title":"Micro: Read Only","notes":["Microbenchmark read traffic using a mix of single-record and small-list reads.","Errors: none.","Lowest p95: direct-sqlite-dart at C1, 0.14 ms.","Highest throughput: direct-sqlite-dart at C50, 27933.0 req/s."],"highlights":[{"label":"Rows","value":"20"},{"label":"Lowest p95","value":"0.14 ms"},{"label":"Highest p95","value":"26.86 ms"},{"label":"Best throughput","value":"27933.0 req/s"}],"rows":[{"target":"direct-sqlite-dart","scenario":"read-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":135776,"throughput":11212.01928467317,"p50Ms":0.079,"p95Ms":0.136,"p99Ms":0.197,"maxMs":0.532},{"target":"pocketbase-local","scenario":"read-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":5196.829933740419,"p50Ms":0.169,"p95Ms":0.293,"p99Ms":0.369,"maxMs":0.541},{"target":"serverpod-sqlite-tuned","scenario":"read-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":263496,"throughput":1050.679526984077,"p50Ms":0.919,"p95Ms":1.407,"p99Ms":1.506,"maxMs":1.632},{"target":"serverpod-sqlite-untuned","scenario":"read-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":188416,"throughput":1156.2698733884488,"p50Ms":0.8,"p95Ms":1.282,"p99Ms":1.867,"maxMs":2.915},{"target":"direct-sqlite-dart","scenario":"read-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":135776,"throughput":22888.532845044636,"p50Ms":0.197,"p95Ms":0.347,"p99Ms":0.57,"maxMs":0.653},{"target":"pocketbase-local","scenario":"read-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":13031.862904802241,"p50Ms":0.312,"p95Ms":0.69,"p99Ms":2.039,"maxMs":2.308},{"target":"serverpod-sqlite-tuned","scenario":"read-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":263496,"throughput":2060.9632942437293,"p50Ms":2.151,"p95Ms":4.431,"p99Ms":5.583,"maxMs":5.783},{"target":"serverpod-sqlite-untuned","scenario":"read-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":188416,"throughput":1838.8775491440026,"p50Ms":2.425,"p95Ms":5.402,"p99Ms":7.441,"maxMs":7.772},{"target":"direct-sqlite-dart","scenario":"read-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":135776,"throughput":24823.135161970957,"p50Ms":0.378,"p95Ms":0.636,"p99Ms":0.882,"maxMs":0.943},{"target":"pocketbase-local","scenario":"read-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":18331.805682859762,"p50Ms":0.455,"p95Ms":0.934,"p99Ms":2.559,"maxMs":2.639},{"target":"serverpod-sqlite-tuned","scenario":"read-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":263496,"throughput":2793.1790567434327,"p50Ms":3.545,"p95Ms":4.689,"p99Ms":5.53,"maxMs":6.013},{"target":"serverpod-sqlite-untuned","scenario":"read-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":188416,"throughput":2284.6959640845794,"p50Ms":4.132,"p95Ms":6.158,"p99Ms":6.994,"maxMs":7.387},{"target":"direct-sqlite-dart","scenario":"read-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":135776,"throughput":27812.54345709915,"p50Ms":0.87,"p95Ms":1.129,"p99Ms":1.177,"maxMs":1.19},{"target":"pocketbase-local","scenario":"read-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":15345.661014348194,"p50Ms":1.07,"p95Ms":7.53,"p99Ms":10.173,"maxMs":11.06},{"target":"serverpod-sqlite-tuned","scenario":"read-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":263496,"throughput":2847.4614880833738,"p50Ms":8.513,"p95Ms":11.377,"p99Ms":17.395,"maxMs":19.018},{"target":"serverpod-sqlite-untuned","scenario":"read-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":188416,"throughput":2916.3871795619584,"p50Ms":8.484,"p95Ms":11.05,"p99Ms":13.986,"maxMs":14.943},{"target":"direct-sqlite-dart","scenario":"read-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":135776,"throughput":27932.96089385475,"p50Ms":1.7,"p95Ms":2.147,"p99Ms":2.241,"maxMs":2.283},{"target":"pocketbase-local","scenario":"read-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":16818.028927009756,"p50Ms":2.842,"p95Ms":4.897,"p99Ms":5.687,"maxMs":6.706},{"target":"serverpod-sqlite-tuned","scenario":"read-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":263496,"throughput":2760.33400041405,"p50Ms":15.769,"p95Ms":26.861,"p99Ms":31.676,"maxMs":34.728},{"target":"serverpod-sqlite-untuned","scenario":"read-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":188416,"throughput":2667.7693446624608,"p50Ms":17.027,"p95Ms":24.771,"p99Ms":28.324,"maxMs":29.229}],"chartMode":"scenario","meta":{"profile":"micro","seed":1000,"requests":200}},{"id":"micro-write-only","title":"Micro: Write Only","notes":["Microbenchmark write traffic. This exposes SQLite write serialization and busy-timeout behavior.","Errors: none.","Lowest p95: direct-sqlite-dart at C1, 0.10 ms.","Highest throughput: direct-sqlite-dart at C25, 19878.7 req/s."],"highlights":[{"label":"Rows","value":"20"},{"label":"Lowest p95","value":"0.10 ms"},{"label":"Highest p95","value":"35.45 ms"},{"label":"Best throughput","value":"19878.7 req/s"}],"rows":[{"target":"direct-sqlite-dart","scenario":"write-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":1874416,"throughput":14982.395685070043,"p50Ms":0.06,"p95Ms":0.1,"p99Ms":0.161,"maxMs":0.274},{"target":"pocketbase-local","scenario":"write-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":4402656,"throughput":5297.3116143557145,"p50Ms":0.17,"p95Ms":0.278,"p99Ms":0.412,"maxMs":0.444},{"target":"serverpod-sqlite-tuned","scenario":"write-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":1136936,"throughput":1891.6107065165988,"p50Ms":0.504,"p95Ms":0.695,"p99Ms":0.789,"maxMs":0.813},{"target":"serverpod-sqlite-untuned","scenario":"write-only","concurrency":1,"requests":200,"errors":0,"databaseBytes":192512,"throughput":1431.9262271607768,"p50Ms":0.664,"p95Ms":0.928,"p99Ms":1.05,"maxMs":1.613},{"target":"direct-sqlite-dart","scenario":"write-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":3621296,"throughput":16700.0668002672,"p50Ms":0.288,"p95Ms":0.379,"p99Ms":0.444,"maxMs":0.447},{"target":"pocketbase-local","scenario":"write-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":4443616,"throughput":14207.572636215104,"p50Ms":0.29,"p95Ms":0.562,"p99Ms":1.775,"maxMs":1.908},{"target":"serverpod-sqlite-tuned","scenario":"write-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":2018616,"throughput":3334.556003868085,"p50Ms":1.438,"p95Ms":2.113,"p99Ms":2.29,"maxMs":2.347},{"target":"serverpod-sqlite-untuned","scenario":"write-only","concurrency":5,"requests":200,"errors":0,"databaseBytes":200704,"throughput":2516.9896803423103,"p50Ms":1.951,"p95Ms":2.274,"p99Ms":2.332,"maxMs":2.867},{"target":"direct-sqlite-dart","scenario":"write-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":4206048,"throughput":16471.750947125678,"p50Ms":0.501,"p95Ms":0.749,"p99Ms":2.338,"maxMs":2.345},{"target":"pocketbase-local","scenario":"write-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":4443616,"throughput":18011.527377521616,"p50Ms":0.466,"p95Ms":0.912,"p99Ms":1.385,"maxMs":1.745},{"target":"serverpod-sqlite-tuned","scenario":"write-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":2900296,"throughput":3782.1482602118,"p50Ms":2.571,"p95Ms":3.197,"p99Ms":3.323,"maxMs":3.959},{"target":"serverpod-sqlite-untuned","scenario":"write-only","concurrency":10,"requests":200,"errors":0,"databaseBytes":208896,"throughput":2547.34884668781,"p50Ms":3.862,"p95Ms":4.455,"p99Ms":4.655,"maxMs":5.243},{"target":"direct-sqlite-dart","scenario":"write-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":4206048,"throughput":19878.739687903784,"p50Ms":1.244,"p95Ms":1.466,"p99Ms":1.478,"maxMs":1.494},{"target":"pocketbase-local","scenario":"write-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":4484576,"throughput":13379.716350013381,"p50Ms":1.444,"p95Ms":3.637,"p99Ms":4.16,"maxMs":4.253},{"target":"serverpod-sqlite-tuned","scenario":"write-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":3773736,"throughput":3849.855630413859,"p50Ms":6.512,"p95Ms":7.352,"p99Ms":9.301,"maxMs":9.84},{"target":"serverpod-sqlite-untuned","scenario":"write-only","concurrency":25,"requests":200,"errors":0,"databaseBytes":212992,"throughput":1923.2248634510347,"p50Ms":9.342,"p95Ms":35.445,"p99Ms":36.002,"maxMs":36.137},{"target":"direct-sqlite-dart","scenario":"write-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":18426.386585590564,"p50Ms":2.613,"p95Ms":3.295,"p99Ms":3.534,"maxMs":3.535},{"target":"pocketbase-local","scenario":"write-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":4484576,"throughput":12482.057043000686,"p50Ms":2.603,"p95Ms":10.075,"p99Ms":11.108,"maxMs":14.017},{"target":"serverpod-sqlite-tuned","scenario":"write-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":3815.1193178566664,"p50Ms":12.647,"p95Ms":18.098,"p99Ms":21.05,"maxMs":22.387},{"target":"serverpod-sqlite-untuned","scenario":"write-only","concurrency":50,"requests":200,"errors":0,"databaseBytes":221184,"throughput":2587.2886508583333,"p50Ms":18.249,"p95Ms":20.317,"p99Ms":23.236,"maxMs":23.841}],"chartMode":"scenario","meta":{"profile":"micro","seed":1000,"requests":200}},{"id":"micro-mixed-80-20","title":"Micro: Mixed 80 20","notes":["Microbenchmark 80% read / 20% write mix.","Errors: none.","Lowest p95: direct-sqlite-dart at C1, 0.06 ms.","Highest throughput: direct-sqlite-dart at C25, 48673.6 req/s."],"highlights":[{"label":"Rows","value":"20"},{"label":"Lowest p95","value":"0.06 ms"},{"label":"Highest p95","value":"23.50 ms"},{"label":"Best throughput","value":"48673.6 req/s"}],"rows":[{"target":"direct-sqlite-dart","scenario":"mixed-80-20","concurrency":1,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":25150.90543259557,"p50Ms":0.036,"p95Ms":0.059,"p99Ms":0.069,"maxMs":0.142},{"target":"pocketbase-local","scenario":"mixed-80-20","concurrency":1,"requests":200,"errors":0,"databaseBytes":4484576,"throughput":5170.76449753096,"p50Ms":0.156,"p95Ms":0.349,"p99Ms":0.418,"maxMs":0.551},{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":1,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":2201.406698880585,"p50Ms":0.432,"p95Ms":0.597,"p99Ms":0.731,"maxMs":0.962},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":1,"requests":200,"errors":0,"databaseBytes":221184,"throughput":2394.1200411788645,"p50Ms":0.367,"p95Ms":0.69,"p99Ms":0.756,"maxMs":0.84},{"target":"direct-sqlite-dart","scenario":"mixed-80-20","concurrency":5,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":48030.73967339097,"p50Ms":0.089,"p95Ms":0.157,"p99Ms":0.255,"maxMs":0.29},{"target":"pocketbase-local","scenario":"mixed-80-20","concurrency":5,"requests":200,"errors":0,"databaseBytes":4484576,"throughput":16185.158209921503,"p50Ms":0.264,"p95Ms":0.54,"p99Ms":0.707,"maxMs":0.733},{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":5,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":4903.643407051439,"p50Ms":0.972,"p95Ms":1.524,"p99Ms":1.621,"maxMs":1.695},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":5,"requests":200,"errors":0,"databaseBytes":221184,"throughput":4400.343226771688,"p50Ms":1.083,"p95Ms":1.505,"p99Ms":2.2,"maxMs":2.52},{"target":"direct-sqlite-dart","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":43572.98474945533,"p50Ms":0.158,"p95Ms":0.552,"p99Ms":0.712,"maxMs":0.813},{"target":"pocketbase-local","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":4484576,"throughput":17995.321216483713,"p50Ms":0.49,"p95Ms":0.979,"p99Ms":1.302,"maxMs":1.41},{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":4699.358537559623,"p50Ms":2.11,"p95Ms":2.683,"p99Ms":2.814,"maxMs":3.397},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":10,"requests":200,"errors":0,"databaseBytes":221184,"throughput":3354.5227352778384,"p50Ms":2.372,"p95Ms":5.438,"p99Ms":7.317,"maxMs":7.722},{"target":"direct-sqlite-dart","scenario":"mixed-80-20","concurrency":25,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":48673.64322219518,"p50Ms":0.195,"p95Ms":1.755,"p99Ms":1.969,"maxMs":1.994},{"target":"pocketbase-local","scenario":"mixed-80-20","concurrency":25,"requests":200,"errors":0,"databaseBytes":4715080,"throughput":14204.545454545454,"p50Ms":1.152,"p95Ms":5.938,"p99Ms":8.47,"maxMs":8.756},{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":25,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":5033.725963958522,"p50Ms":2.705,"p95Ms":17.256,"p99Ms":19.134,"maxMs":19.458},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":25,"requests":200,"errors":0,"databaseBytes":221184,"throughput":3348.1769176683297,"p50Ms":8.664,"p95Ms":10.438,"p99Ms":12.208,"maxMs":12.402},{"target":"direct-sqlite-dart","scenario":"mixed-80-20","concurrency":50,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":42909.246942716156,"p50Ms":0.505,"p95Ms":2.442,"p99Ms":2.727,"maxMs":2.865},{"target":"pocketbase-local","scenario":"mixed-80-20","concurrency":50,"requests":200,"errors":0,"databaseBytes":4715080,"throughput":8386.79917809368,"p50Ms":3.089,"p95Ms":18.617,"p99Ms":22.511,"maxMs":23.334},{"target":"serverpod-sqlite-tuned","scenario":"mixed-80-20","concurrency":50,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":4646.1924452910835,"p50Ms":8.633,"p95Ms":23.5,"p99Ms":29.302,"maxMs":31.33},{"target":"serverpod-sqlite-untuned","scenario":"mixed-80-20","concurrency":50,"requests":200,"errors":0,"databaseBytes":225280,"throughput":3825.40836234268,"p50Ms":14.733,"p95Ms":20.471,"p99Ms":23.247,"maxMs":23.822}],"chartMode":"scenario","meta":{"profile":"micro","seed":1000,"requests":200}},{"id":"micro-burst-writes","title":"Micro: Burst Writes","notes":["Microbenchmark simultaneous write pressure at higher concurrency.","Errors: none.","Lowest p95: direct-sqlite-dart at C10, 0.52 ms.","Highest throughput: direct-sqlite-dart at C50, 25335.7 req/s."],"highlights":[{"label":"Rows","value":"12"},{"label":"Lowest p95","value":"0.52 ms"},{"label":"Highest p95","value":"19.36 ms"},{"label":"Best throughput","value":"25335.7 req/s"}],"rows":[{"target":"direct-sqlite-dart","scenario":"burst-writes","concurrency":10,"requests":200,"errors":0,"databaseBytes":4222432,"throughput":23954.964666427117,"p50Ms":0.411,"p95Ms":0.516,"p99Ms":0.526,"maxMs":0.531},{"target":"pocketbase-local","scenario":"burst-writes","concurrency":10,"requests":200,"errors":0,"databaseBytes":4715080,"throughput":15719.562996148707,"p50Ms":0.428,"p95Ms":1.387,"p99Ms":2.157,"maxMs":3.203},{"target":"serverpod-sqlite-tuned","scenario":"burst-writes","concurrency":10,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":4848.484848484848,"p50Ms":2.068,"p95Ms":2.412,"p99Ms":3.06,"maxMs":3.295},{"target":"serverpod-sqlite-untuned","scenario":"burst-writes","concurrency":10,"requests":200,"errors":0,"databaseBytes":229376,"throughput":2866.890284108827,"p50Ms":3.363,"p95Ms":3.94,"p99Ms":4.413,"maxMs":5.075},{"target":"direct-sqlite-dart","scenario":"burst-writes","concurrency":25,"requests":200,"errors":0,"databaseBytes":4238816,"throughput":22550.456646747098,"p50Ms":0.985,"p95Ms":1.95,"p99Ms":1.955,"maxMs":1.956},{"target":"pocketbase-local","scenario":"burst-writes","concurrency":25,"requests":200,"errors":0,"databaseBytes":4760136,"throughput":16501.6501650165,"p50Ms":1.207,"p95Ms":2.964,"p99Ms":3.495,"maxMs":5.585},{"target":"serverpod-sqlite-tuned","scenario":"burst-writes","concurrency":25,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":5369.271658299552,"p50Ms":4.581,"p95Ms":5.375,"p99Ms":6.399,"maxMs":6.875},{"target":"serverpod-sqlite-untuned","scenario":"burst-writes","concurrency":25,"requests":200,"errors":0,"databaseBytes":237568,"throughput":2843.898415948582,"p50Ms":8.271,"p95Ms":8.914,"p99Ms":11.064,"maxMs":11.762},{"target":"direct-sqlite-dart","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":4238816,"throughput":25335.69799847986,"p50Ms":1.932,"p95Ms":2.256,"p99Ms":2.293,"maxMs":2.305},{"target":"pocketbase-local","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":4760136,"throughput":19122.287025528254,"p50Ms":2.085,"p95Ms":5.151,"p99Ms":7.808,"maxMs":9.252},{"target":"serverpod-sqlite-tuned","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":4369888,"throughput":5142.577974338536,"p50Ms":9.452,"p95Ms":13.007,"p99Ms":14.489,"maxMs":14.728},{"target":"serverpod-sqlite-untuned","scenario":"burst-writes","concurrency":50,"requests":200,"errors":0,"databaseBytes":245760,"throughput":2721.051414266473,"p50Ms":16.758,"p95Ms":19.359,"p99Ms":20.837,"maxMs":21.511}],"chartMode":"scenario","meta":{"profile":"micro","seed":1000,"requests":200}},{"id":"production-smoke","title":"Production: Smoke","notes":["Startup and basic mixed operation check. Use this as a sanity check, not a capacity claim.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C1, 1.84 ms.","Highest throughput: serverpod-sqlite-tuned at C1, 812.3 req/s."],"highlights":[{"label":"Rows","value":"1"},{"label":"Lowest p95","value":"1.84 ms"},{"label":"Highest p95","value":"1.84 ms"},{"label":"Best throughput","value":"812.3 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"smoke","concurrency":1,"requests":25,"errors":0,"databaseBytes":506576,"throughput":812.3212893163503,"p50Ms":1.172,"p95Ms":1.84,"p99Ms":2.197,"maxMs":2.197}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}},{"id":"production-prod-catalog-browse","title":"Production: Prod Catalog Browse","notes":["Production-style catalog browsing: mostly list/page reads with some detail reads.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C50, 22.42 ms.","Highest throughput: serverpod-sqlite-tuned at C100, 4000.3 req/s.","Production target lens: watch C100 first, because that is the top end of the stated user concurrency goal."],"highlights":[{"label":"Rows","value":"3"},{"label":"Lowest p95","value":"22.42 ms"},{"label":"Highest p95","value":"31.76 ms"},{"label":"Best throughput","value":"4000.3 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"prod-catalog-browse","concurrency":50,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":2800.665438108095,"p50Ms":16.841,"p95Ms":22.421,"p99Ms":49.903,"maxMs":56.228},{"target":"serverpod-sqlite-tuned","scenario":"prod-catalog-browse","concurrency":75,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":3709.8180334254607,"p50Ms":19.942,"p95Ms":22.772,"p99Ms":34.307,"maxMs":38.52},{"target":"serverpod-sqlite-tuned","scenario":"prod-catalog-browse","concurrency":100,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":4000.288020737493,"p50Ms":24.313,"p95Ms":31.761,"p99Ms":38.71,"maxMs":42.032}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}},{"id":"production-prod-detail-heavy","title":"Production: Prod Detail Heavy","notes":["Production-style detail traffic: product/post detail pages dominate.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C50, 10.43 ms.","Highest throughput: serverpod-sqlite-tuned at C100, 7059.3 req/s.","Production target lens: watch C100 first, because that is the top end of the stated user concurrency goal."],"highlights":[{"label":"Rows","value":"3"},{"label":"Lowest p95","value":"10.43 ms"},{"label":"Highest p95","value":"16.92 ms"},{"label":"Best throughput","value":"7059.3 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"prod-detail-heavy","concurrency":50,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":5965.981970802484,"p50Ms":8.366,"p95Ms":10.434,"p99Ms":11.277,"maxMs":14.522},{"target":"serverpod-sqlite-tuned","scenario":"prod-detail-heavy","concurrency":75,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":6309.904657340627,"p50Ms":11.606,"p95Ms":15.036,"p99Ms":18.55,"maxMs":20.012},{"target":"serverpod-sqlite-tuned","scenario":"prod-detail-heavy","concurrency":100,"requests":1000,"errors":0,"databaseBytes":506576,"throughput":7059.25538974149,"p50Ms":14.102,"p95Ms":16.917,"p99Ms":21.873,"maxMs":23.449}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}},{"id":"production-prod-content-commerce","title":"Production: Prod Content Commerce","notes":["Production-style content and commerce traffic: 95% reads with occasional writes.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C50, 8.00 ms.","Highest throughput: serverpod-sqlite-tuned at C75, 7839.9 req/s.","Production target lens: watch C100 first, because that is the top end of the stated user concurrency goal."],"highlights":[{"label":"Rows","value":"3"},{"label":"Lowest p95","value":"8.00 ms"},{"label":"Highest p95","value":"16.02 ms"},{"label":"Best throughput","value":"7839.9 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"prod-content-commerce","concurrency":50,"requests":1000,"errors":0,"databaseBytes":712576,"throughput":7639.185968343214,"p50Ms":6.669,"p95Ms":8.0,"p99Ms":9.765,"maxMs":10.962},{"target":"serverpod-sqlite-tuned","scenario":"prod-content-commerce","concurrency":75,"requests":1000,"errors":0,"databaseBytes":955656,"throughput":7839.939789262418,"p50Ms":9.652,"p95Ms":13.017,"p99Ms":14.941,"maxMs":16.318},{"target":"serverpod-sqlite-tuned","scenario":"prod-content-commerce","concurrency":100,"requests":1000,"errors":0,"databaseBytes":1235816,"throughput":7652.04615714242,"p50Ms":13.816,"p95Ms":16.015,"p99Ms":18.726,"maxMs":19.676}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}},{"id":"production-prod-admin-write","title":"Production: Prod Admin Write","notes":["Production-style admin/content/product update pressure: 80% reads, 20% writes.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C50, 21.82 ms.","Highest throughput: serverpod-sqlite-tuned at C50, 8015.2 req/s.","Production target lens: watch C100 first, because that is the top end of the stated user concurrency goal."],"highlights":[{"label":"Rows","value":"3"},{"label":"Lowest p95","value":"21.82 ms"},{"label":"Highest p95","value":"39.31 ms"},{"label":"Best throughput","value":"8015.2 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"prod-admin-write","concurrency":50,"requests":1000,"errors":0,"databaseBytes":2121616,"throughput":8015.196813157747,"p50Ms":5.021,"p95Ms":21.824,"p99Ms":23.299,"maxMs":24.859},{"target":"serverpod-sqlite-tuned","scenario":"prod-admin-write","concurrency":75,"requests":1000,"errors":0,"databaseBytes":3011536,"throughput":7960.832703100744,"p50Ms":6.594,"p95Ms":30.754,"p99Ms":32.948,"maxMs":34.285},{"target":"serverpod-sqlite-tuned","scenario":"prod-admin-write","concurrency":100,"requests":1000,"errors":0,"databaseBytes":3922056,"throughput":7204.1438235272935,"p50Ms":10.65,"p95Ms":39.313,"p99Ms":43.697,"maxMs":44.963}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}},{"id":"production-prod-peak-checkout","title":"Production: Prod Peak Checkout","notes":["Production-style peak checkout/order pressure: 70% reads, 30% writes.","Errors: none.","Lowest p95: serverpod-sqlite-tuned at C50, 15.82 ms.","Highest throughput: serverpod-sqlite-tuned at C50, 8626.7 req/s.","Production target lens: watch C100 first, because that is the top end of the stated user concurrency goal."],"highlights":[{"label":"Rows","value":"3"},{"label":"Lowest p95","value":"15.82 ms"},{"label":"Highest p95","value":"37.77 ms"},{"label":"Best throughput","value":"8626.7 req/s"}],"rows":[{"target":"serverpod-sqlite-tuned","scenario":"prod-peak-checkout","concurrency":50,"requests":1000,"errors":0,"databaseBytes":4615648,"throughput":8626.713480965158,"p50Ms":1.054,"p95Ms":15.818,"p99Ms":16.688,"maxMs":18.51},{"target":"serverpod-sqlite-tuned","scenario":"prod-peak-checkout","concurrency":75,"requests":1000,"errors":0,"databaseBytes":4615648,"throughput":8613.190239532822,"p50Ms":1.468,"p95Ms":31.666,"p99Ms":38.102,"maxMs":39.357},{"target":"serverpod-sqlite-tuned","scenario":"prod-peak-checkout","concurrency":100,"requests":1000,"errors":0,"databaseBytes":4615648,"throughput":8428.789372982359,"p50Ms":5.693,"p95Ms":37.767,"p99Ms":41.781,"maxMs":42.71}],"chartMode":"scenario","meta":{"profile":"production","seed":10000,"requests":1000,"sqliteReaders":5}}];
+    const colors = ['#0072B2', '#D55E00', '#009E73', '#CC79A7', '#E69F00', '#111827', '#56B4E9', '#7F3C8D'];
+
+    function fmt(value, digits = 1) {
+      return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+    }
+
+    function init() {
+      const tabNav = document.getElementById('tabs');
+      const panels = document.getElementById('panels');
+      tabs.forEach((tab, index) => {
+        const button = document.createElement('button');
+        button.className = 'tab-button' + (index === 0 ? ' active' : '');
+        button.textContent = tab.title;
+        button.addEventListener('click', () => activate(tab.id));
+        tabNav.appendChild(button);
+
+        const panel = document.createElement('article');
+        panel.className = 'tab-panel' + (index === 0 ? ' active' : '');
+        panel.id = tab.id;
+        panel.innerHTML = renderPanel(tab);
+        panels.appendChild(panel);
+        renderCharts(panel, tab);
+      });
+    }
+
+    function activate(id) {
+      document.querySelectorAll('.tab-button').forEach((button, index) => {
+        button.classList.toggle('active', tabs[index].id === id);
+      });
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === id);
+      });
+    }
+
+    function renderPanel(tab) {
+      const notes = tab.notes.map(note => '<li>' + escapeHtml(note) + '</li>').join('');
+      const metrics = tab.highlights.map(metric => `
+        <div class="metric">
+          <div class="metric-label">${escapeHtml(metric.label)}</div>
+          <div class="metric-value">${escapeHtml(metric.value)}</div>
+        </div>`).join('');
+      return `
+        <div class="summary">
+          <h2>${escapeHtml(tab.title)}</h2>
+          <ul class="notes">${notes}</ul>
+          <div class="highlights">${metrics}</div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">p95 Latency (ms)</div>
+            <div class="chart" data-kind="p95"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Throughput (requests/sec)</div>
+            <div class="chart" data-kind="throughput"></div>
+          </div>
+        </div>
+        <div class="table-card">
+          ${renderTable(tab.rows)}
+        </div>`;
+    }
+
+    function renderTable(rows) {
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th>Target</th><th>Scenario</th><th>C</th><th>Requests</th><th>Errors</th>
+              <th>Throughput</th><th>p50</th><th>p95</th><th>p99</th><th>Max</th><th>DB bytes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>
+                <td>${escapeHtml(row.target)}</td>
+                <td>${escapeHtml(row.scenario)}</td>
+                <td>${row.concurrency}</td>
+                <td>${row.requests}</td>
+                <td class="${row.errors === 0 ? 'good' : 'warn'}">${row.errors}</td>
+                <td>${fmt(row.throughput, 1)}</td>
+                <td>${fmt(row.p50Ms, 2)}</td>
+                <td>${fmt(row.p95Ms, 2)}</td>
+                <td>${fmt(row.p99Ms, 2)}</td>
+                <td>${fmt(row.maxMs, 2)}</td>
+                <td>${Number(row.databaseBytes).toLocaleString()}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function renderCharts(panel, tab) {
+      panel.querySelectorAll('.chart').forEach(node => {
+        const kind = node.dataset.kind;
+        const valueField = kind === 'p95' ? 'p95Ms' : 'throughput';
+        const suffix = kind === 'p95' ? ' ms' : ' req/s';
+        node.innerHTML = lineChart(tab.rows, valueField, suffix);
+      });
+    }
+
+    function lineChart(rows, valueField, suffix) {
+      const width = 720, height = 280;
+      const margin = { top: 16, right: 22, bottom: 42, left: 58 };
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+      const xs = [...new Set(rows.map(row => row.concurrency))].sort((a, b) => a - b);
+      const groups = [...new Set(rows.map(row => row.target))];
+      const values = rows.map(row => row[valueField]);
+      const maxValue = Math.max(...values, 1) * 1.12;
+      const xScale = x => margin.left + (xs.length === 1 ? innerW / 2 : xs.indexOf(x) * (innerW / (xs.length - 1)));
+      const yScale = y => margin.top + innerH - (y / maxValue) * innerH;
+      const yTicks = [0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue];
+      const xAxis = xs.map(x => `<text class="label" x="${xScale(x)}" y="${height - 14}" text-anchor="middle">C${x}</text>`).join('');
+      const yAxis = yTicks.map(y => `
+        <line class="grid" x1="${margin.left}" x2="${width - margin.right}" y1="${yScale(y)}" y2="${yScale(y)}"></line>
+        <text class="label" x="${margin.left - 8}" y="${yScale(y) + 4}" text-anchor="end">${fmt(y, valueField === 'p95Ms' ? 0 : 0)}</text>`).join('');
+
+      const lines = groups.map((group, groupIndex) => {
+        const groupRows = rows.filter(row => row.target === group).sort((a, b) => a.concurrency - b.concurrency);
+        const points = groupRows.map(row => [xScale(row.concurrency), yScale(row[valueField]), row]);
+        const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point[0]} ${point[1]}`).join(' ');
+        const color = colors[groupIndex % colors.length];
+        const circles = points.map(point => {
+          const label = `${fmt(point[2][valueField], 2)}${suffix}`;
+          const labelWidth = Math.max(54, label.length * 7.2 + 12);
+          const labelX = Math.min(Math.max(point[0] - labelWidth / 2, margin.left), width - margin.right - labelWidth);
+          const labelY = Math.max(point[1] - 34, margin.top + 4);
+          return `
+            <g class="point" tabindex="0">
+              <circle cx="${point[0]}" cy="${point[1]}" r="5" fill="${color}" stroke="#ffffff" stroke-width="1.5">
+                <title>${group} C${point[2].concurrency}: ${label}</title>
+              </circle>
+              <g class="point-label">
+                <rect class="point-label-bg" x="${labelX}" y="${labelY}" width="${labelWidth}" height="22" rx="4"></rect>
+                <text class="point-label-text" x="${labelX + labelWidth / 2}" y="${labelY + 15}" text-anchor="middle">${label}</text>
+              </g>
+            </g>`;
+        }).join('');
+        return `<path d="${path}" fill="none" stroke="${color}" stroke-width="3"></path>${circles}`;
+      }).join('');
+
+      const legend = groups.map((group, index) => `<span><span class="swatch" style="background:${colors[index % colors.length]}"></span>${escapeHtml(group)}</span>`).join('');
+      return `
+        <svg viewBox="0 0 ${width} ${height}" role="img">
+          ${yAxis}
+          <line class="axis" x1="${margin.left}" x2="${width - margin.right}" y1="${height - margin.bottom}" y2="${height - margin.bottom}"></line>
+          <line class="axis" x1="${margin.left}" x2="${margin.left}" y1="${margin.top}" y2="${height - margin.bottom}"></line>
+          ${xAxis}
+          ${lines}
+        </svg>
+        <div class="legend">${legend}</div>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    init();
+  </script>
+</body>
+</html>

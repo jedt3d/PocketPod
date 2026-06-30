@@ -1,0 +1,69 @@
+#!/bin/bash
+
+if [ ! -f util/.serverpod_util_root ]; then
+    echo "Run this script from the root of the Serverpod repository"
+    echo "I.e. util/generate_all"
+    exit 1
+fi
+
+# Makes script exit on first non-zero error code
+set -e
+
+. "util/all_packages"
+
+BASE=`pwd`
+CLI_DIR=$BASE/tools/serverpod_cli
+CLI=$CLI_DIR/bin/serverpod_cli.dart
+
+echo "pub get cli"
+cd $CLI_DIR
+dart pub get
+
+# Attempt to generate all server packages
+for path in "${SERVERPOD_SERVER_PATHS[@]}"; do
+    echo "### $path"
+    cd "$BASE/$path"
+
+    dart $CLI generate --no-analytics
+done
+
+
+# Templates
+
+echo "\nmodulename_server"
+cd $BASE/templates/serverpod_templates/modulename_server
+dart $CLI generate --no-analytics
+
+echo "\nprojectname_server"
+cd $BASE/templates/serverpod_templates/projectname_server
+dart $CLI generate --no-analytics
+
+generateServerUpgradeFiles() {
+    # The upgrade folder doesn't have all the files needed
+    # run `serverpod generate`. Therefore some project files have
+    # to temporarily be copied over from the base projectname_server template.
+
+    # Save current files
+    find . -type f | sort > before.txt
+
+    # Copy over project files temporarily from base projectname_server template
+    cp -rn $BASE/templates/serverpod_templates/projectname_server/lib/src/* lib/src/
+    cp $BASE/templates/serverpod_templates/projectname_server/pubspec.yaml pubspec.yaml
+    cp -r $BASE/templates/serverpod_templates/projectname_server/.dart_tool .
+
+    dart $CLI generate --no-analytics
+
+    # Save files after generation
+    find . -type f | sort > after.txt
+
+    # Remove all generated files except the test tools file.
+    # The generated endpoint files are already tracked in projectname_server,
+    # and should not be tracked again in the upgrade template.
+    test_tools_file="test/integration/test_tools/serverpod_test_tools.dart"
+    comm -13 before.txt after.txt | grep -v "$test_tools_file" | xargs rm
+    rm before.txt
+}
+
+echo "\nprojectname_server_upgrade"
+cd $BASE/templates/serverpod_templates/projectname_server_upgrade
+generateServerUpgradeFiles

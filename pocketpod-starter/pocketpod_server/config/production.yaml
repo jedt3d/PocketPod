@@ -1,0 +1,36 @@
+# Production configuration. Update public hosts and storage paths before deploy.
+
+apiServer:
+  port: 8080
+  publicHost: api.examplepod.com
+  publicPort: 443
+  publicScheme: https
+
+insightsServer:
+  port: 8081
+  publicHost: insights.examplepod.com
+  publicPort: 443
+  publicScheme: https
+
+webServer:
+  port: 8082
+  publicHost: app.examplepod.com
+  publicPort: 443
+  publicScheme: https
+
+database:
+  filePath: .serverpod/production/database.sqlite
+  maxConnectionCount: 5
+
+maxRequestSize: 524288 # The maximum size of requests allowed in bytes
+
+sessionLogs:
+  persistentEnabled: false
+  consoleEnabled: false
+  consoleLogFormat: json # Defaults to "json", options are "text" or "json"
+
+# futureCallExecutionEnabled: true # Defaults to true
+
+#futureCall:
+#  concurrencyLimit: 1 # Defaults to 1, a negative or null value removes the limit
+#  scanInterval: 5000 # Unit in milliseconds, defaults to 5000

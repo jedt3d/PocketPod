@@ -1,0 +1,34 @@
+# Test configuration. Ports are zero so test runs can allocate free ports.
+
+apiServer:
+  port: 0
+  publicHost: localhost
+  publicPort: 0
+  publicScheme: http
+
+insightsServer:
+  port: 0
+  publicHost: localhost
+  publicPort: 0
+  publicScheme: http
+
+webServer:
+  port: 0
+  publicHost: localhost
+  publicPort: 0
+  publicScheme: http
+
+database:
+  filePath: .serverpod/test/database.sqlite
+  maxConnectionCount: 5
+
+sessionLogs:
+  persistentEnabled: false
+  consoleEnabled: true
+# consoleLogFormat: json # Defaults to "json", options are "text" or "json"
+
+# futureCallExecutionEnabled: true # Defaults to true
+
+#futureCall:
+#  concurrencyLimit: 1 # Defaults to 1, a negative or null value removes the limit
+#  scanInterval: 5000 # Unit in milliseconds, defaults to 5000

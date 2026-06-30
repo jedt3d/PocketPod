@@ -1,0 +1,255 @@
+import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
+import 'package:serverpod_cli/analyzer.dart';
+import 'package:serverpod_cli/src/analyzer/code_analysis_collector.dart';
+import 'package:serverpod_cli/src/analyzer/dart/definitions.dart';
+import 'package:serverpod_cli/src/analyzer/dart/element_extensions.dart';
+import 'package:serverpod_cli/src/analyzer/dart/endpoint_analyzers/annotation.dart';
+import 'package:serverpod_cli/src/analyzer/dart/endpoint_analyzers/endpoint_class_analyzer.dart';
+import 'package:serverpod_cli/src/analyzer/dart/parameters.dart';
+import 'package:serverpod_cli/src/generator/types.dart';
+import 'package:serverpod_cli/src/util/string_manipulation.dart';
+import 'package:serverpod_cli/src/util/type_validators.dart';
+
+const _excludedMethodNameSet = {
+  'streamOpened',
+  'streamClosed',
+  'handleStreamMessage',
+  'sendStreamMessage',
+  'setUserObject',
+  'getUserObject',
+};
+
+abstract class EndpointMethodAnalyzer {
+  /// Parses an [MethodElement] into a [MethodDefinition].
+  /// Assumes that the [MethodElement] is a valid endpoint method.
+  ///
+  /// If a [templateRegistry] is provided, it will be used to resolve
+  /// `{@macro}` references in documentation comments.
+  static MethodDefinition parse(
+    MethodElement method,
+    Parameters parameters, {
+    required DartDocTemplateRegistry templateRegistry,
+  }) {
+    var isStream =
+        method.returnType.isDartAsyncStream || parameters._hasStream();
+
+    if (isStream) {
+      return MethodStreamDefinition(
+        name: method.displayName,
+        documentationComment: stripDocumentationTemplateMarkers(
+          method.documentationComment,
+          templateRegistry: templateRegistry,
+        ),
+        annotations: method.endpointAnnotations,
+        parameters: parameters.required,
+        parametersNamed: parameters.named,
+        parametersPositional: parameters.positional,
+        returnType: TypeDefinition.fromDartType(method.returnType),
+      );
+    }
+
+    return MethodCallDefinition(
+      name: method.displayName,
+      documentationComment: stripDocumentationTemplateMarkers(
+        method.documentationComment,
+        templateRegistry: templateRegistry,
+      ),
+      annotations: method.endpointAnnotations,
+      parameters: parameters.required,
+      parametersNamed: parameters.named,
+      parametersPositional: parameters.positional,
+      returnType: TypeDefinition.fromDartType(method.returnType),
+    );
+  }
+
+  /// Creates a namespace for the [MethodElement] based on the [ClassElement]
+  /// and the [filePath].
+  static String elementNamespace(
+    ClassElement classElement,
+    MethodElement methodElement,
+    String filePath,
+  ) {
+    return '${EndpointClassAnalyzer.elementNamespace(
+      classElement,
+      filePath,
+    )}_${methodElement.name}';
+  }
+
+  /// Returns true if the [MethodElement] is an endpoint method that should
+  /// be validated and parsed.
+  static bool isEndpointMethod(MethodElement method) {
+    if (method.isPrivate) return false;
+    if (method.isStatic) return false;
+    if (method.markedAsIgnored) return false;
+
+    if (_excludedMethodNameSet.contains(method.name)) return false;
+
+    return method.formalParameters.isFirstRequiredParameterSession;
+  }
+
+  /// Validates the [MethodElement] and returns a list of
+  /// [SourceSpanSeverityException].
+  static List<SourceSpanSeverityException> validate(
+    MethodElement method,
+    ClassElement classElement,
+    ResolvedLibraryResult resolvedLibrary,
+    List<TypeDefinition> extraClasses,
+    List<SerializableModelDefinition> models,
+  ) {
+    List<SourceSpanSeverityException?> errors = [
+      _validateReturnType(
+        dartType: method.returnType,
+        dartElement: method,
+        method: method,
+        resolvedLibrary: resolvedLibrary,
+        extraClasses: extraClasses,
+        models: models,
+      ),
+      _validateUnauthenticatedAnnotation(method, classElement),
+    ];
+
+    return errors.whereType<SourceSpanSeverityException>().toList();
+  }
+
+  static SourceSpanSeverityException? _validateReturnType({
+    required DartType dartType,
+    required Element dartElement,
+    required MethodElement method,
+    required ResolvedLibraryResult resolvedLibrary,
+    required List<TypeDefinition> extraClasses,
+    required List<SerializableModelDefinition> models,
+  }) {
+    if (!(dartType.isDartAsyncFuture || dartType.isDartAsyncStream)) {
+      return SourceSpanSeverityException(
+        'Return type must be a Future or a Stream.',
+        dartElement.span,
+      );
+    }
+
+    if (dartType is! InterfaceType) {
+      return SourceSpanSeverityException(
+        'This type is not supported as return type.',
+        dartElement.span,
+      );
+    }
+
+    var typeArguments = dartType.typeArguments;
+    if (typeArguments.length != 1) {
+      // Interface type must always have a type argument so this is just for
+      // safety.
+      return SourceSpanSeverityException(
+        'Return generic must be type defined. E.g. ${dartType.element.name}<String>.',
+        dartElement.span,
+      );
+    }
+
+    var innerType = typeArguments[0];
+
+    if (innerType is VoidType && dartType.isDartAsyncStream) {
+      return SourceSpanSeverityException(
+        'The type "void" is not supported for streams.',
+        dartElement.span,
+      );
+    }
+
+    if ((innerType is VoidType || innerType.isDartCoreNull) &&
+        dartType.isDartAsyncFuture) {
+      return null;
+    }
+
+    if (innerType is DynamicType &&
+        dartType.isDartAsyncFuture &&
+        _isBareFutureReturnType(method, resolvedLibrary)) {
+      return SourceSpanSeverityException(
+        'Use an explicit Future type argument. E.g. ${dartType.element.name}<String> '
+        'or ${dartType.element.name}<dynamic>.',
+        dartElement.span,
+      );
+    }
+
+    if (innerType is DynamicType && dartType.isDartAsyncStream) {
+      return null;
+    }
+
+    final TypeDefinition typeDefinition;
+    try {
+      typeDefinition = TypeDefinition.fromDartType(innerType);
+    } on FromDartTypeClassNameException catch (e) {
+      return SourceSpanSeverityException(
+        'The type "${e.type}" is not a supported endpoint return type.',
+        dartElement.span,
+      );
+    }
+
+    if (!TypeValidators.isValidType(
+      typeDefinition,
+      TypeValidationOptions(
+        extraClasses: extraClasses,
+        models: models,
+        allowSerializableGenerics: true,
+        allowStreamType: true,
+      ),
+    )) {
+      var typeName = typeDefinition.className;
+      return SourceSpanSeverityException(
+        'The return type has an invalid datatype "$typeName". If this is a '
+        'custom model, make sure it is added to config/generator.yaml so '
+        'Serverpod can generate the necessary serialization code.',
+        dartElement.span,
+      );
+    }
+
+    return null;
+  }
+
+  /// `Future` without `<...>` defaults to dynamic but is easy to miss. Require
+  /// an explicit type argument (including `<dynamic>`).
+  static bool _isBareFutureReturnType(
+    MethodElement method,
+    ResolvedLibraryResult resolvedLibrary,
+  ) {
+    final methodReturn = method.firstFragment;
+    final declaration = resolvedLibrary.getFragmentDeclaration(methodReturn);
+    if (declaration == null) return false;
+
+    final node = declaration.node;
+    if (node is! MethodDeclaration) return false;
+
+    final returnType = node.returnType;
+    if (returnType is! NamedType) return false;
+
+    if (returnType.name.lexeme != 'Future') return false;
+    return returnType.typeArguments == null;
+  }
+
+  static SourceSpanSeverityException? _validateUnauthenticatedAnnotation(
+    MethodElement method,
+    ClassElement classElement,
+  ) {
+    if (classElement.overridesRequireLogin && method.markedAsUnauthenticated) {
+      return SourceSpanSeverityException(
+        'Method "${method.name}" in endpoint class "${classElement.name}" is '
+        'annotated with @unauthenticatedClientCall, but the class overrides '
+        'the "requireLogin" getter. Be aware that this combination may lead to '
+        'endpoint calls failing due to client not sending a signed in user. '
+        'To fix this, either move this method to a separate endpoint class '
+        'that does not override "requireLogin", remove the "requireLogin" '
+        'getter override or remove the @unauthenticatedClientCall annotation.',
+        method.span,
+        severity: SourceSpanSeverity.info,
+      );
+    }
+    return null;
+  }
+}
+
+extension on Parameters {
+  bool _hasStream() => [
+    ...required,
+    ...positional,
+    ...named,
+  ].any((element) => element.type.dartType?.isDartAsyncStream ?? false);
+}

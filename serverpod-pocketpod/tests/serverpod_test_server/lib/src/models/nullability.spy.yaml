@@ -1,0 +1,63 @@
+class: Nullability
+fields:
+  anInt: int
+  aNullableInt: int?
+
+  aDouble: double
+  aNullableDouble: double?
+
+  aBool: bool
+  aNullableBool: bool?
+
+  aString: String
+  aNullableString: String?
+
+  aDateTime: DateTime
+  aNullableDateTime: DateTime?
+
+  aByteData: ByteData
+  aNullableByteData: ByteData?
+
+  aDuration: Duration
+  aNullableDuration: Duration?
+
+  aUuid: UuidValue
+  aNullableUuid: UuidValue?
+
+  anObject: SimpleData
+  aNullableObject: SimpleData?
+
+  anIntList: List<int>
+  aNullableIntList: List<int>?
+  aListWithNullableInts: List<int?>
+  aNullableListWithNullableInts: List<int?>?
+
+  anObjectList: List<SimpleData>
+  aNullableObjectList: List<SimpleData>?
+  aListWithNullableObjects: List<SimpleData?>
+  aNullableListWithNullableObjects: List<SimpleData?>?
+
+  aDateTimeList: List<DateTime>
+  aNullableDateTimeList: List<DateTime>?
+  aListWithNullableDateTimes: List<DateTime?>
+  aNullableListWithNullableDateTimes: List<DateTime?>?
+
+  aByteDataList: List<ByteData>
+  aNullableByteDataList: List<ByteData>?
+  aListWithNullableByteDatas: List<ByteData?>
+  aNullableListWithNullableByteDatas: List<ByteData?>?
+
+  aDurationList: List<Duration>
+  aNullableDurationList: List<Duration>?
+  aListWithNullableDurations: List<Duration?>
+  aNullableListWithNullableDurations: List<Duration?>?
+
+  aUuidList: List<UuidValue>
+  aNullableUuidList: List<UuidValue>?
+  aListWithNullableUuids: List<UuidValue?>
+  aNullableListWithNullableUuids: List<UuidValue?>?
+
+  anIntMap: Map<String,int>
+  aNullableIntMap: Map<String,int>?
+  aMapWithNullableInts: Map<String,int?>
+  aNullableMapWithNullableInts: Map<String,int?>?

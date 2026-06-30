@@ -1,0 +1,13 @@
+type: server
+
+client_package_path: ../serverpod_test_sqlite_client
+server_test_tools_path: test_integration/test_tools
+
+experimental_features:
+  all: true
+
+modules:
+  serverpod_auth_core:
+    nickname: auth
+  serverpod_auth_idp:
+    nickname: auth_idp

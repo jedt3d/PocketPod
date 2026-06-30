@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ ! -f util/.serverpod_util_root ]; then
+    echo "Run this script from the root of the Serverpod repository"
+    echo "I.e. util/ensure_no_changes"
+    exit 1
+fi
+
+if ! git diff --ignore-cr-at-eol --exit-code --quiet
+then
+    echo "Files have been changed while running this test. Diff:"
+    git diff --ignore-cr-at-eol
+
+    echo "List of changed files:"
+    git diff --ignore-cr-at-eol --name-status
+    exit 1
+fi

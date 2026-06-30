@@ -1,0 +1,1536 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
+import 'package:serverpod_shared/serverpod_shared.dart';
+import 'package:yaml/yaml.dart';
+
+/// The configuration sections for the serverpod configuration file.
+typedef Convert<T> = T Function(String value);
+
+/// Parser for the database configuration.
+typedef DatabaseConfigParser =
+    DatabaseConfig Function(
+      Map<dynamic, dynamic> dbSetup,
+      Map<dynamic, dynamic> passwords,
+      String name,
+    );
+
+const int _defaultMaxRequestSize = 524288;
+
+const String _developmentRunMode = 'development';
+
+ServerConfig _createDefaultApiServer() => ServerConfig(
+  port: 8080,
+  publicHost: 'localhost',
+  publicPort: 8080,
+  publicScheme: 'http',
+);
+
+/// Parser for the Serverpod configuration file.
+class ServerpodConfig {
+  /// The servers run mode.
+  final String runMode;
+
+  /// The servers role.
+  final ServerpodRole role;
+
+  /// Id of the current server.
+  final String serverId;
+
+  /// The servers logging mode.
+  final ServerpodLoggingMode loggingMode;
+
+  /// Whether to apply database migrations.
+  final bool applyMigrations;
+
+  /// Whether to apply database repair migration.
+  late final bool applyRepairMigration;
+
+  /// Max limit in bytes of requests to the server.
+  final int maxRequestSize;
+
+  /// Configuration for the main API server.
+  final ServerConfig apiServer;
+
+  /// Configuration for the Insights server.
+  final ServerConfig? insightsServer;
+
+  /// Configuration for the web server (optional).
+  final ServerConfig? webServer;
+
+  /// Configuration for the database.
+  final DatabaseConfig? database;
+
+  /// Configuration for Redis.
+  final RedisConfig? redis;
+
+  /// Authentication key for service protocol.
+  late final String? serviceSecret;
+
+  /// Configuration for Session logs.
+  final SessionLogConfig sessionLogs;
+
+  /// Health check interval.
+  /// Default is 1 minute. Set to zero to disable health checks.
+  final Duration healthCheckInterval;
+
+  /// The timeout for the diagnostic event handlers.
+  /// Default is 30 seconds.
+  final Duration? experimentalDiagnosticHandlerTimeout;
+
+  /// Configuration for future call handling.
+  final FutureCallConfig futureCall;
+
+  /// True if future call execution should be disabled.
+  final bool futureCallExecutionEnabled;
+
+  /// Whether to validate HTTP headers using typed APIs.
+  ///
+  /// When false, uses non-typed header API, allowing headers without
+  /// required formatting (e.g., unwrapped tokens in Authorization header).
+  /// Defaults to true.
+  final bool validateHeaders;
+
+  /// The interval between websocket ping messages.
+  /// Default is 30 seconds.
+  final Duration websocketPingInterval;
+
+  /// Creates a new [ServerpodConfig].
+  ServerpodConfig({
+    required this.apiServer,
+    this.runMode = _developmentRunMode,
+    this.serverId = 'default',
+    this.role = ServerpodRole.monolith,
+    this.loggingMode = ServerpodLoggingMode.normal,
+    this.applyMigrations = false,
+    this.applyRepairMigration = false,
+    this.maxRequestSize = 524288,
+    this.insightsServer,
+    this.webServer,
+    this.database,
+    this.redis,
+    this.serviceSecret,
+    SessionLogConfig? sessionLogs,
+    this.healthCheckInterval = const Duration(minutes: 1),
+    this.experimentalDiagnosticHandlerTimeout = const Duration(seconds: 30),
+    this.futureCall = const FutureCallConfig(),
+    this.futureCallExecutionEnabled = true,
+    this.validateHeaders = true,
+    this.websocketPingInterval = const Duration(seconds: 30),
+  }) : sessionLogs =
+           sessionLogs ??
+           SessionLogConfig.buildDefault(
+             databaseEnabled: database != null,
+             runMode: runMode,
+           ) {
+    apiServer._name = 'api';
+    insightsServer?._name = 'insights';
+    webServer?._name = 'web';
+    sessionLogs?._validate(databaseEnabled: database != null);
+  }
+
+  /// Creates a default bare bone configuration.
+  factory ServerpodConfig.defaultConfig() {
+    return ServerpodConfig(apiServer: _createDefaultApiServer());
+  }
+
+  /// Creates a new [ServerpodConfig] from a configuration Map.
+  /// Expects the Map to match the specified run mode.
+  ///
+  /// Throws an exception if the configuration is missing required fields.
+  factory ServerpodConfig.loadFromMap(
+    String runMode,
+    String? serverId,
+    Map<String, String> passwords,
+    Map configMap, {
+    Map<String, String> environment = const {},
+    Map<String, dynamic>? commandLineArgs,
+  }) {
+    serverId = _readServerId(configMap, environment, serverId);
+    final role = _readRole(configMap, environment, commandLineArgs);
+    final loggingMode = _readLoggingMode(
+      configMap,
+      environment,
+      commandLineArgs,
+    );
+    final applyMigrations = _readApplyMigrations(
+      configMap,
+      environment,
+      commandLineArgs,
+    );
+    final applyRepairMigration = _readApplyRepairMigration(
+      configMap,
+      environment,
+      commandLineArgs,
+    );
+
+    var apiConfig = _apiConfigMap(configMap, environment);
+
+    var apiServer = apiConfig != null
+        ? ServerConfig._fromJson(apiConfig, ServerpodConfigMap.apiServer)
+        : _createDefaultApiServer();
+
+    var insightsConfig = _insightsConfigMap(configMap, environment);
+    var insightsServer = insightsConfig != null
+        ? ServerConfig._fromJson(
+            insightsConfig,
+            ServerpodConfigMap.insightsServer,
+          )
+        : null;
+
+    var webConfig = _webConfigMap(configMap, environment);
+    var webServer = webConfig != null
+        ? ServerConfig._fromJson(webConfig, ServerpodConfigMap.webServer)
+        : null;
+
+    var maxRequestSize = _readMaxRequestSize(configMap, environment);
+
+    var serviceSecret = passwords[ServerpodPassword.serviceSecret.configKey];
+
+    var databaseConfig = _databaseConfigMap(configMap, environment);
+    var database = databaseConfig != null
+        ? DatabaseConfig._fromJson(
+            databaseConfig,
+            passwords,
+            ServerpodConfigMap.database,
+          )
+        : null;
+
+    var redisConfig = _redisConfigMap(configMap, environment);
+    var redisEnabled =
+        redisConfig != null &&
+        (redisConfig[ServerpodEnv.redisEnabled.configKey] ?? true);
+    var redis = redisEnabled
+        ? RedisConfig._fromJson(
+            redisConfig,
+            passwords,
+            ServerpodConfigMap.redis,
+          )
+        : null;
+
+    var sessionLogsConfigJson = _buildSessionLogsConfigMap(
+      configMap,
+      environment,
+    );
+    var sessionLogsConfig = sessionLogsConfigJson != null
+        ? SessionLogConfig._fromJson(
+            sessionLogsConfigJson,
+            ServerpodConfigMap.sessionLogs,
+            databaseEnabled: database != null,
+            runMode: runMode,
+          )
+        : null;
+
+    var futureCallConfigJson = _buildFutureCallConfigMap(
+      configMap,
+      environment,
+    );
+    var futureCallConfig = futureCallConfigJson != null
+        ? FutureCallConfig._fromJson(
+            futureCallConfigJson,
+            ServerpodConfigMap.futureCall,
+          )
+        : const FutureCallConfig();
+
+    var futureCallExecutionEnabled = _readIsFutureCallExecutionEnabled(
+      configMap,
+      environment,
+    );
+
+    var validateHeaders = _readValidateHeaders(configMap, environment);
+
+    var websocketPingInterval = _readWebsocketPingInterval(
+      configMap,
+      environment,
+    );
+
+    return ServerpodConfig(
+      runMode: runMode,
+      serverId: serverId,
+      role: role,
+      loggingMode: loggingMode,
+      applyMigrations: applyMigrations,
+      applyRepairMigration: applyRepairMigration,
+      apiServer: apiServer,
+      maxRequestSize: maxRequestSize,
+      insightsServer: insightsServer,
+      webServer: webServer,
+      database: database,
+      redis: redis,
+      serviceSecret: serviceSecret,
+      sessionLogs: sessionLogsConfig,
+      futureCall: futureCallConfig,
+      futureCallExecutionEnabled: futureCallExecutionEnabled,
+      validateHeaders: validateHeaders,
+      websocketPingInterval: websocketPingInterval,
+    );
+  }
+
+  /// Loads and parses a server configuration file. Picks config file depending
+  /// on run mode.
+  ///
+  /// [serverDir] is the directory the `config/` folder lives under.
+  factory ServerpodConfig.load(
+    String runMode,
+    String? serverId,
+    Map<String, String> passwords, {
+    Map<String, dynamic>? commandLineArgs,
+    String? serverDir,
+  }) {
+    dynamic doc = {};
+
+    if (isConfigAvailable(runMode, serverDir: serverDir)) {
+      String data = File(
+        _createConfigPath(runMode, serverDir: serverDir),
+      ).readAsStringSync();
+      doc = loadYaml(data);
+    }
+
+    return ServerpodConfig.loadFromMap(
+      runMode,
+      serverId,
+      passwords,
+      doc,
+      environment: Platform.environment,
+      commandLineArgs: commandLineArgs,
+    );
+  }
+
+  /// Creates a copy of this [ServerpodConfig] with the given fields replaced.
+  /// All fields that are not specified will keep their original values.
+  ///
+  /// Note that passing null for a field will not remove/nullify that field -
+  /// the original value will be retained. To explicitly set a field to null,
+  /// create a new [ServerpodConfig] instance instead of using copyWith.
+  ServerpodConfig copyWith({
+    ServerConfig? apiServer,
+    String? runMode,
+    String? serverId,
+    ServerpodRole? role,
+    ServerpodLoggingMode? loggingMode,
+    bool? applyMigrations,
+    bool? applyRepairMigration,
+    int? maxRequestSize,
+    ServerConfig? insightsServer,
+    ServerConfig? webServer,
+    DatabaseConfig? database,
+    RedisConfig? redis,
+    String? serviceSecret,
+    SessionLogConfig? sessionLogs,
+    Duration? healthCheckInterval,
+    Duration? experimentalDiagnosticHandlerTimeout,
+    FutureCallConfig? futureCall,
+    bool? futureCallExecutionEnabled,
+    bool? validateHeaders,
+  }) {
+    return ServerpodConfig(
+      apiServer: apiServer ?? this.apiServer,
+      runMode: runMode ?? this.runMode,
+      serverId: serverId ?? this.serverId,
+      role: role ?? this.role,
+      loggingMode: loggingMode ?? this.loggingMode,
+      applyMigrations: applyMigrations ?? this.applyMigrations,
+      applyRepairMigration: applyRepairMigration ?? this.applyRepairMigration,
+      maxRequestSize: maxRequestSize ?? this.maxRequestSize,
+      insightsServer: insightsServer ?? this.insightsServer,
+      webServer: webServer ?? this.webServer,
+      database: database ?? this.database,
+      redis: redis ?? this.redis,
+      serviceSecret: serviceSecret ?? this.serviceSecret,
+      sessionLogs: sessionLogs ?? this.sessionLogs,
+      healthCheckInterval: healthCheckInterval ?? this.healthCheckInterval,
+      experimentalDiagnosticHandlerTimeout:
+          experimentalDiagnosticHandlerTimeout ??
+          this.experimentalDiagnosticHandlerTimeout,
+      futureCall: futureCall ?? this.futureCall,
+      futureCallExecutionEnabled:
+          futureCallExecutionEnabled ?? this.futureCallExecutionEnabled,
+      validateHeaders: validateHeaders ?? this.validateHeaders,
+    );
+  }
+
+  /// Checks if a configuration file is available on disk for the given run mode.
+  static bool isConfigAvailable(String runMode, {String? serverDir}) {
+    return File(
+      _createConfigPath(runMode, serverDir: serverDir),
+    ).existsSync();
+  }
+
+  static String _createConfigPath(String runMode, {String? serverDir}) {
+    return path.joinAll([
+      ?serverDir,
+      'config',
+      '$runMode.yaml',
+    ]);
+  }
+
+  /// Returns the path to `config/passwords.yaml` under [serverDir]
+  /// (or cwd-relative when [serverDir] is null).
+  static String passwordsConfigPath({String? serverDir}) {
+    return path.joinAll([
+      ?serverDir,
+      'config',
+      'passwords.yaml',
+    ]);
+  }
+
+  @override
+  String toString() {
+    var str = '';
+
+    str += apiServer.toString();
+    if (insightsServer != null) str += insightsServer.toString();
+    if (webServer != null) str += webServer.toString();
+
+    if (database != null) str += database.toString();
+    if (redis != null) str += redis.toString();
+    str += sessionLogs.toString();
+    str += futureCall.toString();
+    str += 'future call execution enabled: $futureCallExecutionEnabled\n';
+
+    return str;
+  }
+}
+
+/// Configuration for a server.
+class ServerConfig {
+  String? _name;
+
+  /// The port the server will be running on.
+  final int port;
+
+  /// Public facing host name.
+  final String publicHost;
+
+  /// Public facing port.
+  final int publicPort;
+
+  /// Public facing scheme, i.e. http or https.
+  final String publicScheme;
+
+  /// Creates a new [ServerConfig].
+  ServerConfig({
+    required this.port,
+    required this.publicScheme,
+    required this.publicHost,
+    required this.publicPort,
+  });
+
+  factory ServerConfig._fromJson(Map serverSetup, String name) {
+    _validateJsonConfig(
+      const {
+        ServerpodServerConfigMap.port: int,
+        ServerpodServerConfigMap.publicHost: String,
+        ServerpodServerConfigMap.publicPort: int,
+        ServerpodServerConfigMap.publicScheme: String,
+      },
+      serverSetup,
+      name,
+    );
+
+    return ServerConfig(
+      port: serverSetup[ServerpodServerConfigMap.port],
+      publicHost: serverSetup[ServerpodServerConfigMap.publicHost],
+      publicPort: serverSetup[ServerpodServerConfigMap.publicPort],
+      publicScheme: serverSetup[ServerpodServerConfigMap.publicScheme],
+    );
+  }
+
+  @override
+  String toString() {
+    var str = '';
+    str += '$_name port: $port\n';
+    str += '$_name public host: $publicHost\n';
+    str += '$_name public port: $publicPort\n';
+    str += '$_name public scheme: $publicScheme\n';
+
+    return str;
+  }
+}
+
+/// Database dialect type.
+enum DatabaseDialect {
+  /// PostgreSQL database.
+  postgres,
+
+  /// SQLite database.
+  sqlite,
+}
+
+/// Configuration for a database.
+///
+/// Use [DatabaseConfig.forDialect] to create a dialect-specific configuration,
+/// or the default constructor (returns PostgreSQL config by default).
+abstract class DatabaseConfig {
+  /// The default maximum number of connections in the database pool.
+  static const int defaultMaxConnectionCount = 10;
+
+  /// Database host.
+  final String host;
+
+  /// Database port.
+  final int port;
+
+  /// Database user name.
+  final String user;
+
+  /// Database password.
+  final String password;
+
+  /// Database name.
+  final String name;
+
+  /// True if the database requires an SSL connection.
+  final bool requireSsl;
+
+  /// True if the database is running on a unix socket.
+  final bool isUnixSocket;
+
+  /// Override the search path all connections to the database.
+  final List<String>? searchPaths;
+
+  /// The maximum number of connections in the database pool.
+  ///
+  /// If the limit is `null`, the number of connections will be unlimited.
+  final int? maxConnectionCount;
+
+  /// Database dialect.
+  final DatabaseDialect dialect;
+
+  /// Private constructor for subclasses.
+  DatabaseConfig._({
+    required this.host,
+    required this.port,
+    required this.user,
+    required this.password,
+    required this.name,
+    required this.requireSsl,
+    required this.isUnixSocket,
+    required this.searchPaths,
+    this.maxConnectionCount = defaultMaxConnectionCount,
+    required this.dialect,
+  });
+
+  /// Creates a new [DatabaseConfig] (PostgreSQL by default).
+  factory DatabaseConfig({
+    required String host,
+    required int port,
+    required String user,
+    required String password,
+    required String name,
+    bool requireSsl = false,
+    bool isUnixSocket = false,
+    List<String>? searchPaths,
+    int? maxConnectionCount = defaultMaxConnectionCount,
+    DatabaseDialect dialect = DatabaseDialect.postgres,
+    String? dataPath,
+  }) => switch (dialect) {
+    DatabaseDialect.postgres => PostgresDatabaseConfig(
+      host: host,
+      port: port,
+      user: user,
+      password: password,
+      name: name,
+      requireSsl: requireSsl,
+      isUnixSocket: isUnixSocket,
+      searchPaths: searchPaths,
+      maxConnectionCount: maxConnectionCount,
+      dataPath: dataPath,
+    ),
+    DatabaseDialect.sqlite => SqliteDatabaseConfig(
+      filePath: host,
+      maxConnectionCount: maxConnectionCount,
+    ),
+  };
+
+  static DatabaseConfigParser _getParser(DatabaseDialect dialect) =>
+      switch (dialect) {
+        DatabaseDialect.postgres => PostgresDatabaseConfig._fromJson,
+        DatabaseDialect.sqlite => SqliteDatabaseConfig._fromJson,
+      };
+
+  /// Parses the database configuration from the given JSON map.
+  ///
+  /// This method will try to parse the database configuration for all available
+  /// database dialects. If parsing for all dialects fails, throws the first
+  /// error (PostgreSQL by default). If the [dialect] parameter is set, only
+  /// that dialect will be tried.
+  factory DatabaseConfig._fromJson(Map dbSetup, Map passwords, String name) {
+    var dialect = dbSetup[ServerpodEnv.databaseDialect.configKey];
+    if (dialect != null && dialect is String && dialect.trim().isNotEmpty) {
+      final parser = _getParser(DatabaseDialect.values.byName(dialect));
+      return parser(dbSetup, passwords, name);
+    }
+
+    Object? error;
+    for (var parser in DatabaseDialect.values.map(_getParser)) {
+      try {
+        return parser(dbSetup, passwords, name);
+      } catch (e) {
+        error ??= e;
+      }
+    }
+    throw error!;
+  }
+
+  @override
+  String toString() {
+    var str = '';
+    str += 'database host: $host\n';
+    str += 'database port: $port\n';
+    str += 'database name: $name\n';
+    str += 'database user: $user\n';
+    str += 'database require SSL: $requireSsl\n';
+    str += 'database unix socket: $isUnixSocket\n';
+    str += 'database pass: ********\n';
+    if (searchPaths != null) {
+      str += 'database search path overrides: $searchPaths\n';
+    }
+    str += 'database max connection count: $maxConnectionCount\n';
+    str += 'database dialect: ${dialect.name}\n';
+    return str;
+  }
+}
+
+/// PostgreSQL-specific database configuration.
+class PostgresDatabaseConfig extends DatabaseConfig {
+  /// PGDATA directory for embedded PostgreSQL (`serverpod_embedded_postgres`).
+  ///
+  /// When non-null and non-empty after trimming, [PostgresPoolManager] boots a
+  /// managed postmaster in this directory before opening connections.
+  ///
+  /// Relative paths are resolved from [Directory.current] when the pool starts
+  /// (typically the server package root). The CLI resolves relative paths
+  /// against the server directory before connecting.
+  final String? dataPath;
+
+  /// Creates a new [PostgresDatabaseConfig].
+  PostgresDatabaseConfig({
+    required super.host,
+    required super.port,
+    required super.user,
+    required super.password,
+    required super.name,
+    super.requireSsl = false,
+    super.isUnixSocket = false,
+    super.searchPaths,
+    super.maxConnectionCount,
+    this.dataPath,
+  }) : super._(dialect: DatabaseDialect.postgres);
+
+  factory PostgresDatabaseConfig._fromJson(
+    Map dbSetup,
+    Map passwords,
+    String name,
+  ) {
+    _validateJsonConfig(
+      {
+        ServerpodEnv.databaseHost.configKey: String,
+        ServerpodEnv.databasePort.configKey: int,
+        ServerpodEnv.databaseName.configKey: String,
+        ServerpodEnv.databaseUser.configKey: String,
+      },
+      dbSetup,
+      name,
+    );
+
+    var password = passwords[ServerpodPassword.databasePassword.configKey];
+    if (password == null) {
+      throw PasswordMissingException(
+        ServerpodPassword.databasePassword.configKey,
+      );
+    }
+
+    int? maxConnectionCount =
+        dbSetup[ServerpodEnv.databaseMaxConnectionCount.configKey] ??
+        DatabaseConfig.defaultMaxConnectionCount;
+
+    // If the user sets the max connection count to 0 or a negative number,
+    // this means they want to enable unlimited connections
+    if (maxConnectionCount != null && maxConnectionCount < 1) {
+      maxConnectionCount = null;
+    }
+
+    final rawDataPath = dbSetup[ServerpodEnv.databaseDataPath.configKey];
+    String? dataPath;
+    if (rawDataPath is String && rawDataPath.trim().isNotEmpty) {
+      dataPath = path.normalize(rawDataPath.trim());
+    } else if (rawDataPath != null && rawDataPath is! String) {
+      throw ArgumentError(
+        'Invalid database dataPath: $rawDataPath (expected a string).',
+      );
+    }
+
+    return PostgresDatabaseConfig(
+      host: dbSetup[ServerpodEnv.databaseHost.configKey],
+      port: dbSetup[ServerpodEnv.databasePort.configKey],
+      name: dbSetup[ServerpodEnv.databaseName.configKey],
+      user: dbSetup[ServerpodEnv.databaseUser.configKey],
+      requireSsl: dbSetup[ServerpodEnv.databaseRequireSsl.configKey] ?? false,
+      isUnixSocket:
+          dbSetup[ServerpodEnv.databaseIsUnixSocket.configKey] ?? false,
+      password: password,
+      searchPaths: _parseList(
+        dbSetup[ServerpodEnv.databaseSearchPaths.configKey],
+      ),
+      maxConnectionCount: maxConnectionCount,
+      dataPath: dataPath,
+    );
+  }
+
+  @override
+  String toString() {
+    var str = super.toString();
+    if (dataPath != null) str += 'database data path: $dataPath\n';
+    return str;
+  }
+}
+
+/// SQLite-specific database configuration.
+class SqliteDatabaseConfig extends DatabaseConfig {
+  /// Creates a new [SqliteDatabaseConfig].
+  SqliteDatabaseConfig({required String filePath, super.maxConnectionCount})
+    : super._(
+        host: filePath,
+        port: 0,
+        user: '',
+        password: '',
+        name: '',
+        requireSsl: false,
+        isUnixSocket: false,
+        searchPaths: null,
+        dialect: DatabaseDialect.sqlite,
+      );
+
+  /// The file path to the SQLite database.
+  String get filePath => host;
+
+  factory SqliteDatabaseConfig._fromJson(
+    Map dbSetup,
+    Map passwords,
+    String name,
+  ) {
+    final path = dbSetup[ServerpodEnv.databaseFilePath.configKey];
+    if (path == null || path is! String || path.trim().isEmpty) {
+      throw ArgumentError('Invalid SQLite database configuration: $dbSetup');
+    }
+
+    int? maxConnectionCount =
+        dbSetup[ServerpodEnv.databaseMaxConnectionCount.configKey] ??
+        DatabaseConfig.defaultMaxConnectionCount;
+
+    return SqliteDatabaseConfig(
+      filePath: path,
+      maxConnectionCount: maxConnectionCount != null && maxConnectionCount > 0
+          ? maxConnectionCount
+          : null,
+    );
+  }
+
+  @override
+  String toString() {
+    var str = '';
+    str += 'database file path: $filePath\n';
+    str += 'database max connection count: $maxConnectionCount\n';
+    str += 'database dialect: ${dialect.name}\n';
+    return str;
+  }
+}
+
+/// Configuration for Redis.
+class RedisConfig {
+  /// True if Redis should be enabled.
+  final bool enabled;
+
+  /// Redis host.
+  final String host;
+
+  /// Redis port.
+  final int port;
+
+  /// Redis user name (optional).
+  final String? user;
+
+  /// Redis password (optional, but recommended).
+  final String? password;
+
+  /// True if Redis requires an SSL connection.
+  final bool requireSsl;
+
+  /// Creates a new [RedisConfig].
+  RedisConfig({
+    required this.enabled,
+    required this.host,
+    required this.port,
+    this.user,
+    this.password,
+    this.requireSsl = false,
+  });
+
+  factory RedisConfig._fromJson(Map redisSetup, Map passwords, String name) {
+    _validateJsonConfig(
+      {
+        ServerpodEnv.redisHost.configKey: String,
+        ServerpodEnv.redisPort.configKey: int,
+      },
+      redisSetup,
+      name,
+    );
+
+    var password = passwords[ServerpodPassword.redisPassword.configKey];
+    if (password == null) {
+      throw PasswordMissingException(ServerpodPassword.redisPassword.configKey);
+    }
+
+    return RedisConfig(
+      enabled: redisSetup[ServerpodEnv.redisEnabled.configKey] ?? true,
+      host: redisSetup[ServerpodEnv.redisHost.configKey],
+      port: redisSetup[ServerpodEnv.redisPort.configKey],
+      user: redisSetup[ServerpodEnv.redisUser.configKey],
+      password: password,
+      requireSsl: redisSetup[ServerpodEnv.redisRequireSsl.configKey] ?? false,
+    );
+  }
+
+  @override
+  String toString() {
+    var str = '';
+    str += 'redis host: $host\n';
+    str += 'redis port: $port\n';
+    if (user != null) {
+      str += 'redis user: $user\n';
+    }
+    if (password != null) {
+      str += 'redis pass: ********\n';
+    }
+    str += 'redis require SSL: $requireSsl\n';
+    return str;
+  }
+}
+
+/// Configuration for future call handling.
+class FutureCallConfig {
+  /// The maximum number of concurrent running future calls. If the limit is
+  /// reached, future calls will be postponed until a slot is available.
+  ///
+  /// If the limit is `null`, the amount of concurrent future calls will be
+  /// unlimited.
+  final int? concurrencyLimit;
+
+  /// How long to wait before checking the queue again.
+  final Duration scanInterval;
+
+  /// If true, the server will check for broken future calls on startup.
+  /// If null, the server will check for broken future calls if there are
+  /// less than 1000 future calls in the database. This is the default behavior.
+  /// If false, the server will not check for broken future calls.
+  final bool? checkBrokenCalls;
+
+  /// If true, the server will delete broken future calls on startup.
+  final bool deleteBrokenCalls;
+
+  /// Creates a new [FutureCallConfig].
+  const FutureCallConfig({
+    this.concurrencyLimit = defaultFutureCallConcurrencyLimit,
+    this.scanInterval = const Duration(
+      milliseconds: defaultFutureCallScanIntervalMs,
+    ),
+    this.checkBrokenCalls,
+    this.deleteBrokenCalls = false,
+  });
+
+  /// The default concurrency limit for future calls.
+  static const int defaultFutureCallConcurrencyLimit = 1;
+
+  /// The default scan interval for future calls.
+  static const int defaultFutureCallScanIntervalMs = 5000;
+
+  factory FutureCallConfig._fromJson(Map futureCallConfigJson, String name) {
+    final scanInterval =
+        futureCallConfigJson[ServerpodEnv.futureCallScanInterval.configKey];
+
+    final hasConcurrencyLimitKey = futureCallConfigJson.containsKey(
+      ServerpodEnv.futureCallConcurrencyLimit.configKey,
+    );
+
+    int? concurrencyLimit = hasConcurrencyLimitKey
+        ? futureCallConfigJson[ServerpodEnv
+              .futureCallConcurrencyLimit
+              .configKey]
+        : null;
+
+    // If the user sets the concurrency limit to 0 or a negative number, this
+    // means to want to enable unlimited concurrency
+    if (concurrencyLimit != null && concurrencyLimit < 1) {
+      concurrencyLimit = null;
+    }
+
+    final checkBrokenCalls =
+        futureCallConfigJson[ServerpodEnv.futureCallCheckBrokenCalls.configKey];
+
+    final deleteBrokenCalls =
+        futureCallConfigJson[ServerpodEnv
+            .futureCallDeleteBrokenCalls
+            .configKey];
+
+    return FutureCallConfig(
+      // If the user did not configure the concurrency limit, use the default
+      concurrencyLimit: hasConcurrencyLimitKey
+          ? concurrencyLimit
+          : defaultFutureCallConcurrencyLimit,
+      scanInterval: Duration(
+        milliseconds: scanInterval ?? defaultFutureCallScanIntervalMs,
+      ),
+      checkBrokenCalls: checkBrokenCalls,
+      deleteBrokenCalls: deleteBrokenCalls ?? false,
+    );
+  }
+
+  @override
+  String toString() {
+    var output = StringBuffer();
+    output.writeln('future call concurrency limit: $concurrencyLimit');
+    output.writeln(
+      'future call scan interval: ${scanInterval.inMilliseconds}ms',
+    );
+    output.writeln('check broken future calls: $checkBrokenCalls');
+    output.writeln('delete broken future calls: $deleteBrokenCalls');
+    return output.toString();
+  }
+}
+
+/// Valid values for console log format.
+enum ConsoleLogFormat {
+  /// JSON format.
+  json,
+
+  /// Human-readable text format.
+  text
+  ;
+
+  /// Returns a list of all enum names.
+  static final List<String> allEnumNames = ConsoleLogFormat.values
+      .map((e) => e.name)
+      .toList();
+
+  /// Default format for console logging.
+  static const defaultFormat = ConsoleLogFormat.json;
+
+  /// Parses a string into a [ConsoleLogFormat].
+  static ConsoleLogFormat parse(String value) {
+    return ConsoleLogFormat.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => throw ArgumentError(
+        'Invalid console log format: "$value". Valid values are: ${allEnumNames.join(', ')}',
+      ),
+    );
+  }
+}
+
+/// Configuration for session logging.
+class SessionLogConfig {
+  /// True if persistent logging (e.g., to Redis) should be enabled.
+  final bool persistentEnabled;
+
+  /// The interval between log cleanup operations. If null, automatic cleanup is disabled.
+  final Duration? cleanupInterval;
+
+  /// The retention period for log data. If null, time-based cleanup is disabled.
+  final Duration? retentionPeriod;
+
+  /// The maximum number of log entries to keep. If null, count-based cleanup is disabled.
+  final int? retentionCount;
+
+  /// True if console logging should be enabled.
+  final bool consoleEnabled;
+
+  /// The format for the console log.
+  final ConsoleLogFormat consoleLogFormat;
+
+  /// Creates a new [SessionLogConfig].
+  SessionLogConfig({
+    required this.persistentEnabled,
+    required this.consoleEnabled,
+    required this.cleanupInterval,
+    required this.retentionPeriod,
+    required this.retentionCount,
+    ConsoleLogFormat? consoleLogFormat,
+  }) : consoleLogFormat = consoleLogFormat ?? ConsoleLogFormat.defaultFormat;
+
+  /// Creates a new default [SessionLogConfig] based on the run mode and
+  /// whether the database is enabled.
+  factory SessionLogConfig.buildDefault({
+    required bool databaseEnabled,
+    required String runMode,
+  }) {
+    return SessionLogConfig(
+      persistentEnabled: databaseEnabled,
+      cleanupInterval: const Duration(hours: 24),
+      retentionPeriod: const Duration(days: 90),
+      retentionCount: 100_000,
+      consoleEnabled: !databaseEnabled || runMode == _developmentRunMode,
+      consoleLogFormat: runMode == _developmentRunMode
+          ? ConsoleLogFormat.text
+          : ConsoleLogFormat.defaultFormat,
+    );
+  }
+
+  /// Returns a copy of this [SessionLogConfig] with the given properties updated.
+  SessionLogConfig copyWith({
+    bool? persistentEnabled,
+    bool? consoleEnabled,
+    Duration? cleanupInterval,
+    Duration? retentionPeriod,
+    int? retentionCount,
+    ConsoleLogFormat? consoleLogFormat,
+  }) => SessionLogConfig(
+    persistentEnabled: persistentEnabled ?? this.persistentEnabled,
+    consoleEnabled: consoleEnabled ?? this.consoleEnabled,
+    cleanupInterval: cleanupInterval ?? this.cleanupInterval,
+    retentionPeriod: retentionPeriod ?? this.retentionPeriod,
+    retentionCount: retentionCount ?? this.retentionCount,
+    consoleLogFormat: consoleLogFormat ?? this.consoleLogFormat,
+  );
+
+  factory SessionLogConfig._fromJson(
+    Map sessionLogConfigJson,
+    String name, {
+    required bool databaseEnabled,
+    required String runMode,
+  }) {
+    final defaults = SessionLogConfig.buildDefault(
+      databaseEnabled: databaseEnabled,
+      runMode: runMode,
+    );
+
+    var configuredLogFormat =
+        sessionLogConfigJson[ServerpodEnv.sessionConsoleLogFormat.configKey];
+
+    ConsoleLogFormat logFormat = defaults.consoleLogFormat;
+    if (configuredLogFormat != null) {
+      logFormat = ConsoleLogFormat.parse(configuredLogFormat);
+    }
+
+    return SessionLogConfig(
+      persistentEnabled:
+          sessionLogConfigJson[ServerpodEnv
+              .sessionPersistentLogEnabled
+              .configKey] ??
+          defaults.persistentEnabled,
+      cleanupInterval: _parseDurationWithValidation(
+        sessionLogConfigJson[ServerpodEnv.sessionLogCleanupInterval.configKey],
+      ),
+      retentionPeriod: _parseDurationWithValidation(
+        sessionLogConfigJson[ServerpodEnv.sessionLogRetentionPeriod.configKey],
+      ),
+      retentionCount: _parseIntWithValidation(
+        sessionLogConfigJson[ServerpodEnv.sessionLogRetentionCount.configKey],
+        ServerpodEnv.sessionLogRetentionCount.configKey,
+      ),
+
+      consoleEnabled:
+          sessionLogConfigJson[ServerpodEnv
+              .sessionConsoleLogEnabled
+              .configKey] ??
+          defaults.consoleEnabled,
+      consoleLogFormat: logFormat,
+    );
+  }
+
+  void _validate({required bool databaseEnabled}) {
+    if (persistentEnabled && !databaseEnabled) {
+      throw StateError(
+        'The `persistentEnabled` setting was enabled in the configuration, but this project was created without database support. '
+        'Persistent logging is only available when the database is enabled.',
+      );
+    }
+  }
+
+  @override
+  String toString() {
+    return 'session persistent log enabled: $persistentEnabled\n'
+        'session console log enabled: $consoleEnabled\n';
+  }
+}
+
+Map? _insightsConfigMap(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  var serverConfig = configMap[ServerpodConfigMap.insightsServer] ?? {};
+
+  return _buildConfigMap(serverConfig, environment, [
+    (ServerpodEnv.insightsPort, int.parse),
+    (ServerpodEnv.insightsPublicHost, null),
+    (ServerpodEnv.insightsPublicPort, int.parse),
+    (ServerpodEnv.insightsPublicScheme, null),
+  ]);
+}
+
+Map? _webConfigMap(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  var serverConfig = configMap[ServerpodConfigMap.webServer] ?? {};
+
+  return _buildConfigMap(serverConfig, environment, [
+    (ServerpodEnv.webPort, int.parse),
+    (ServerpodEnv.webPublicHost, null),
+    (ServerpodEnv.webPublicPort, int.parse),
+    (ServerpodEnv.webPublicScheme, null),
+  ]);
+}
+
+Map? _apiConfigMap(Map configMap, Map<String, String> environment) {
+  var serverConfig = configMap[ServerpodConfigMap.apiServer] ?? {};
+
+  return _buildConfigMap(serverConfig, environment, [
+    (ServerpodEnv.apiPort, int.parse),
+    (ServerpodEnv.apiPublicHost, null),
+    (ServerpodEnv.apiPublicPort, int.parse),
+    (ServerpodEnv.apiPublicScheme, null),
+  ]);
+}
+
+Map? _databaseConfigMap(Map configMap, Map<String, String> environment) {
+  var databaseConfig = configMap[ServerpodConfigMap.database] ?? {};
+
+  return _buildConfigMap(databaseConfig, environment, [
+    (ServerpodEnv.databaseHost, null),
+    (ServerpodEnv.databasePort, int.parse),
+    (ServerpodEnv.databaseName, null),
+    (ServerpodEnv.databaseUser, null),
+    (ServerpodEnv.databaseRequireSsl, bool.parse),
+    (ServerpodEnv.databaseIsUnixSocket, bool.parse),
+    (ServerpodEnv.databaseSearchPaths, null),
+    (ServerpodEnv.databaseMaxConnectionCount, int.parse),
+    (ServerpodEnv.databaseDataPath, null),
+  ]);
+}
+
+/// Infer the database dialect from one run-mode config map (the body of
+/// `config/<runMode>.yaml`), using the same `database` merging rules as
+/// [ServerpodConfig.loadFromMap].
+///
+/// Returns `null` when there is no database section or it is empty after
+/// merging environment variables. Uses a placeholder password so PostgreSQL
+/// configs can be parsed without a `passwords.yaml` file (for example in the
+/// CLI).
+DatabaseDialect? inferDatabaseDialectFromConfigMap(
+  Map<dynamic, dynamic> configMap, {
+  Map<String, String> environment = const {},
+}) {
+  final dbSetup = _databaseConfigMap(configMap, environment);
+  if (dbSetup == null) return null;
+  return DatabaseConfig._fromJson(
+    dbSetup,
+    {ServerpodPassword.databasePassword.configKey: '__placeholder__'},
+    ServerpodConfigMap.database,
+  ).dialect;
+}
+
+Map? _redisConfigMap(Map configMap, Map<String, String> environment) {
+  var redisConfig = configMap[ServerpodConfigMap.redis] ?? {};
+
+  return _buildConfigMap(redisConfig, environment, [
+    (ServerpodEnv.redisHost, null),
+    (ServerpodEnv.redisPort, int.parse),
+    (ServerpodEnv.redisUser, null),
+    (ServerpodEnv.redisEnabled, bool.parse),
+    (ServerpodEnv.redisRequireSsl, bool.parse),
+  ]);
+}
+
+Duration? _parseDurationWithValidation(dynamic value) {
+  if (value is Duration?) return value;
+  if (value is! String || !isValidDuration(value)) {
+    throw ArgumentError(
+      'Invalid duration: "$value". Expected a duration string in the format '
+      '"Xd Xh Xmin Xs Xms" (e.g., "1d 2h 30min 45s 100ms"). Any combination of '
+      'units is allowed.',
+    );
+  }
+  return parseDuration(value);
+}
+
+int? _parseIntWithValidation(dynamic value, String configKey) {
+  if (value is int?) return value;
+  if (value is! String || int.tryParse(value) == null) {
+    throw ArgumentError('Invalid $configKey: "$value". Expected an integer.');
+  }
+  return int.parse(value);
+}
+
+Map? _buildSessionLogsConfigMap(
+  Map configMap,
+  Map<String, String> environment,
+) {
+  var logsConfig = configMap[ServerpodConfigMap.sessionLogs] ?? {};
+
+  return _buildConfigMap(logsConfig, environment, [
+    (ServerpodEnv.sessionPersistentLogEnabled, bool.parse),
+    (ServerpodEnv.sessionLogCleanupInterval, _parseDurationWithValidation),
+    (ServerpodEnv.sessionLogRetentionPeriod, _parseDurationWithValidation),
+    (ServerpodEnv.sessionLogRetentionCount, int.parse),
+    (ServerpodEnv.sessionConsoleLogEnabled, bool.parse),
+    (ServerpodEnv.sessionConsoleLogFormat, null),
+  ]);
+}
+
+Map? _buildFutureCallConfigMap(Map configMap, Map<String, String> environment) {
+  var futureCallConfig = configMap[ServerpodConfigMap.futureCall] ?? {};
+
+  return _buildConfigMap(futureCallConfig, environment, [
+    (ServerpodEnv.futureCallConcurrencyLimit, int.parse),
+    (ServerpodEnv.futureCallScanInterval, int.parse),
+    (ServerpodEnv.futureCallCheckBrokenCalls, bool.parse),
+    (ServerpodEnv.futureCallDeleteBrokenCalls, bool.parse),
+  ]);
+}
+
+Map? _buildConfigMap(
+  Map<dynamic, dynamic> serverConfig,
+  Map<String, String> environment,
+  List<(ServerpodEnv, Convert?)> envEntries,
+) {
+  Map config = {
+    ...serverConfig,
+    for (var entry in envEntries)
+      ..._extractMapEntry(environment, entry.$1, entry.$2),
+  };
+
+  if (config.isEmpty) return null;
+
+  return config;
+}
+
+Map<String, dynamic> _extractMapEntry(
+  Map<String, String> env,
+  ServerpodEnv serverpodEnv, [
+  Convert? convert,
+]) {
+  var content = env[serverpodEnv.envVariable];
+
+  if (content == null) return {};
+  if (convert == null) return {serverpodEnv.configKey: content};
+
+  try {
+    return {serverpodEnv.configKey: convert.call(content)};
+  } catch (e) {
+    throw Exception(
+      'Invalid value ($content) for ${serverpodEnv.envVariable}.',
+    );
+  }
+}
+
+int _readMaxRequestSize(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  var maxRequestSize = configMap[ServerpodEnv.maxRequestSize.configKey];
+  maxRequestSize =
+      environment[ServerpodEnv.maxRequestSize.envVariable] ?? maxRequestSize;
+
+  if (maxRequestSize is String) {
+    maxRequestSize = int.tryParse(maxRequestSize);
+  }
+
+  maxRequestSize ??= _defaultMaxRequestSize;
+  return maxRequestSize;
+}
+
+String _readServerId(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+  String? serverIdFromCommandLineArg,
+) {
+  if (serverIdFromCommandLineArg != null) {
+    return serverIdFromCommandLineArg;
+  }
+
+  final serverId =
+      environment[ServerpodEnv.serverId.envVariable] ??
+      configMap[ServerpodEnv.serverId.configKey] ??
+      'default';
+  return serverId;
+}
+
+ServerpodRole _readRole(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+  Map<String, dynamic>? commandLineArgs,
+) {
+  final commandLineArg = commandLineArgs?[CliArgsConstants.role];
+  if (commandLineArg != null) {
+    if (commandLineArg is! ServerpodRole) {
+      throw ArgumentError(
+        'Invalid type for ${CliArgsConstants.role} from command line argument: ${commandLineArg.runtimeType}. '
+        'Expected ServerpodRole.',
+      );
+    }
+    return commandLineArg;
+  }
+
+  final envVariable = ServerpodEnv.role.envVariable;
+  final roleFromEnv = environment[envVariable];
+  if (roleFromEnv != null) {
+    return ServerpodRole.values.firstWhere(
+      (e) => e.name == roleFromEnv,
+      orElse: () => throw ArgumentError(
+        'Invalid $envVariable from environment variable: $roleFromEnv. '
+        'Valid values are: ${ServerpodRole.values.map((e) => e.name).join(', ')}',
+      ),
+    );
+  }
+
+  final configKey = ServerpodEnv.role.configKey;
+  final roleFromConfig = configMap[configKey];
+  if (roleFromConfig != null) {
+    return ServerpodRole.values.firstWhere(
+      (e) => e.name == roleFromConfig,
+      orElse: () => throw ArgumentError(
+        'Invalid $configKey from configuration: $roleFromConfig. '
+        'Valid values are: ${ServerpodRole.values.map((e) => e.name).join(', ')}',
+      ),
+    );
+  }
+
+  return ServerpodRole.monolith;
+}
+
+ServerpodLoggingMode _readLoggingMode(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+  Map<String, dynamic>? commandLineArgs,
+) {
+  final commandLineArg = commandLineArgs?[CliArgsConstants.loggingMode];
+  if (commandLineArg != null) {
+    if (commandLineArg is! ServerpodLoggingMode) {
+      throw ArgumentError(
+        'Invalid type for ${CliArgsConstants.loggingMode} '
+        'from command line argument: ${commandLineArg.runtimeType}. '
+        'Expected ServerpodLoggingMode.',
+      );
+    }
+    return commandLineArg;
+  }
+
+  final envVariable = ServerpodEnv.loggingMode.envVariable;
+  final loggingModeFromEnv = environment[envVariable];
+  if (loggingModeFromEnv != null) {
+    return ServerpodLoggingMode.values.firstWhere(
+      (e) => e.name == loggingModeFromEnv,
+      orElse: () => throw ArgumentError(
+        'Invalid $envVariable from environment variable: $loggingModeFromEnv. '
+        'Valid values are: ${ServerpodLoggingMode.values.map((e) => e.name).join(', ')}',
+      ),
+    );
+  }
+
+  final configKey = ServerpodEnv.loggingMode.configKey;
+  final loggingModeFromConfig = configMap[configKey];
+  if (loggingModeFromConfig != null) {
+    return ServerpodLoggingMode.values.firstWhere(
+      (e) => e.name == loggingModeFromConfig,
+      orElse: () => throw ArgumentError(
+        'Invalid $configKey from configuration: $loggingModeFromConfig. '
+        'Valid values are: ${ServerpodLoggingMode.values.map((e) => e.name).join(', ')}',
+      ),
+    );
+  }
+
+  return ServerpodLoggingMode.normal;
+}
+
+bool _readApplyMigrations(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+  Map<String, dynamic>? commandLineArgs,
+) {
+  final commandLineArg = commandLineArgs?[CliArgsConstants.applyMigrations];
+  if (commandLineArg != null) {
+    if (commandLineArg is! bool) {
+      throw ArgumentError(
+        'Invalid type for ${CliArgsConstants.applyMigrations} '
+        'from command line argument: ${commandLineArg.runtimeType}. '
+        'Expected bool.',
+      );
+    }
+    return commandLineArg;
+  }
+
+  final envVariable = ServerpodEnv.applyMigrations.envVariable;
+  final applyMigrationsFromEnv = environment[envVariable];
+  if (applyMigrationsFromEnv != null) {
+    return switch (applyMigrationsFromEnv) {
+      'true' || 'false' => bool.parse(applyMigrationsFromEnv),
+      _ => throw ArgumentError(
+        'Invalid $envVariable from environment variable: $applyMigrationsFromEnv. '
+        'Valid values are: true, false',
+      ),
+    };
+  }
+
+  final configKey = ServerpodEnv.applyMigrations.configKey;
+  final applyMigrationsFromConfig = configMap[configKey];
+  if (applyMigrationsFromConfig != null) {
+    if (applyMigrationsFromConfig is bool) {
+      return applyMigrationsFromConfig;
+    }
+    return switch (applyMigrationsFromConfig.toString()) {
+      'true' || 'false' => bool.parse(applyMigrationsFromConfig.toString()),
+      _ => throw ArgumentError(
+        'Invalid $configKey from configuration: $applyMigrationsFromConfig. '
+        'Valid values are: true, false',
+      ),
+    };
+  }
+
+  return false;
+}
+
+bool _readApplyRepairMigration(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+  Map<String, dynamic>? commandLineArgs,
+) {
+  final commandLineArg =
+      commandLineArgs?[CliArgsConstants.applyRepairMigration];
+  if (commandLineArg != null) {
+    if (commandLineArg is! bool) {
+      throw ArgumentError(
+        'Invalid type for ${CliArgsConstants.applyRepairMigration} '
+        'from command line argument: ${commandLineArg.runtimeType}. '
+        'Expected bool.',
+      );
+    }
+    return commandLineArg;
+  }
+
+  final envVariable = ServerpodEnv.applyRepairMigration.envVariable;
+  final applyRepairMigrationFromEnv = environment[envVariable];
+  if (applyRepairMigrationFromEnv != null) {
+    return switch (applyRepairMigrationFromEnv) {
+      'true' || 'false' => bool.parse(applyRepairMigrationFromEnv),
+      _ => throw ArgumentError(
+        'Invalid $envVariable from environment variable: $applyRepairMigrationFromEnv. '
+        'Valid values are: true, false',
+      ),
+    };
+  }
+
+  final configKey = ServerpodEnv.applyRepairMigration.configKey;
+  final applyRepairMigrationFromConfig = configMap[configKey];
+  if (applyRepairMigrationFromConfig != null) {
+    if (applyRepairMigrationFromConfig is bool) {
+      return applyRepairMigrationFromConfig;
+    }
+    return switch (applyRepairMigrationFromConfig.toString()) {
+      'true' ||
+      'false' => bool.parse(applyRepairMigrationFromConfig.toString()),
+      _ => throw ArgumentError(
+        'Invalid $configKey from configuration: $applyRepairMigrationFromConfig. '
+        'Valid values are: true, false',
+      ),
+    };
+  }
+
+  return false;
+}
+
+bool _readIsFutureCallExecutionEnabled(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  var futureCallsExecutionEnabled =
+      configMap[ServerpodEnv.futureCallExecutionEnabled.configKey];
+  futureCallsExecutionEnabled =
+      environment[ServerpodEnv.futureCallExecutionEnabled.envVariable] ??
+      futureCallsExecutionEnabled;
+
+  if (futureCallsExecutionEnabled is String) {
+    futureCallsExecutionEnabled = bool.tryParse(futureCallsExecutionEnabled);
+  }
+
+  futureCallsExecutionEnabled ??= true;
+  return futureCallsExecutionEnabled;
+}
+
+bool _readValidateHeaders(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  var validateHeaders = configMap[ServerpodEnv.validateHeaders.configKey];
+  validateHeaders =
+      environment[ServerpodEnv.validateHeaders.envVariable] ?? validateHeaders;
+
+  if (validateHeaders is String) {
+    validateHeaders = bool.tryParse(validateHeaders);
+  }
+
+  validateHeaders ??= true;
+  return validateHeaders;
+}
+
+Duration _readWebsocketPingInterval(
+  Map<dynamic, dynamic> configMap,
+  Map<String, String> environment,
+) {
+  final envVariable = ServerpodEnv.websocketPingInterval.envVariable;
+  final configKey = ServerpodEnv.websocketPingInterval.configKey;
+
+  var websocketPingInterval = configMap[configKey];
+  var sourceDescription = '$configKey from configuration';
+
+  if (environment[envVariable] != null) {
+    websocketPingInterval = environment[envVariable];
+    sourceDescription = '$envVariable from environment variable';
+  }
+
+  int? seconds;
+  if (websocketPingInterval == null) {
+    seconds = 30;
+  } else if (websocketPingInterval is int) {
+    seconds = websocketPingInterval;
+  } else if (websocketPingInterval is String) {
+    seconds = int.tryParse(websocketPingInterval);
+  }
+
+  if (seconds == null || seconds <= 0) {
+    throw ArgumentError(
+      'Invalid $sourceDescription: $websocketPingInterval. '
+      'Expected a positive integer greater than 0.',
+    );
+  }
+
+  return Duration(seconds: seconds);
+}
+
+/// Validates that a JSON configuration contains all required keys, and that
+/// the values have the correct types.
+///
+/// Throws an exception if a key is missing or if the value has the wrong type.
+void _validateJsonConfig(
+  Map<String, Type> expectedConfiguration,
+  Map jsonConfig,
+  String name,
+) {
+  for (var MapEntry(key: key, value: value) in expectedConfiguration.entries) {
+    if (!jsonConfig.containsKey(key)) {
+      throw Exception('$name is missing required configuration for $key.');
+    }
+
+    Object? jsonValue = jsonConfig[key];
+    if (jsonValue.runtimeType != value) {
+      throw Exception(
+        '$name configuration has invalid type for $key. Expected $value, got ${jsonValue.runtimeType}.',
+      );
+    }
+  }
+}
+
+/// Parses a comma-separated string into a list of strings.
+List<String>? _parseList(String? value) {
+  if (value == null) return null;
+  return value.split(',').map((e) => e.trim()).toList();
+}

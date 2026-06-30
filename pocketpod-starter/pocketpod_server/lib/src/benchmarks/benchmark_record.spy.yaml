@@ -1,0 +1,6 @@
+class: BenchmarkRecord
+table: benchmark_record
+fields:
+  value: int
+  payload: String
+  createdAt: DateTime

@@ -1,0 +1,64 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy validation, and
+# allow manual testing through the repository's "Actions" tab
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    # Set the permissions to the lowest permissions possible needed for your steps.
+    # Copilot will be given its own token for its operations.
+    permissions:
+      # If you want to clone the repository as part of your setup steps, for example to install dependencies, you'll need the `contents: read` permission. If you don't clone the repository in your setup steps, Copilot will do this for you automatically after the steps complete.
+      contents: read
+
+    # You can define any steps you want, and they will run before the agent starts.
+    # If you do not check out your code, Copilot will do this for you.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.41.5'
+          channel: "stable"
+          cache: true
+
+      - name: Verify Dart version
+        run: |
+          dart --version
+          echo "Dart SDK version should be >= 3.11.3"
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Set SERVERPOD_HOME environment variable
+        run: echo "SERVERPOD_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Install all dependencies
+        run: melos bootstrap
+
+      - name: Activate Serverpod CLI from source
+        run: |
+          cd tools/serverpod_cli
+          dart pub global activate --source path .
+
+      - name: Verify CLI installation
+        run: serverpod --version
+
+      - name: Add test hosts to /etc/hosts
+        run: |
+          echo "127.0.0.1 serverpod_test_server" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 postgres" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 redis" | sudo tee -a /etc/hosts

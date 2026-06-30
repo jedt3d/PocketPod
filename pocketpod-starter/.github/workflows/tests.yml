@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: PocketPod
+
+      - uses: actions/checkout@v4
+        with:
+          repository: serverpod/serverpod
+          path: ServerPod
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.7'
+
+      - name: Install local Serverpod CLI dependencies
+        working-directory: ServerPod/tools/serverpod_cli
+        run: dart pub get
+
+      - name: Install dependencies
+        working-directory: PocketPod
+        run: flutter pub get
+
+      - name: Run Serverpod generator
+        working-directory: PocketPod/pocketpod_server
+        run: >-
+          dart --packages=../../ServerPod/tools/serverpod_cli/.dart_tool/package_config.json
+          ../../ServerPod/tools/serverpod_cli/bin/serverpod_cli.dart
+          --no-analytics
+          --no-interactive
+          generate
+
+      - name: Run tests
+        working-directory: PocketPod/pocketpod_server
+        run: flutter test

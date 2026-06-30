@@ -1,0 +1,750 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:serverpod/serverpod.dart' as _i1;
+
+/// Represents a snapshot of the number of open connections the server currently
+/// is handling. An entry is written every minute for each server. All health
+/// data can be accessed through Serverpod Insights.
+abstract class ServerHealthConnectionInfo
+    implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
+  ServerHealthConnectionInfo._({
+    this.id,
+    required this.serverId,
+    required this.timestamp,
+    required this.active,
+    required this.closing,
+    required this.idle,
+    required this.granularity,
+  });
+
+  factory ServerHealthConnectionInfo({
+    int? id,
+    required String serverId,
+    required DateTime timestamp,
+    required int active,
+    required int closing,
+    required int idle,
+    required int granularity,
+  }) = _ServerHealthConnectionInfoImpl;
+
+  factory ServerHealthConnectionInfo.fromJson(
+    Map<String, dynamic> jsonSerialization,
+  ) {
+    return ServerHealthConnectionInfo(
+      id: jsonSerialization['id'] as int?,
+      serverId: jsonSerialization['serverId'] as String,
+      timestamp: _i1.DateTimeJsonExtension.fromJson(
+        jsonSerialization['timestamp'],
+      ),
+      active: jsonSerialization['active'] as int,
+      closing: jsonSerialization['closing'] as int,
+      idle: jsonSerialization['idle'] as int,
+      granularity: jsonSerialization['granularity'] as int,
+    );
+  }
+
+  static final t = ServerHealthConnectionInfoTable();
+
+  static const db = ServerHealthConnectionInfoRepository._();
+
+  @override
+  int? id;
+
+  /// The server associated with this connection info.
+  String serverId;
+
+  /// The time when the connections was checked, granularity is one minute.
+  DateTime timestamp;
+
+  /// Number of active connections currently open.
+  int active;
+
+  /// Number of connections currently closing.
+  int closing;
+
+  /// Number of connections currently idle.
+  int idle;
+
+  /// The granularity of this timestamp, null represents 1 minute, other valid
+  /// values are 60 minutes and 1440 minutes (one day).
+  int granularity;
+
+  @override
+  _i1.Table<int?> get table => t;
+
+  /// Returns a shallow copy of this [ServerHealthConnectionInfo]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  ServerHealthConnectionInfo copyWith({
+    int? id,
+    String? serverId,
+    DateTime? timestamp,
+    int? active,
+    int? closing,
+    int? idle,
+    int? granularity,
+  });
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      '__className__': 'serverpod.ServerHealthConnectionInfo',
+      if (id != null) 'id': id,
+      'serverId': serverId,
+      'timestamp': timestamp.toJson(),
+      'active': active,
+      'closing': closing,
+      'idle': idle,
+      'granularity': granularity,
+    };
+  }
+
+  @override
+  Map<String, dynamic> toJsonForProtocol() {
+    return {
+      '__className__': 'serverpod.ServerHealthConnectionInfo',
+      if (id != null) 'id': id,
+      'serverId': serverId,
+      'timestamp': timestamp.toJson(),
+      'active': active,
+      'closing': closing,
+      'idle': idle,
+      'granularity': granularity,
+    };
+  }
+
+  static ServerHealthConnectionInfoInclude include() {
+    return ServerHealthConnectionInfoInclude._();
+  }
+
+  static ServerHealthConnectionInfoIncludeList includeList({
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? where,
+    int? limit,
+    int? offset,
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    ServerHealthConnectionInfoInclude? include,
+  }) {
+    return ServerHealthConnectionInfoIncludeList._(
+      where: where,
+      limit: limit,
+      offset: offset,
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use_from_same_package
+          orderDescending,
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      include: include,
+    );
+  }
+
+  @override
+  String toString() {
+    return _i1.SerializationManager.encode(this);
+  }
+}
+
+class _Undefined {}
+
+class _ServerHealthConnectionInfoImpl extends ServerHealthConnectionInfo {
+  _ServerHealthConnectionInfoImpl({
+    int? id,
+    required String serverId,
+    required DateTime timestamp,
+    required int active,
+    required int closing,
+    required int idle,
+    required int granularity,
+  }) : super._(
+         id: id,
+         serverId: serverId,
+         timestamp: timestamp,
+         active: active,
+         closing: closing,
+         idle: idle,
+         granularity: granularity,
+       );
+
+  /// Returns a shallow copy of this [ServerHealthConnectionInfo]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  @override
+  ServerHealthConnectionInfo copyWith({
+    Object? id = _Undefined,
+    String? serverId,
+    DateTime? timestamp,
+    int? active,
+    int? closing,
+    int? idle,
+    int? granularity,
+  }) {
+    return ServerHealthConnectionInfo(
+      id: id is int? ? id : this.id,
+      serverId: serverId ?? this.serverId,
+      timestamp: timestamp ?? this.timestamp,
+      active: active ?? this.active,
+      closing: closing ?? this.closing,
+      idle: idle ?? this.idle,
+      granularity: granularity ?? this.granularity,
+    );
+  }
+}
+
+class ServerHealthConnectionInfoUpdateTable
+    extends _i1.UpdateTable<ServerHealthConnectionInfoTable> {
+  ServerHealthConnectionInfoUpdateTable(super.table);
+
+  _i1.ColumnValue<String, String> serverId(String value) => _i1.ColumnValue(
+    table.serverId,
+    value,
+  );
+
+  _i1.ColumnValue<DateTime, DateTime> timestamp(DateTime value) =>
+      _i1.ColumnValue(
+        table.timestamp,
+        value,
+      );
+
+  _i1.ColumnValue<int, int> active(int value) => _i1.ColumnValue(
+    table.active,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> closing(int value) => _i1.ColumnValue(
+    table.closing,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> idle(int value) => _i1.ColumnValue(
+    table.idle,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> granularity(int value) => _i1.ColumnValue(
+    table.granularity,
+    value,
+  );
+}
+
+class ServerHealthConnectionInfoTable extends _i1.Table<int?> {
+  ServerHealthConnectionInfoTable({super.tableRelation})
+    : super(tableName: 'serverpod_health_connection_info') {
+    updateTable = ServerHealthConnectionInfoUpdateTable(this);
+    serverId = _i1.ColumnString(
+      'serverId',
+      this,
+    );
+    timestamp = _i1.ColumnDateTime(
+      'timestamp',
+      this,
+    );
+    active = _i1.ColumnInt(
+      'active',
+      this,
+    );
+    closing = _i1.ColumnInt(
+      'closing',
+      this,
+    );
+    idle = _i1.ColumnInt(
+      'idle',
+      this,
+    );
+    granularity = _i1.ColumnInt(
+      'granularity',
+      this,
+    );
+  }
+
+  late final ServerHealthConnectionInfoUpdateTable updateTable;
+
+  /// The server associated with this connection info.
+  late final _i1.ColumnString serverId;
+
+  /// The time when the connections was checked, granularity is one minute.
+  late final _i1.ColumnDateTime timestamp;
+
+  /// Number of active connections currently open.
+  late final _i1.ColumnInt active;
+
+  /// Number of connections currently closing.
+  late final _i1.ColumnInt closing;
+
+  /// Number of connections currently idle.
+  late final _i1.ColumnInt idle;
+
+  /// The granularity of this timestamp, null represents 1 minute, other valid
+  /// values are 60 minutes and 1440 minutes (one day).
+  late final _i1.ColumnInt granularity;
+
+  @override
+  List<_i1.Column> get columns => [
+    id,
+    serverId,
+    timestamp,
+    active,
+    closing,
+    idle,
+    granularity,
+  ];
+}
+
+class ServerHealthConnectionInfoInclude extends _i1.IncludeObject {
+  ServerHealthConnectionInfoInclude._();
+
+  @override
+  Map<String, _i1.Include?> get includes => {};
+
+  @override
+  _i1.Table<int?> get table => ServerHealthConnectionInfo.t;
+}
+
+class ServerHealthConnectionInfoIncludeList extends _i1.IncludeList {
+  ServerHealthConnectionInfoIncludeList._({
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? where,
+    super.limit,
+    super.offset,
+    super.orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    super.orderDescending,
+    super.orderByList,
+    super.include,
+  }) {
+    super.where = where?.call(ServerHealthConnectionInfo.t);
+  }
+
+  @override
+  Map<String, _i1.Include?> get includes => include?.includes ?? {};
+
+  @override
+  _i1.Table<int?> get table => ServerHealthConnectionInfo.t;
+}
+
+class ServerHealthConnectionInfoRepository {
+  const ServerHealthConnectionInfoRepository._();
+
+  /// Returns a list of [ServerHealthConnectionInfo]s matching the given query parameters.
+  ///
+  /// Use [where] to specify which items to include in the return value.
+  /// If none is specified, all items will be returned.
+  ///
+  /// To specify the order of the items use [orderBy] or [orderByList]
+  /// when sorting by multiple columns.
+  ///
+  /// The maximum number of items can be set by [limit]. If no limit is set,
+  /// all items matching the query will be returned.
+  ///
+  /// [offset] defines how many items to skip, after which [limit] (or all)
+  /// items are read from the database.
+  ///
+  /// ```dart
+  /// var persons = await Persons.db.find(
+  ///   session,
+  ///   where: (t) => t.lastName.equals('Jones'),
+  ///   orderBy: (t) => t.firstName,
+  ///   limit: 100,
+  /// );
+  /// ```
+  Future<List<ServerHealthConnectionInfo>> find(
+    _i1.DatabaseSession session, {
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? where,
+    int? limit,
+    int? offset,
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    _i1.Transaction? transaction,
+    _i1.LockMode? lockMode,
+    _i1.LockBehavior? lockBehavior,
+  }) async {
+    return session.db.find<ServerHealthConnectionInfo>(
+      where: where?.call(ServerHealthConnectionInfo.t),
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use
+          orderDescending,
+      limit: limit,
+      offset: offset,
+      transaction: transaction,
+      lockMode: lockMode,
+      lockBehavior: lockBehavior,
+    );
+  }
+
+  /// Returns the first matching [ServerHealthConnectionInfo] matching the given query parameters.
+  ///
+  /// Use [where] to specify which items to include in the return value.
+  /// If none is specified, all items will be returned.
+  ///
+  /// To specify the order use [orderBy] or [orderByList]
+  /// when sorting by multiple columns.
+  ///
+  /// [offset] defines how many items to skip, after which the next one will be picked.
+  ///
+  /// ```dart
+  /// var youngestPerson = await Persons.db.findFirstRow(
+  ///   session,
+  ///   where: (t) => t.lastName.equals('Jones'),
+  ///   orderBy: (t) => t.age,
+  /// );
+  /// ```
+  Future<ServerHealthConnectionInfo?> findFirstRow(
+    _i1.DatabaseSession session, {
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? where,
+    int? offset,
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    _i1.Transaction? transaction,
+    _i1.LockMode? lockMode,
+    _i1.LockBehavior? lockBehavior,
+  }) async {
+    return session.db.findFirstRow<ServerHealthConnectionInfo>(
+      where: where?.call(ServerHealthConnectionInfo.t),
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use
+          orderDescending,
+      offset: offset,
+      transaction: transaction,
+      lockMode: lockMode,
+      lockBehavior: lockBehavior,
+    );
+  }
+
+  /// Finds a single [ServerHealthConnectionInfo] by its [id] or null if no such row exists.
+  Future<ServerHealthConnectionInfo?> findById(
+    _i1.DatabaseSession session,
+    int id, {
+    _i1.Transaction? transaction,
+    _i1.LockMode? lockMode,
+    _i1.LockBehavior? lockBehavior,
+  }) async {
+    return session.db.findById<ServerHealthConnectionInfo>(
+      id,
+      transaction: transaction,
+      lockMode: lockMode,
+      lockBehavior: lockBehavior,
+    );
+  }
+
+  /// Inserts all [ServerHealthConnectionInfo]s in the list and returns the inserted rows.
+  ///
+  /// The returned [ServerHealthConnectionInfo]s will have their `id` fields set.
+  ///
+  /// This is an atomic operation, meaning that if one of the rows fails to
+  /// insert, none of the rows will be inserted.
+  ///
+  /// If [ignoreConflicts] is set to `true`, rows that conflict with existing
+  /// rows are silently skipped, and only the successfully inserted rows are
+  /// returned.
+  ///
+  /// If [noReturn] is set to `true`, the inserted rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> insert(
+    _i1.DatabaseSession session,
+    List<ServerHealthConnectionInfo> rows, {
+    _i1.Transaction? transaction,
+    bool ignoreConflicts = false,
+    bool noReturn = false,
+  }) async {
+    return session.db.insert<ServerHealthConnectionInfo>(
+      rows,
+      transaction: transaction,
+      ignoreConflicts: ignoreConflicts,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Inserts a single [ServerHealthConnectionInfo] and returns the inserted row.
+  ///
+  /// The returned [ServerHealthConnectionInfo] will have its `id` field set.
+  Future<ServerHealthConnectionInfo> insertRow(
+    _i1.DatabaseSession session,
+    ServerHealthConnectionInfo row, {
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.insertRow<ServerHealthConnectionInfo>(
+      row,
+      transaction: transaction,
+    );
+  }
+
+  /// Upserts all [ServerHealthConnectionInfo]s in the list and returns the resulting rows.
+  ///
+  /// If a row conflicts on the given [conflictColumns], the existing row is
+  /// updated with the new values. Otherwise, a new row is inserted.
+  ///
+  /// If [updateColumns] is provided, only those columns will be updated on
+  /// conflict. If null, all non-conflict, non-id columns are updated.
+  ///
+  /// If [updateWhere] is provided, the update only applies to rows matching the
+  /// given expression. Conflicting rows that don't match are skipped and not
+  /// returned, so the resulting list may be shorter than [rows].
+  ///
+  /// The returned [ServerHealthConnectionInfo]s will have their `id` fields set.
+  ///
+  /// This is an atomic operation, meaning that if one of the rows fails,
+  /// none of the rows will be affected.
+  ///
+  /// If [noReturn] is set to `true`, the resulting rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> upsert(
+    _i1.DatabaseSession session,
+    List<ServerHealthConnectionInfo> rows, {
+    required _i1.ColumnSelections<ServerHealthConnectionInfoTable>
+    conflictColumns,
+    _i1.ColumnSelections<ServerHealthConnectionInfoTable>? updateColumns,
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? updateWhere,
+    _i1.Transaction? transaction,
+    bool noReturn = false,
+  }) async {
+    return session.db.upsert<ServerHealthConnectionInfo>(
+      rows,
+      conflictColumns: conflictColumns(ServerHealthConnectionInfo.t),
+      updateColumns: updateColumns?.call(ServerHealthConnectionInfo.t),
+      updateWhere: updateWhere?.call(ServerHealthConnectionInfo.t),
+      transaction: transaction,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Upserts a single [ServerHealthConnectionInfo] and returns the resulting row.
+  ///
+  /// If the row conflicts on the given [conflictColumns], the existing row is
+  /// updated. Otherwise, a new row is inserted.
+  ///
+  /// If [updateColumns] is provided, only those columns will be updated on
+  /// conflict. If null, all non-conflict, non-id columns are updated.
+  ///
+  /// If [updateWhere] is provided, the update only applies when the existing
+  /// row matches the expression. Returns `null` if no row was affected — for
+  /// example when [updateWhere] does not match the conflicting row.
+  ///
+  /// The returned [ServerHealthConnectionInfo] will have its `id` field set.
+  Future<ServerHealthConnectionInfo?> upsertRow(
+    _i1.DatabaseSession session,
+    ServerHealthConnectionInfo row, {
+    required _i1.ColumnSelections<ServerHealthConnectionInfoTable>
+    conflictColumns,
+    _i1.ColumnSelections<ServerHealthConnectionInfoTable>? updateColumns,
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? updateWhere,
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.upsertRow<ServerHealthConnectionInfo>(
+      row,
+      conflictColumns: conflictColumns(ServerHealthConnectionInfo.t),
+      updateColumns: updateColumns?.call(ServerHealthConnectionInfo.t),
+      updateWhere: updateWhere?.call(ServerHealthConnectionInfo.t),
+      transaction: transaction,
+    );
+  }
+
+  /// Updates all [ServerHealthConnectionInfo]s in the list and returns the updated rows. If
+  /// [columns] is provided, only those columns will be updated. Defaults to
+  /// all columns.
+  /// This is an atomic operation, meaning that if one of the rows fails to
+  /// update, none of the rows will be updated.
+  ///
+  /// If [noReturn] is set to `true`, the updated rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> update(
+    _i1.DatabaseSession session,
+    List<ServerHealthConnectionInfo> rows, {
+    _i1.ColumnSelections<ServerHealthConnectionInfoTable>? columns,
+    _i1.Transaction? transaction,
+    bool noReturn = false,
+  }) async {
+    return session.db.update<ServerHealthConnectionInfo>(
+      rows,
+      columns: columns?.call(ServerHealthConnectionInfo.t),
+      transaction: transaction,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Updates a single [ServerHealthConnectionInfo]. The row needs to have its id set.
+  /// Optionally, a list of [columns] can be provided to only update those
+  /// columns. Defaults to all columns.
+  Future<ServerHealthConnectionInfo> updateRow(
+    _i1.DatabaseSession session,
+    ServerHealthConnectionInfo row, {
+    _i1.ColumnSelections<ServerHealthConnectionInfoTable>? columns,
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.updateRow<ServerHealthConnectionInfo>(
+      row,
+      columns: columns?.call(ServerHealthConnectionInfo.t),
+      transaction: transaction,
+    );
+  }
+
+  /// Updates a single [ServerHealthConnectionInfo] by its [id] with the specified [columnValues].
+  /// Returns the updated row or null if no row with the given id exists.
+  Future<ServerHealthConnectionInfo?> updateById(
+    _i1.DatabaseSession session,
+    int id, {
+    required _i1.ColumnValueListBuilder<ServerHealthConnectionInfoUpdateTable>
+    columnValues,
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.updateById<ServerHealthConnectionInfo>(
+      id,
+      columnValues: columnValues(ServerHealthConnectionInfo.t.updateTable),
+      transaction: transaction,
+    );
+  }
+
+  /// Updates all [ServerHealthConnectionInfo]s matching the [where] expression with the specified [columnValues].
+  /// Returns the list of updated rows.
+  ///
+  /// If [noReturn] is set to `true`, the updated rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> updateWhere(
+    _i1.DatabaseSession session, {
+    required _i1.ColumnValueListBuilder<ServerHealthConnectionInfoUpdateTable>
+    columnValues,
+    required _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable> where,
+    int? limit,
+    int? offset,
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.Transaction? transaction,
+    bool noReturn = false,
+  }) async {
+    return session.db.updateWhere<ServerHealthConnectionInfo>(
+      columnValues: columnValues(ServerHealthConnectionInfo.t.updateTable),
+      where: where(ServerHealthConnectionInfo.t),
+      limit: limit,
+      offset: offset,
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use
+          orderDescending,
+      transaction: transaction,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Deletes all [ServerHealthConnectionInfo]s in the list and returns the deleted rows.
+  ///
+  /// To specify the order of the returned rows use [orderBy] or [orderByList]
+  /// when sorting by multiple columns.
+  ///
+  /// This is an atomic operation, meaning that if one of the rows fail to
+  /// be deleted, none of the rows will be deleted.
+  ///
+  /// If [noReturn] is set to `true`, the deleted rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> delete(
+    _i1.DatabaseSession session,
+    List<ServerHealthConnectionInfo> rows, {
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    _i1.Transaction? transaction,
+    bool noReturn = false,
+  }) async {
+    return session.db.delete<ServerHealthConnectionInfo>(
+      rows,
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use
+          orderDescending,
+      transaction: transaction,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Deletes a single [ServerHealthConnectionInfo].
+  Future<ServerHealthConnectionInfo> deleteRow(
+    _i1.DatabaseSession session,
+    ServerHealthConnectionInfo row, {
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.deleteRow<ServerHealthConnectionInfo>(
+      row,
+      transaction: transaction,
+    );
+  }
+
+  /// Deletes all rows matching the [where] expression.
+  ///
+  /// To specify the order of the returned rows use [orderBy] or [orderByList]
+  /// when sorting by multiple columns.
+  ///
+  /// If [noReturn] is set to `true`, the deleted rows are not read back from
+  /// the database and an empty list is returned. This avoids the overhead of
+  /// transferring and deserializing the rows when the result is not needed.
+  Future<List<ServerHealthConnectionInfo>> deleteWhere(
+    _i1.DatabaseSession session, {
+    required _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable> where,
+    _i1.OrderByBuilder<ServerHealthConnectionInfoTable>? orderBy,
+    @Deprecated('Use desc() on the orderBy column instead.')
+    bool orderDescending = false,
+    _i1.OrderByListBuilder<ServerHealthConnectionInfoTable>? orderByList,
+    _i1.Transaction? transaction,
+    bool noReturn = false,
+  }) async {
+    return session.db.deleteWhere<ServerHealthConnectionInfo>(
+      where: where(ServerHealthConnectionInfo.t),
+      orderBy: orderBy?.call(ServerHealthConnectionInfo.t),
+      orderByList: orderByList?.call(ServerHealthConnectionInfo.t),
+      orderDescending: // ignore: deprecated_member_use
+          orderDescending,
+      transaction: transaction,
+      noReturn: noReturn,
+    );
+  }
+
+  /// Counts the number of rows matching the [where] expression. If omitted,
+  /// will return the count of all rows in the table.
+  Future<int> count(
+    _i1.DatabaseSession session, {
+    _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable>? where,
+    int? limit,
+    _i1.Transaction? transaction,
+  }) async {
+    return session.db.count<ServerHealthConnectionInfo>(
+      where: where?.call(ServerHealthConnectionInfo.t),
+      limit: limit,
+      transaction: transaction,
+    );
+  }
+
+  /// Acquires row-level locks on [ServerHealthConnectionInfo] rows matching the [where] expression.
+  Future<void> lockRows(
+    _i1.DatabaseSession session, {
+    required _i1.WhereExpressionBuilder<ServerHealthConnectionInfoTable> where,
+    required _i1.LockMode lockMode,
+    required _i1.Transaction transaction,
+    _i1.LockBehavior lockBehavior = _i1.LockBehavior.wait,
+  }) async {
+    return session.db.lockRows<ServerHealthConnectionInfo>(
+      where: where(ServerHealthConnectionInfo.t),
+      lockMode: lockMode,
+      lockBehavior: lockBehavior,
+      transaction: transaction,
+    );
+  }
+}

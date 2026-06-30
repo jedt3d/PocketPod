@@ -1,0 +1,6 @@
+enum: ServerOnlyEnum
+serialized: byIndex
+serverOnly: true
+values:
+  - foo
+  - bar

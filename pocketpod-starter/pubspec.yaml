@@ -1,0 +1,36 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: '^3.10.3'
+
+workspace:
+  - pocketpod_client
+  - pocketpod_server
+  - pocketpod_flutter
+
+dependencies:
+  args: ^2.7.0
+  http: ^1.6.0
+  path: ^1.9.1
+  pocketpod_client:
+    path: pocketpod_client
+  sqlite_async: ^0.14.3
+
+dependency_overrides:
+  serverpod:
+    path: ../serverpod-pocketpod/packages/serverpod
+  serverpod_client:
+    path: ../serverpod-pocketpod/packages/serverpod_client
+  serverpod_database:
+    path: ../serverpod-pocketpod/packages/serverpod_database
+  serverpod_flutter:
+    path: ../serverpod-pocketpod/packages/serverpod_flutter
+  serverpod_lints:
+    path: ../serverpod-pocketpod/packages/serverpod_lints
+  serverpod_serialization:
+    path: ../serverpod-pocketpod/packages/serverpod_serialization
+  serverpod_shared:
+    path: ../serverpod-pocketpod/packages/serverpod_shared
+  serverpod_test:
+    path: ../serverpod-pocketpod/packages/serverpod_test

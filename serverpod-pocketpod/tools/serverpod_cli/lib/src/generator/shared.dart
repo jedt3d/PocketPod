@@ -1,0 +1,36 @@
+/// The import url of the main serverpod package.
+String serverpodUrl(bool serverCode) {
+  return serverCode
+      ? 'package:serverpod/serverpod.dart'
+      : 'package:serverpod_client/serverpod_client.dart';
+}
+
+/// The import url of the serverpod protocol.
+String serverpodProtocolUrl(bool serverCode) {
+  return serverCode
+      ? 'package:serverpod/protocol.dart'
+      : 'package:serverpod_client/serverpod_client.dart';
+}
+
+/// The import url for serverpod database types.
+String serverpodDatabaseUrl(bool serverCode) {
+  return serverCode
+      ? 'package:serverpod/protocol.dart'
+      : 'package:serverpod_database/serverpod_database.dart';
+}
+
+/// The import url for runtime database APIs.
+String serverpodDatabaseRuntimeUrl(bool serverCode) {
+  return serverCode
+      ? 'package:serverpod/serverpod.dart'
+      : 'package:serverpod_database/serverpod_database.dart';
+}
+
+/// The import url of the serverpod serialization package.
+const String serverpodSerializationUrl =
+    'package:serverpod_serialization/serverpod_serialization.dart';
+
+/// The import url of the serverpod test package.
+const String serverpodTestUrl = 'package:serverpod_test/serverpod_test.dart';
+const String serverpodTestPublicExportsUrl =
+    'package:serverpod_test/serverpod_test_public_exports.dart';

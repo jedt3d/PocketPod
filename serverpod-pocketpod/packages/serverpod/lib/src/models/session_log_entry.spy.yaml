@@ -1,0 +1,68 @@
+### Log entry for a session.
+class: SessionLogEntry
+table: serverpod_session_log
+fields:
+  ### The id of the server that handled this session.
+  serverId: String
+
+  ### The starting time of this session.
+  time: DateTime
+
+  ### The module this session is associated with, if any.
+  module: String?
+
+  ### The endpoint this session is associated with, if any.
+  endpoint: String?
+
+  ### The method this session is associated with, if any.
+  method: String?
+
+  ### The running time of this session, in seconds. May be null if the session
+  ### is still active.
+  duration: double?
+
+  ### The number of queries performed during this session.
+  numQueries: int?
+
+  ### True if this session was slow to complete.
+  slow: bool?
+
+  ### If the session ends with an exception, the error field will be set.
+  error: String?
+
+  ### If the session ends with an exception, a stack trace will be set.
+  stackTrace: String?
+
+  ### Deprecated. Use userId instead.
+  authenticatedUserId: int?, scope=serverOnly
+
+  ### The id of an authenticated user associated with this session. The user id
+  ### is only set if it has been requested during the session. This means that
+  ### it can be null, even though the session was performed by an authenticated
+  ### user.
+  userId: String?
+
+  ### True if the session is still open.
+  isOpen: bool?
+
+  ### Timestamp of the last time this record was modified.
+  touched: DateTime
+
+  ### Application log lines for this session.
+  logs: List<LogEntry>?, relation(name=session_log_logs)
+
+  ### Query log lines for this session.
+  queries: List<QueryLogEntry>?, relation(name=session_log_query_logs)
+
+  ### Streaming message log lines for this session.
+  messages: List<MessageLogEntry>?, relation(name=session_log_message_logs)
+
+indexes:
+  serverpod_session_log_serverid_idx:
+    fields: serverId
+  serverpod_session_log_time_idx:
+    fields: time
+  serverpod_session_log_touched_idx:
+    fields: touched
+  serverpod_session_log_isopen_idx:
+    fields: isOpen

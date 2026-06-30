@@ -1,0 +1,300 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import 'log_entry.dart' as _i2;
+import 'query_log_entry.dart' as _i3;
+import 'message_log_entry.dart' as _i4;
+import 'package:serverpod_service_client/src/protocol/protocol.dart' as _i5;
+
+/// Log entry for a session.
+abstract class SessionLogEntry implements _i1.SerializableModel {
+  SessionLogEntry._({
+    this.id,
+    required this.serverId,
+    required this.time,
+    this.module,
+    this.endpoint,
+    this.method,
+    this.duration,
+    this.numQueries,
+    this.slow,
+    this.error,
+    this.stackTrace,
+    this.userId,
+    this.isOpen,
+    required this.touched,
+    this.logs,
+    this.queries,
+    this.messages,
+  });
+
+  factory SessionLogEntry({
+    int? id,
+    required String serverId,
+    required DateTime time,
+    String? module,
+    String? endpoint,
+    String? method,
+    double? duration,
+    int? numQueries,
+    bool? slow,
+    String? error,
+    String? stackTrace,
+    String? userId,
+    bool? isOpen,
+    required DateTime touched,
+    List<_i2.LogEntry>? logs,
+    List<_i3.QueryLogEntry>? queries,
+    List<_i4.MessageLogEntry>? messages,
+  }) = _SessionLogEntryImpl;
+
+  factory SessionLogEntry.fromJson(Map<String, dynamic> jsonSerialization) {
+    return SessionLogEntry(
+      id: jsonSerialization['id'] as int?,
+      serverId: jsonSerialization['serverId'] as String,
+      time: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['time']),
+      module: jsonSerialization['module'] as String?,
+      endpoint: jsonSerialization['endpoint'] as String?,
+      method: jsonSerialization['method'] as String?,
+      duration: (jsonSerialization['duration'] as num?)?.toDouble(),
+      numQueries: jsonSerialization['numQueries'] as int?,
+      slow: jsonSerialization['slow'] == null
+          ? null
+          : _i1.BoolJsonExtension.fromJson(jsonSerialization['slow']),
+      error: jsonSerialization['error'] as String?,
+      stackTrace: jsonSerialization['stackTrace'] as String?,
+      userId: jsonSerialization['userId'] as String?,
+      isOpen: jsonSerialization['isOpen'] == null
+          ? null
+          : _i1.BoolJsonExtension.fromJson(jsonSerialization['isOpen']),
+      touched: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['touched']),
+      logs: jsonSerialization['logs'] == null
+          ? null
+          : _i5.Protocol().deserialize<List<_i2.LogEntry>>(
+              jsonSerialization['logs'],
+            ),
+      queries: jsonSerialization['queries'] == null
+          ? null
+          : _i5.Protocol().deserialize<List<_i3.QueryLogEntry>>(
+              jsonSerialization['queries'],
+            ),
+      messages: jsonSerialization['messages'] == null
+          ? null
+          : _i5.Protocol().deserialize<List<_i4.MessageLogEntry>>(
+              jsonSerialization['messages'],
+            ),
+    );
+  }
+
+  /// The database id, set if the object has been inserted into the
+  /// database or if it has been fetched from the database. Otherwise,
+  /// the id will be null.
+  int? id;
+
+  /// The id of the server that handled this session.
+  String serverId;
+
+  /// The starting time of this session.
+  DateTime time;
+
+  /// The module this session is associated with, if any.
+  String? module;
+
+  /// The endpoint this session is associated with, if any.
+  String? endpoint;
+
+  /// The method this session is associated with, if any.
+  String? method;
+
+  /// The running time of this session, in seconds. May be null if the session
+  /// is still active.
+  double? duration;
+
+  /// The number of queries performed during this session.
+  int? numQueries;
+
+  /// True if this session was slow to complete.
+  bool? slow;
+
+  /// If the session ends with an exception, the error field will be set.
+  String? error;
+
+  /// If the session ends with an exception, a stack trace will be set.
+  String? stackTrace;
+
+  /// The id of an authenticated user associated with this session. The user id
+  /// is only set if it has been requested during the session. This means that
+  /// it can be null, even though the session was performed by an authenticated
+  /// user.
+  String? userId;
+
+  /// True if the session is still open.
+  bool? isOpen;
+
+  /// Timestamp of the last time this record was modified.
+  DateTime touched;
+
+  /// Application log lines for this session.
+  List<_i2.LogEntry>? logs;
+
+  /// Query log lines for this session.
+  List<_i3.QueryLogEntry>? queries;
+
+  /// Streaming message log lines for this session.
+  List<_i4.MessageLogEntry>? messages;
+
+  /// Returns a shallow copy of this [SessionLogEntry]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  SessionLogEntry copyWith({
+    int? id,
+    String? serverId,
+    DateTime? time,
+    String? module,
+    String? endpoint,
+    String? method,
+    double? duration,
+    int? numQueries,
+    bool? slow,
+    String? error,
+    String? stackTrace,
+    String? userId,
+    bool? isOpen,
+    DateTime? touched,
+    List<_i2.LogEntry>? logs,
+    List<_i3.QueryLogEntry>? queries,
+    List<_i4.MessageLogEntry>? messages,
+  });
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      '__className__': 'serverpod.SessionLogEntry',
+      if (id != null) 'id': id,
+      'serverId': serverId,
+      'time': time.toJson(),
+      if (module != null) 'module': module,
+      if (endpoint != null) 'endpoint': endpoint,
+      if (method != null) 'method': method,
+      if (duration != null) 'duration': duration,
+      if (numQueries != null) 'numQueries': numQueries,
+      if (slow != null) 'slow': slow,
+      if (error != null) 'error': error,
+      if (stackTrace != null) 'stackTrace': stackTrace,
+      if (userId != null) 'userId': userId,
+      if (isOpen != null) 'isOpen': isOpen,
+      'touched': touched.toJson(),
+      if (logs != null) 'logs': logs?.toJson(valueToJson: (v) => v.toJson()),
+      if (queries != null)
+        'queries': queries?.toJson(valueToJson: (v) => v.toJson()),
+      if (messages != null)
+        'messages': messages?.toJson(valueToJson: (v) => v.toJson()),
+    };
+  }
+
+  @override
+  String toString() {
+    return _i1.SerializationManager.encode(this);
+  }
+}
+
+class _Undefined {}
+
+class _SessionLogEntryImpl extends SessionLogEntry {
+  _SessionLogEntryImpl({
+    int? id,
+    required String serverId,
+    required DateTime time,
+    String? module,
+    String? endpoint,
+    String? method,
+    double? duration,
+    int? numQueries,
+    bool? slow,
+    String? error,
+    String? stackTrace,
+    String? userId,
+    bool? isOpen,
+    required DateTime touched,
+    List<_i2.LogEntry>? logs,
+    List<_i3.QueryLogEntry>? queries,
+    List<_i4.MessageLogEntry>? messages,
+  }) : super._(
+         id: id,
+         serverId: serverId,
+         time: time,
+         module: module,
+         endpoint: endpoint,
+         method: method,
+         duration: duration,
+         numQueries: numQueries,
+         slow: slow,
+         error: error,
+         stackTrace: stackTrace,
+         userId: userId,
+         isOpen: isOpen,
+         touched: touched,
+         logs: logs,
+         queries: queries,
+         messages: messages,
+       );
+
+  /// Returns a shallow copy of this [SessionLogEntry]
+  /// with some or all fields replaced by the given arguments.
+  @_i1.useResult
+  @override
+  SessionLogEntry copyWith({
+    Object? id = _Undefined,
+    String? serverId,
+    DateTime? time,
+    Object? module = _Undefined,
+    Object? endpoint = _Undefined,
+    Object? method = _Undefined,
+    Object? duration = _Undefined,
+    Object? numQueries = _Undefined,
+    Object? slow = _Undefined,
+    Object? error = _Undefined,
+    Object? stackTrace = _Undefined,
+    Object? userId = _Undefined,
+    Object? isOpen = _Undefined,
+    DateTime? touched,
+    Object? logs = _Undefined,
+    Object? queries = _Undefined,
+    Object? messages = _Undefined,
+  }) {
+    return SessionLogEntry(
+      id: id is int? ? id : this.id,
+      serverId: serverId ?? this.serverId,
+      time: time ?? this.time,
+      module: module is String? ? module : this.module,
+      endpoint: endpoint is String? ? endpoint : this.endpoint,
+      method: method is String? ? method : this.method,
+      duration: duration is double? ? duration : this.duration,
+      numQueries: numQueries is int? ? numQueries : this.numQueries,
+      slow: slow is bool? ? slow : this.slow,
+      error: error is String? ? error : this.error,
+      stackTrace: stackTrace is String? ? stackTrace : this.stackTrace,
+      userId: userId is String? ? userId : this.userId,
+      isOpen: isOpen is bool? ? isOpen : this.isOpen,
+      touched: touched ?? this.touched,
+      logs: logs is List<_i2.LogEntry>?
+          ? logs
+          : this.logs?.map((e0) => e0.copyWith()).toList(),
+      queries: queries is List<_i3.QueryLogEntry>?
+          ? queries
+          : this.queries?.map((e0) => e0.copyWith()).toList(),
+      messages: messages is List<_i4.MessageLogEntry>?
+          ? messages
+          : this.messages?.map((e0) => e0.copyWith()).toList(),
+    );
+  }
+}
