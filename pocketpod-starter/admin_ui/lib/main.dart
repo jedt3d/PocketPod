@@ -348,6 +348,31 @@ class _AdminShellState extends State<AdminShell> {
     }
   }
 
+  Future<AdminRecord> _saveRecord(AdminRecord record) async {
+    final collection = _activeCollection;
+    if (collection == null) {
+      throw StateError('No active collection.');
+    }
+
+    final saved = await widget.api.updateRecord(
+      collection.key,
+      record.id,
+      record.cells,
+    );
+    if (!mounted) return saved;
+
+    setState(() {
+      _selectedRecord = saved;
+      _records = [
+        for (final row in _records)
+          if (row.id == saved.id) saved else row,
+      ];
+      _error = null;
+    });
+
+    return saved;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -371,6 +396,7 @@ class _AdminShellState extends State<AdminShell> {
                 loadingRecords: _loadingRecords,
                 error: _error,
                 onOpenRecord: _openRecord,
+                onSaveRecord: _saveRecord,
                 onLogout: widget.onLogout,
               ),
             ),
@@ -453,6 +479,7 @@ class AdminWorkspace extends StatelessWidget {
     required this.selectedRecord,
     required this.loadingRecords,
     required this.onOpenRecord,
+    required this.onSaveRecord,
     required this.onLogout,
     this.error,
     super.key,
@@ -466,6 +493,7 @@ class AdminWorkspace extends StatelessWidget {
   final bool loadingRecords;
   final String? error;
   final ValueChanged<AdminRecord> onOpenRecord;
+  final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
   final Future<void> Function() onLogout;
 
   @override
@@ -520,6 +548,7 @@ class AdminWorkspace extends StatelessWidget {
                     selectedRecord: selectedRecord,
                     loading: loadingRecords,
                     onOpenRecord: onOpenRecord,
+                    onSaveRecord: onSaveRecord,
                   ),
           ),
         ],
@@ -564,6 +593,7 @@ class _CollectionPanel extends StatelessWidget {
     required this.selectedRecord,
     required this.loading,
     required this.onOpenRecord,
+    required this.onSaveRecord,
   });
 
   final AdminCollection collection;
@@ -571,6 +601,7 @@ class _CollectionPanel extends StatelessWidget {
   final AdminRecord? selectedRecord;
   final bool loading;
   final ValueChanged<AdminRecord> onOpenRecord;
+  final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -628,7 +659,11 @@ class _CollectionPanel extends StatelessWidget {
                     onOpenRecord: onOpenRecord,
                   ),
             if (selectedRecord != null)
-              _RecordDetail(collection: collection, record: selectedRecord!),
+              _RecordDetail(
+                collection: collection,
+                record: selectedRecord!,
+                onSaveRecord: onSaveRecord,
+              ),
           ],
         ),
       ),
@@ -760,11 +795,122 @@ class _RecordCell extends StatelessWidget {
   }
 }
 
-class _RecordDetail extends StatelessWidget {
-  const _RecordDetail({required this.collection, required this.record});
+class _RecordDetail extends StatefulWidget {
+  const _RecordDetail({
+    required this.collection,
+    required this.record,
+    required this.onSaveRecord,
+  });
 
   final AdminCollection collection;
   final AdminRecord record;
+  final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
+
+  @override
+  State<_RecordDetail> createState() => _RecordDetailState();
+}
+
+class _RecordDetailState extends State<_RecordDetail> {
+  final _formKey = GlobalKey<FormState>();
+  final Map<String, TextEditingController> _controllers = {};
+  final Map<String, bool> _boolValues = {};
+  String? _message;
+  String? _error;
+  bool _saving = false;
+
+  bool get _editable => isEditableCollection(widget.collection.key);
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrate(widget.record);
+  }
+
+  @override
+  void didUpdateWidget(covariant _RecordDetail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.record.id != widget.record.id ||
+        oldWidget.collection.key != widget.collection.key) {
+      _hydrate(widget.record);
+      _message = null;
+      _error = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _hydrate(AdminRecord record) {
+    final currentFields = widget.collection.fields
+        .map((field) => field.name)
+        .toSet();
+    for (final entry in _controllers.entries.toList()) {
+      if (!currentFields.contains(entry.key)) {
+        entry.value.dispose();
+        _controllers.remove(entry.key);
+      }
+    }
+
+    for (final field in widget.collection.fields) {
+      final value = record.valueFor(field.name);
+      if (field.control == 'checkbox') {
+        _boolValues[field.name] = value.toLowerCase() == 'true';
+      } else {
+        final controller = _controllers.putIfAbsent(
+          field.name,
+          () => TextEditingController(),
+        );
+        controller.text = value;
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_editable || !_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _message = null;
+      _error = null;
+    });
+
+    final cells = [
+      for (final field in widget.collection.fields)
+        AdminRecordCell(field: field.name, value: _valueFor(field)),
+    ];
+
+    try {
+      final saved = await widget.onSaveRecord(
+        AdminRecord(id: widget.record.id, cells: cells),
+      );
+      if (!mounted) return;
+      _hydrate(saved);
+      setState(() {
+        _saving = false;
+        _message = '${widget.collection.title} #${saved.id} saved.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = 'Save failed: $error';
+      });
+    }
+  }
+
+  String _valueFor(AdminField field) {
+    if (field.control == 'checkbox') {
+      return (_boolValues[field.name] ?? false).toString();
+    }
+    return _controllers[field.name]?.text.trim() ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -775,24 +921,275 @@ class _RecordDetail extends StatelessWidget {
         color: Color(0xFFFBFCFD),
         border: Border(top: BorderSide(color: Color(0xFFD9DEE7))),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${isEditableCollection(collection.key) ? 'Edit' : 'View'} ${collection.title} #${record.id}',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 14,
-            runSpacing: 8,
-            children: [
-              for (final field in collection.fields)
-                Text('${field.label}: ${record.valueFor(field.name)}'),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_editable ? 'Edit' : 'View'} ${widget.collection.title} #${widget.record.id}',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final twoColumns = constraints.maxWidth >= 720;
+                return Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final field in widget.collection.fields)
+                      SizedBox(
+                        width: twoColumns ? 320 : constraints.maxWidth,
+                        child: _AdminFieldControl(
+                          key: Key('field_${field.name}'),
+                          field: field,
+                          controller: _controllers[field.name],
+                          boolValue: _boolValues[field.name] ?? false,
+                          readOnly: !_editable || field.name == 'updatedAt',
+                          onBoolChanged: (value) {
+                            setState(() {
+                              _boolValues[field.name] = value ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _message!,
+                key: const Key('save_success'),
+                style: const TextStyle(
+                  color: Color(0xFF047857),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
-          ),
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _error!,
+                key: const Key('save_error'),
+                style: const TextStyle(
+                  color: Color(0xFFB42318),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            if (_editable)
+              FilledButton(
+                key: const Key('save_record'),
+                onPressed: _saving ? null : _save,
+                child: Text(_saving ? 'Saving...' : 'Save changes'),
+              )
+            else
+              const Text(
+                'This demo collection is read-only.',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminFieldControl extends StatelessWidget {
+  const _AdminFieldControl({
+    required this.field,
+    required this.readOnly,
+    required this.boolValue,
+    required this.onBoolChanged,
+    this.controller,
+    super.key,
+  });
+
+  final AdminField field;
+  final TextEditingController? controller;
+  final bool readOnly;
+  final bool boolValue;
+  final ValueChanged<bool?> onBoolChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(field: field),
+        const SizedBox(height: 6),
+        _buildControl(context),
+      ],
+    );
+  }
+
+  Widget _buildControl(BuildContext context) {
+    return switch (field.control) {
+      'textarea' => TextFormField(
+        key: Key('input_${field.name}'),
+        controller: controller,
+        enabled: !readOnly,
+        maxLines: 5,
+        validator: _requiredValidator,
+        decoration: _decoration(),
+      ),
+      'checkbox' => CheckboxListTile(
+        key: Key('input_${field.name}'),
+        value: boolValue,
+        onChanged: readOnly ? null : onBoolChanged,
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: const Text('Enabled'),
+      ),
+      'datetime' => TextFormField(
+        key: Key('input_${field.name}'),
+        controller: controller,
+        enabled: !readOnly,
+        readOnly: true,
+        validator: _requiredValidator,
+        decoration: _decoration(
+          suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+        ),
+        onTap: readOnly ? null : () => _pickDateTime(context),
+      ),
+      'number' => TextFormField(
+        key: Key('input_${field.name}'),
+        controller: controller,
+        enabled: !readOnly,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        validator: _numberValidator,
+        decoration: _decoration(),
+      ),
+      'select' || 'relation' => DropdownButtonFormField<String>(
+        key: Key('input_${field.name}'),
+        initialValue: _dropdownValue,
+        items: [
+          for (final option in _options)
+            DropdownMenuItem(value: option, child: Text(option)),
+        ],
+        onChanged: readOnly
+            ? null
+            : (value) {
+                if (value != null) {
+                  controller?.text = value;
+                }
+              },
+        validator: _requiredValidator,
+        decoration: _decoration(),
+      ),
+      _ => TextFormField(
+        key: Key('input_${field.name}'),
+        controller: controller,
+        enabled: !readOnly,
+        validator: _requiredValidator,
+        decoration: _decoration(),
+      ),
+    };
+  }
+
+  String? _requiredValidator(String? value) {
+    if (field.required && (value == null || value.trim().isEmpty)) {
+      return '${field.label} is required.';
+    }
+    return null;
+  }
+
+  String? _numberValidator(String? value) {
+    final requiredError = _requiredValidator(value);
+    if (requiredError != null) return requiredError;
+    if (value == null || value.trim().isEmpty) return null;
+    if (num.tryParse(value.trim()) == null) {
+      return '${field.label} must be numeric.';
+    }
+    return null;
+  }
+
+  InputDecoration _decoration({Widget? suffixIcon}) {
+    return InputDecoration(
+      isDense: true,
+      border: const OutlineInputBorder(),
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  String? get _dropdownValue {
+    final value = controller?.text.trim() ?? '';
+    if (value.isEmpty) return null;
+    return _options.contains(value) ? value : _options.first;
+  }
+
+  List<String> get _options {
+    final current = controller?.text.trim() ?? '';
+    final options = switch (field.name) {
+      'status' => ['draft', 'published', 'archived'],
+      'categoryId' || 'authorId' => ['1', '2', '3'],
+      _ => <String>[],
+    };
+    return [
+      if (current.isNotEmpty && !options.contains(current)) current,
+      ...options,
+    ];
+  }
+
+  Future<void> _pickDateTime(BuildContext context) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDate: _initialDate ?? now,
+    );
+    if (date == null || !context.mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_initialDate ?? now),
+    );
+    if (time == null) return;
+
+    final picked = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    ).toUtc();
+    controller?.text = picked.toIso8601String();
+  }
+
+  DateTime? get _initialDate {
+    final value = controller?.text.trim() ?? '';
+    return value.isEmpty ? null : DateTime.tryParse(value)?.toLocal();
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.field});
+
+  final AdminField field;
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: const Color(0xFF374151),
+          fontWeight: FontWeight.w800,
+        ),
+        children: [
+          TextSpan(text: field.label),
+          if (field.required)
+            const TextSpan(
+              text: ' *',
+              style: TextStyle(color: Color(0xFFB42318)),
+            ),
         ],
       ),
     );

@@ -178,3 +178,51 @@ Notes:
 The collection panel uses a bounded scroll area so field chips, tables, and detail previews remain usable on shorter screens.
 Screenshot evidence is still pending and should be captured from the running web app before the Phase 4 acceptance gate.
 ```
+
+## Cycle 4: Detail And Edit Forms
+
+Status: complete except screenshot evidence.
+
+Changes:
+
+- Wired the Flutter admin API to the existing protected `admin.updateRecord` Serverpod endpoint.
+- Replaced the record preview with a metadata-driven detail form.
+- Kept Admin Input Examples read-only as the control showcase.
+- Enabled Product/Post edit mode with save through protected admin endpoints.
+- Added smart controls from `AdminField.control`:
+  - `text` -> single-line text field.
+  - `textarea` -> multi-line field.
+  - `checkbox` -> checkbox list tile.
+  - `datetime` -> read-only datetime field with date/time picker trigger.
+  - `number` -> numeric text field with numeric validation.
+  - `select` and `relation` -> dropdown fields.
+- Added red required asterisks next to required labels.
+- Added required and numeric validation before save.
+- Updated the active table row after a successful save.
+- Added save success and failure UI states.
+- Added mocked API widget coverage for form validation and update flow.
+
+Validation:
+
+```sh
+dart format admin_ui/lib admin_ui/test
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd admin_ui && flutter build web
+```
+
+Result:
+
+```text
+PASS
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 7 tests passed.
+flutter build web: built build/web.
+```
+
+Notes:
+
+```text
+The dropdown relation control is currently a local placeholder list because the admin metadata contract does not yet expose relation option endpoints.
+Screenshot evidence for Product and Post edit remains pending for the Phase 4 acceptance gate.
+```

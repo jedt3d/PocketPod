@@ -92,6 +92,48 @@ void main() {
     },
   );
 
+  testWidgets('edit form validates and saves product controls', (tester) async {
+    final store = MemoryAdminSessionStore();
+    await store.save(testSession);
+    final api = FakeAdminApi();
+
+    await tester.pumpWidget(PocketPodAdminApp(api: api, sessionStore: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('nav_Products')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('primary_products_1')));
+    await tester.tap(find.byKey(const Key('primary_products_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('input_name')), findsOneWidget);
+    expect(find.byKey(const Key('input_description')), findsOneWidget);
+    expect(find.byKey(const Key('input_published')), findsOneWidget);
+    expect(find.byKey(const Key('input_categoryId')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('input_name')), '');
+    await tester.ensureVisible(find.byKey(const Key('save_record')));
+    await tester.tap(find.byKey(const Key('save_record')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Name is required.'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('input_name')),
+      'PocketPod Pro License',
+    );
+    await tester.enterText(find.byKey(const Key('input_price')), '79.00');
+    await tester.ensureVisible(find.byKey(const Key('input_published')));
+    await tester.tap(find.byKey(const Key('input_published')));
+    await tester.ensureVisible(find.byKey(const Key('save_record')));
+    await tester.tap(find.byKey(const Key('save_record')));
+    await tester.pumpAndSettle();
+
+    expect(api.updatedRecords, 1);
+    expect(find.byKey(const Key('save_success')), findsOneWidget);
+    expect(find.text('PocketPod Pro License'), findsWidgets);
+  });
+
   testWidgets('logout clears the session and returns to login', (tester) async {
     final store = MemoryAdminSessionStore();
     await store.save(testSession);
@@ -120,6 +162,7 @@ class FakeAdminApi implements AdminApi {
 
   final bool loginShouldFail;
   String? token;
+  int updatedRecords = 0;
 
   @override
   void setAuthToken(String? token) {
@@ -179,6 +222,23 @@ class FakeAdminApi implements AdminApi {
     );
   }
 
+  @override
+  Future<AdminRecord> updateRecord(
+    String collectionKey,
+    String id,
+    List<AdminRecordCell> cells,
+  ) async {
+    _requireToken();
+    updatedRecords += 1;
+    final updated = AdminRecord(id: id, cells: cells);
+    final rows = fakeRecords[collectionKey]!;
+    fakeRecords[collectionKey] = [
+      for (final row in rows)
+        if (row.id == id) updated else row,
+    ];
+    return updated;
+  }
+
   void _requireToken() {
     if (token == null) {
       throw StateError('missing token');
@@ -205,8 +265,10 @@ final fakeCollections = [
     rowCount: 1,
     fields: [
       _field('name', 'Name', 'String', 'text'),
+      _field('description', 'Description', 'String', 'textarea'),
       _field('price', 'Price', 'double', 'number'),
       _field('published', 'Published', 'bool', 'checkbox'),
+      _field('categoryId', 'Category', 'int', 'relation'),
     ],
   ),
   AdminCollection(
@@ -218,6 +280,8 @@ final fakeCollections = [
       _field('title', 'Title', 'String', 'text'),
       _field('body', 'Body', 'String', 'textarea'),
       _field('published', 'Published', 'bool', 'checkbox'),
+      _field('publishedAt', 'Published At', 'DateTime?', 'datetime'),
+      _field('authorId', 'Author', 'int', 'relation'),
     ],
   ),
 ];
@@ -233,8 +297,10 @@ final fakeRecords = {
   'products': [
     _record('1', {
       'name': 'PocketPod Starter License',
+      'description': 'Starter license for a PocketPod project.',
       'price': '49.00',
       'published': 'true',
+      'categoryId': '1',
     }),
   ],
   'posts': [
@@ -242,6 +308,8 @@ final fakeRecords = {
       'title': 'Building with Serverpod and SQLite',
       'body': 'A CMS post example.',
       'published': 'true',
+      'publishedAt': '2026-06-30T09:00:00.000Z',
+      'authorId': '1',
     }),
   ],
 };

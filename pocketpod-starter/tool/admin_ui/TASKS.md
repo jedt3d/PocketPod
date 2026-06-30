@@ -92,24 +92,24 @@ The Flutter app can browse all current collections and open a record from the pr
 
 ## Cycle 4: Detail And Edit Forms
 
-- [ ] Render Admin Input Examples in view-only mode.
-- [ ] Render Products and Posts in editable mode.
-- [ ] Generate or reuse smart controls:
+- [x] Render Admin Input Examples in view-only mode.
+- [x] Render Products and Posts in editable mode.
+- [x] Generate or reuse smart controls:
   - short text input.
   - textarea for body/description.
   - checkbox for booleans.
   - datetime input for date fields.
   - numeric input for int/double.
   - dropdown placeholder for relation-like fields.
-- [ ] Show required `*` markers.
-- [ ] Validate required fields before save.
-- [ ] Save Product/Post edits through protected admin endpoints.
-- [ ] Refresh the active table after save.
-- [ ] Show save success and failure states.
-- [ ] Add widget tests for each control type.
-- [ ] Add integration-style tests with mocked admin service responses.
+- [x] Show required `*` markers.
+- [x] Validate required fields before save.
+- [x] Save Product/Post edits through protected admin endpoints.
+- [x] Refresh the active table after save.
+- [x] Show save success and failure states.
+- [x] Add widget tests for each control type.
+- [x] Add integration-style tests with mocked admin service responses.
 - [ ] Capture screenshot evidence for Product edit and Post edit.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 
