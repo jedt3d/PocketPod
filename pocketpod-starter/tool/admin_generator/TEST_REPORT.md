@@ -98,3 +98,34 @@ Screenshot:
 ```text
 tool/admin_generator/screenshots/admin-preview.png
 ```
+
+Regression validation:
+
+```sh
+cd pocketpod_server
+flutter test --reporter expanded
+flutter test test/integration/sqlite_tuning_test.dart --reporter expanded
+```
+
+Initial result:
+
+```text
+FAIL
+Serverpod could not open .serverpod/test/database.sqlite because the parent directory did not exist in a fresh checkout.
+```
+
+Fix:
+- Added tracked `.gitkeep` placeholders under each configured SQLite database directory:
+  - `pocketpod_server/.serverpod/development`
+  - `pocketpod_server/.serverpod/test`
+  - `pocketpod_server/.serverpod/staging`
+  - `pocketpod_server/.serverpod/production`
+  - `pocketpod_server/.serverpod/benchmark`
+
+Final result:
+
+```text
+PASS
+pocketpod_server greeting integration test: passed.
+pocketpod_server SQLite PRAGMA tuning test: passed.
+```
