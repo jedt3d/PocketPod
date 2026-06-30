@@ -48,7 +48,7 @@ The project is trying to bring some of the lightweight deployment feel people li
 At the current stage, PocketPod is best described as:
 
 ```text
-Serverpod + SQLite tuning patch + app configuration + benchmark harness + admin generator foundation
+Serverpod + SQLite tuning patch + app configuration + benchmark harness + admin generator foundation + guarded admin browsing screen
 ```
 
 It is not yet:
@@ -109,6 +109,20 @@ pocketpod-starter/README.md
 ```
 
 The current generator reads Serverpod `.spy.yaml` models and emits deterministic Flutter admin screen source plus an HTML preview. Its main advantage over the original PocketBase-inspired idea is that PocketPod stays inside the Serverpod/Dart model workflow: the admin UI is generated from typed Serverpod models and remains normal Flutter source that can be reviewed, tested, and customized.
+
+Cycle 4A added the first real served admin screen:
+
+```text
+http://localhost:8082/admin/index.html
+```
+
+That screen logs in through Serverpod Auth, calls protected `Scope.admin` endpoints, and can browse Admin Input Examples, Products, and Posts. At this checkpoint the Product and Post rows are server-provided sample rows. They prove guarded navigation, endpoint wiring, field metadata, and record table rendering, but they are not editable persistent database rows yet.
+
+Cycle 4B is now the active direction. Its goal is to replace the read-only Product/Post samples with SQLite-backed starter records and add protected edit forms:
+
+```text
+SQLite-backed Product/Post models -> protected list/get/update endpoints -> smart admin edit form -> persisted changes
+```
 
 Current smart form-control mapping:
 

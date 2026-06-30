@@ -81,6 +81,7 @@ Implementation notes:
 
 ## Cycle 4A: Clickable Collections And Record Browsing
 
+- [x] User accepted Cycle 4A as valid for the current checkpoint.
 - [x] Add protected admin collection metadata models.
 - [x] Add protected `admin.listCollections` endpoint.
 - [x] Add protected `admin.listRecords` endpoint.
@@ -89,3 +90,22 @@ Implementation notes:
 - [x] Show generated field/control metadata above each collection table.
 - [x] Verify Product and Post collection data over HTTP.
 - [x] Add integration coverage for collection and record listing.
+
+## Cycle 4B: Persistent Record Editing
+
+Goal:
+Move from read-only sample rows to editable SQLite-backed records for the starter admin screen.
+
+- [ ] Add persistent `Product` and `Post` Serverpod models for the starter.
+- [ ] Add SQLite migration coverage for the new starter tables.
+- [ ] Seed a small deterministic development dataset for manual review.
+- [ ] Replace server-only sample Product/Post rows with database-backed list queries.
+- [ ] Add protected get/update endpoints for editable Product and Post records.
+- [ ] Render an edit form from the existing generated field/control metadata.
+- [ ] Use textarea for long body fields, checkbox for booleans, datetime control for date fields, and select-style controls for enum/relation placeholders.
+- [ ] Save edits through protected admin endpoints and refresh the active collection table.
+- [ ] Show validation errors and save success/failure states in the admin screen.
+- [ ] Add tests proving unauthenticated and non-admin callers cannot edit records.
+- [ ] Add tests proving admin edits persist in SQLite.
+- [ ] Capture manual browser evidence for editing a Product and a Post.
+- [ ] Record validation in `TEST_REPORT.md`.

@@ -313,7 +313,7 @@ pocketpod_flutter widget smoke test: passed.
 
 ## Cycle 4A: Clickable Collections And Record Browsing
 
-Status: complete for protected collection navigation and sample row browsing.
+Status: complete and user-accepted for protected collection navigation and sample row browsing.
 
 Changes:
 - Added typed admin collection metadata models: `AdminCollection`, `AdminField`, `AdminCollectionRecords`, `AdminRecord`, and `AdminRecordCell`.
@@ -351,4 +351,35 @@ PASS
 flutter analyze: No issues found.
 pocketpod_server full integration test suite: passed.
 admin endpoint integration test now covers Products and Posts record listing.
+```
+
+User acceptance:
+
+```text
+Cycle 4A is valid as a read-only collection browsing checkpoint.
+Editing is intentionally deferred because the current Product/Post rows are server-provided samples, not persistent database-backed records.
+```
+
+## Cycle 4B: Persistent Record Editing
+
+Status: started.
+
+Purpose:
+Cycle 4B should turn the current admin browsing screen into an editable starter admin by adding real SQLite-backed Product and Post records, protected update endpoints, smart edit forms, and persistence tests.
+
+Planned validation:
+
+```sh
+dart run bin/serverpod_cli.dart generate \
+  --directory /Users/worajedt/IdeaProjects/PocketPod/PocketPod/pocketpod-starter/pocketpod_server \
+  --force
+flutter analyze
+cd pocketpod_server && flutter test --reporter expanded
+git diff --check -- .
+```
+
+Acceptance target:
+
+```text
+An admin can open /admin/index.html, click Products or Posts, open an existing record, edit supported fields, save it, and see the persisted value after refresh. Unauthenticated and non-admin callers must be rejected by tests.
 ```
