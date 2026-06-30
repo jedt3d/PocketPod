@@ -56,3 +56,20 @@ foreign key/relation  -> dropdown/select placeholder
 Required fields should be visible to the admin user. Non-nullable fields should show a red `*` marker in labels, while nullable fields should show an optional affordance.
 
 The first implementation can use deterministic schema-only heuristics, for example `body`, `description`, and `content` as textarea fields, and `categoryId` or `authorId` as relation dropdown placeholders. Later phases can replace heuristics with explicit metadata or live lookup data.
+
+## Example Control Matrix
+
+The `AdminInputExample` fixture shows the current Cycle 2A control coverage:
+
+| Field | Serverpod Type | Required | Generated Control |
+| --- | --- | --- | --- |
+| `title` | `String` | yes | text input |
+| `body` | `String` | yes | textarea |
+| `summary` | `String?` | no | optional textarea |
+| `published` | `bool` | yes | checkbox |
+| `publishedAt` | `DateTime?` | no | optional datetime selector |
+| `stock` | `int` | yes | integer number input |
+| `price` | `double` | yes | decimal number input |
+| `status` | `PublishStatus` | yes | enum dropdown placeholder |
+| `categoryId` | `int` | yes | relation dropdown placeholder |
+| `tags` | `List<String>?` | no | optional array/list placeholder |

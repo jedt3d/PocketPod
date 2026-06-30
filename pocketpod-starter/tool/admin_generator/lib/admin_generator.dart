@@ -24,7 +24,10 @@ class AdminField {
 
   String get dartType => rawType.replaceAll('?', '').trim();
   bool get isNullable => rawType.trim().endsWith('?');
+  bool get isRequired => !isNullable;
   String get label => _splitWords(name);
+  String get normalizedName => name.toLowerCase();
+  String get htmlId => _kebabCase(name);
 
   AdminFieldKind get kind {
     return switch (dartType) {
@@ -36,9 +39,49 @@ class AdminField {
       _ => AdminFieldKind.unsupported,
     };
   }
+
+  AdminFormControl get formControl {
+    if (_isRelationLikeName(name)) {
+      return AdminFormControl.relationSelect;
+    }
+
+    if (_isArrayLikeType(dartType)) {
+      return AdminFormControl.arrayList;
+    }
+
+    if (_isEnumLikeType(dartType)) {
+      return AdminFormControl.enumSelect;
+    }
+
+    if (kind == AdminFieldKind.text && _isLongTextName(name)) {
+      return AdminFormControl.textarea;
+    }
+
+    return switch (kind) {
+      AdminFieldKind.text => AdminFormControl.text,
+      AdminFieldKind.integer => AdminFormControl.integer,
+      AdminFieldKind.decimal => AdminFormControl.decimal,
+      AdminFieldKind.boolean => AdminFormControl.checkbox,
+      AdminFieldKind.dateTime => AdminFormControl.dateTime,
+      AdminFieldKind.unsupported => AdminFormControl.unsupported,
+    };
+  }
 }
 
 enum AdminFieldKind { text, integer, decimal, boolean, dateTime, unsupported }
+
+enum AdminFormControl {
+  text,
+  textarea,
+  integer,
+  decimal,
+  checkbox,
+  dateTime,
+  enumSelect,
+  relationSelect,
+  arrayList,
+  unsupported,
+}
 
 class AdminGenerator {
   const AdminGenerator();
@@ -99,7 +142,7 @@ class AdminGenerator {
       ..writeln('      appBar: AppBar(title: const Text(title)),')
       ..writeln('      body: ListView(')
       ..writeln('        padding: const EdgeInsets.all(24),')
-      ..writeln('        children: const [')
+      ..writeln('        children: [')
       ..writeln('          _${model.className}Table(),')
       ..writeln('          SizedBox(height: 24),')
       ..writeln('          _${model.className}Form(),')
@@ -375,6 +418,50 @@ class AdminGenerator {
       background: #f9fbfd;
       color: var(--muted);
     }
+    textarea.input {
+      display: block;
+      width: 100%;
+      min-height: 96px;
+      padding: 10px 11px;
+      resize: vertical;
+      font: inherit;
+    }
+    input.input,
+    select.input {
+      width: 100%;
+      font: inherit;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f9fbfd;
+      color: var(--muted);
+    }
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-strong);
+    }
+    .required {
+      color: var(--danger);
+      font-weight: 900;
+    }
+    .optional {
+      margin-left: 6px;
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .hint {
+      margin-top: 5px;
+      color: var(--soft);
+      font-size: 12px;
+    }
     .pill {
       display: inline-flex;
       align-items: center;
@@ -415,25 +502,21 @@ $content
         .map((field) => '<th>${_escapeHtml(field.label)}</th>')
         .join();
     final cells = model.fields.map((field) {
-      final value = switch (field.kind) {
-        AdminFieldKind.boolean => '<span class="pill">Active</span>',
-        AdminFieldKind.integer => '42',
-        AdminFieldKind.decimal => '129.00',
-        AdminFieldKind.dateTime => '2026-06-30',
-        AdminFieldKind.text => 'Sample ${_escapeHtml(field.label)}',
-        AdminFieldKind.unsupported => _escapeHtml(field.rawType),
+      final value = switch (field.formControl) {
+        AdminFormControl.checkbox => '<span class="pill">Enabled</span>',
+        AdminFormControl.integer => '42',
+        AdminFormControl.decimal => '129.00',
+        AdminFormControl.dateTime => '2026-06-30 09:30',
+        AdminFormControl.textarea => 'Long text...',
+        AdminFormControl.enumSelect => 'Published',
+        AdminFormControl.relationSelect => 'Featured category',
+        AdminFormControl.arrayList => 'news, launch',
+        AdminFormControl.text => 'Sample ${_escapeHtml(field.label)}',
+        AdminFormControl.unsupported => _escapeHtml(field.rawType),
       };
       return '<td>$value</td>';
     }).join();
-    final fields = model.fields
-        .map((field) {
-          return '''
-          <div class="field">
-            <label>${_escapeHtml(field.label)}</label>
-            <div class="input">${_escapeHtml(field.rawType)}</div>
-          </div>''';
-        })
-        .join('\n');
+    final fields = model.fields.map(_generatePreviewField).join('\n');
 
     return '''
     <main class="content">
@@ -467,6 +550,86 @@ $fields
         </section>
       </div>
     </main>''';
+  }
+
+  String _generatePreviewField(AdminField field) {
+    final id = _escapeHtml(field.htmlId);
+    final label = _previewLabel(field);
+    final hint = _previewHint(field);
+    final control = switch (field.formControl) {
+      AdminFormControl.text =>
+        '''
+            <input id="$id" class="input" type="text" placeholder="${_escapeHtml(field.label)}">''',
+      AdminFormControl.textarea =>
+        '''
+            <textarea id="$id" class="input" placeholder="${_escapeHtml(field.label)} details"></textarea>''',
+      AdminFormControl.integer =>
+        '''
+            <input id="$id" class="input" type="number" step="1" placeholder="0">''',
+      AdminFormControl.decimal =>
+        '''
+            <input id="$id" class="input" type="number" step="0.01" placeholder="0.00">''',
+      AdminFormControl.checkbox =>
+        '''
+            <label class="checkbox-row" for="$id">
+              <input id="$id" type="checkbox" checked>
+              <span>${_escapeHtml(field.label)}</span>
+            </label>''',
+      AdminFormControl.dateTime =>
+        '''
+            <input id="$id" class="input" type="datetime-local" value="2026-06-30T09:30">''',
+      AdminFormControl.enumSelect =>
+        '''
+            <select id="$id" class="input">
+              <option>Draft</option>
+              <option selected>Published</option>
+              <option>Archived</option>
+            </select>''',
+      AdminFormControl.relationSelect =>
+        '''
+            <select id="$id" class="input">
+              <option selected>Select ${_escapeHtml(_relationLabel(field.name))}</option>
+              <option>Featured ${_escapeHtml(_relationLabel(field.name))}</option>
+              <option>Default ${_escapeHtml(_relationLabel(field.name))}</option>
+            </select>''',
+      AdminFormControl.arrayList =>
+        '''
+            <input id="$id" class="input" type="text" value="news, launch, featured">''',
+      AdminFormControl.unsupported =>
+        '''
+            <div id="$id" class="input">${_escapeHtml(field.rawType)} not supported yet</div>''',
+    };
+
+    return '''
+          <div class="field">
+            $label
+$control
+            $hint
+          </div>''';
+  }
+
+  String _previewLabel(AdminField field) {
+    final marker = field.isRequired
+        ? '<span class="required">*</span>'
+        : '<span class="optional">optional</span>';
+    return '<label for="${_escapeHtml(field.htmlId)}">${_escapeHtml(field.label)} $marker</label>';
+  }
+
+  String _previewHint(AdminField field) {
+    final text = switch (field.formControl) {
+      AdminFormControl.textarea => 'Long text field',
+      AdminFormControl.checkbox => 'Boolean field',
+      AdminFormControl.dateTime => 'Date and time field',
+      AdminFormControl.enumSelect => 'Enum or finite choice field',
+      AdminFormControl.relationSelect =>
+        'Relation or foreign-key lookup placeholder',
+      AdminFormControl.arrayList => 'Array/list placeholder',
+      AdminFormControl.integer => 'Integer number field',
+      AdminFormControl.decimal => 'Decimal number field',
+      AdminFormControl.text => 'Short text field',
+      AdminFormControl.unsupported => 'Unsupported type',
+    };
+    return '<div class="hint">${_escapeHtml(text)}</div>';
   }
 
   String _generateTable(AdminModel model) {
@@ -523,45 +686,89 @@ $fields
   }
 
   String _generateInput(AdminField field) {
-    final label = _escapeDart(field.label);
+    final label = _escapeDart(
+      field.isRequired ? '${field.label} *' : '${field.label} (optional)',
+    );
     final unsupportedText = _escapeDart('${field.rawType} not supported yet');
-    return switch (field.kind) {
-      AdminFieldKind.text =>
+    return switch (field.formControl) {
+      AdminFormControl.text =>
         '''
         TextFormField(
           decoration: const InputDecoration(labelText: '$label'),
         ),
         const SizedBox(height: 12),''',
-      AdminFieldKind.integer =>
+      AdminFormControl.textarea =>
+        '''
+        TextFormField(
+          minLines: 4,
+          maxLines: 8,
+          decoration: const InputDecoration(labelText: '$label'),
+        ),
+        const SizedBox(height: 12),''',
+      AdminFormControl.integer =>
         '''
         TextFormField(
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(labelText: '$label'),
         ),
         const SizedBox(height: 12),''',
-      AdminFieldKind.decimal =>
+      AdminFormControl.decimal =>
         '''
         TextFormField(
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(labelText: '$label'),
         ),
         const SizedBox(height: 12),''',
-      AdminFieldKind.boolean =>
+      AdminFormControl.checkbox =>
         '''
-        SwitchListTile(
+        CheckboxListTile(
           value: false,
           onChanged: null,
           title: Text('$label'),
         ),
         const SizedBox(height: 12),''',
-      AdminFieldKind.dateTime =>
+      AdminFormControl.dateTime =>
         '''
         TextFormField(
           readOnly: true,
-          decoration: const InputDecoration(labelText: '$label'),
+          decoration: const InputDecoration(
+            labelText: '$label',
+            suffixIcon: Icon(Icons.calendar_today),
+          ),
         ),
         const SizedBox(height: 12),''',
-      AdminFieldKind.unsupported =>
+      AdminFormControl.enumSelect =>
+        '''
+        DropdownButtonFormField<String>(
+          decoration: const InputDecoration(labelText: '$label'),
+          items: const [
+            DropdownMenuItem(value: 'draft', child: Text('Draft')),
+            DropdownMenuItem(value: 'published', child: Text('Published')),
+            DropdownMenuItem(value: 'archived', child: Text('Archived')),
+          ],
+          onChanged: null,
+        ),
+        const SizedBox(height: 12),''',
+      AdminFormControl.relationSelect =>
+        '''
+        DropdownButtonFormField<String>(
+          decoration: const InputDecoration(labelText: '$label'),
+          items: const [
+            DropdownMenuItem(value: 'sample', child: Text('Select related record')),
+          ],
+          onChanged: null,
+        ),
+        const SizedBox(height: 12),''',
+      AdminFormControl.arrayList =>
+        '''
+        TextFormField(
+          decoration: const InputDecoration(
+            labelText: '$label',
+            helperText: 'Comma-separated values until array editor is implemented',
+          ),
+        ),
+        const SizedBox(height: 12),''',
+      AdminFormControl.unsupported =>
         '''
         InputDecorator(
           decoration: const InputDecoration(labelText: '$label'),
@@ -607,6 +814,48 @@ String _snakeCase(String value) {
       )
       .replaceAll(RegExp(r'[\s-]+'), '_')
       .toLowerCase();
+}
+
+bool _isLongTextName(String value) {
+  const longTextNames = {
+    'body',
+    'content',
+    'description',
+    'excerpt',
+    'notes',
+    'summary',
+    'details',
+    'bio',
+  };
+  return longTextNames.contains(value.toLowerCase());
+}
+
+bool _isRelationLikeName(String value) {
+  final lower = value.toLowerCase();
+  return lower.endsWith('id') &&
+      lower.length > 2 &&
+      !{'id', 'uuid'}.contains(lower);
+}
+
+bool _isArrayLikeType(String value) {
+  return value.startsWith('List<') ||
+      value.startsWith('Set<') ||
+      value.startsWith('Map<');
+}
+
+bool _isEnumLikeType(String value) {
+  const scalarTypes = {'String', 'int', 'double', 'bool', 'DateTime'};
+  if (scalarTypes.contains(value) || _isArrayLikeType(value)) {
+    return false;
+  }
+  return RegExp(r'^[A-Z][A-Za-z0-9_]*$').hasMatch(value) || value.contains(':');
+}
+
+String _relationLabel(String fieldName) {
+  final withoutId = fieldName.toLowerCase().endsWith('id')
+      ? fieldName.substring(0, fieldName.length - 2)
+      : fieldName;
+  return _splitWords(withoutId).toLowerCase();
 }
 
 String _splitWords(String value) {

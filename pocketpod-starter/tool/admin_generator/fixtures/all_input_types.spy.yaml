@@ -1,0 +1,13 @@
+class: AdminInputExample
+table: admin_input_example
+fields:
+  title: String
+  body: String
+  summary: String?
+  published: bool
+  publishedAt: DateTime?
+  stock: int
+  price: double
+  status: PublishStatus
+  categoryId: int
+  tags: List<String>?

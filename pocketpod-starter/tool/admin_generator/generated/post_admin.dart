@@ -13,7 +13,7 @@ class PostAdminScreen extends StatelessWidget {
       appBar: AppBar(title: const Text(title)),
       body: ListView(
         padding: const EdgeInsets.all(24),
-        children: const [_PostTable(), SizedBox(height: 24), _PostForm()],
+        children: [_PostTable(), SizedBox(height: 24), _PostForm()],
       ),
     );
   }
@@ -49,19 +49,34 @@ class _PostForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(decoration: const InputDecoration(labelText: 'Title')),
+        TextFormField(decoration: const InputDecoration(labelText: 'Title *')),
         const SizedBox(height: 12),
-        TextFormField(decoration: const InputDecoration(labelText: 'Slug')),
+        TextFormField(decoration: const InputDecoration(labelText: 'Slug *')),
         const SizedBox(height: 12),
-        TextFormField(decoration: const InputDecoration(labelText: 'Excerpt')),
+        TextFormField(
+          minLines: 4,
+          maxLines: 8,
+          decoration: const InputDecoration(labelText: 'Excerpt (optional)'),
+        ),
         const SizedBox(height: 12),
-        TextFormField(decoration: const InputDecoration(labelText: 'Body')),
+        TextFormField(
+          minLines: 4,
+          maxLines: 8,
+          decoration: const InputDecoration(labelText: 'Body *'),
+        ),
         const SizedBox(height: 12),
-        SwitchListTile(value: false, onChanged: null, title: Text('Published')),
+        CheckboxListTile(
+          value: false,
+          onChanged: null,
+          title: Text('Published *'),
+        ),
         const SizedBox(height: 12),
         TextFormField(
           readOnly: true,
-          decoration: const InputDecoration(labelText: 'Published At'),
+          decoration: const InputDecoration(
+            labelText: 'Published At (optional)',
+            suffixIcon: Icon(Icons.calendar_today),
+          ),
         ),
         const SizedBox(height: 12),
         const SizedBox(height: 16),

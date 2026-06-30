@@ -113,6 +113,59 @@ Updated the generated preview CSS to a cleaner PocketBase-inspired collection ad
 - refreshed screenshot at tool/admin_generator/screenshots/admin-preview.png.
 ```
 
+## Cycle 2A: Smart Form Controls
+
+Status: complete.
+
+Changes:
+- Added `AdminFormControl` classification separate from raw Serverpod/Dart type parsing.
+- Added `AdminInputExample` fixture covering all current input controls.
+- Updated generated Flutter admin source to use textarea, checkbox, datetime placeholder, dropdown placeholders, numeric inputs, and array placeholder controls.
+- Updated generated HTML preview to use real HTML controls instead of rendering every field as a generic type box.
+- Added red `*` markers for required non-nullable fields and optional labels for nullable fields.
+- Refreshed screenshot evidence at `tool/admin_generator/screenshots/admin-preview.png`.
+
+Control matrix:
+
+| Field | Serverpod Type | Required | Generated Control |
+| --- | --- | --- | --- |
+| `title` | `String` | yes | text input |
+| `body` | `String` | yes | textarea |
+| `summary` | `String?` | no | optional textarea |
+| `published` | `bool` | yes | checkbox |
+| `publishedAt` | `DateTime?` | no | optional datetime selector |
+| `stock` | `int` | yes | integer number input |
+| `price` | `double` | yes | decimal number input |
+| `status` | `PublishStatus` | yes | enum dropdown placeholder |
+| `categoryId` | `int` | yes | relation dropdown placeholder |
+| `tags` | `List<String>?` | no | optional array/list placeholder |
+
+Validation:
+
+```sh
+dart run tool/admin_generator/yaml_to_admin.dart --input tool/admin_generator/fixtures --output tool/admin_generator/generated
+flutter test test/admin_generator
+flutter analyze
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator
+npx playwright screenshot --viewport-size=1440,1600 --full-page "file://$(pwd)/tool/admin_generator/generated/admin_preview.html" tool/admin_generator/screenshots/admin-preview.png
+```
+
+Result:
+
+```text
+PASS
+CLI generated:
+- tool/admin_generator/generated/admin_input_example_admin.dart
+- tool/admin_generator/generated/post_admin.dart
+- tool/admin_generator/generated/product_admin.dart
+- tool/admin_generator/generated/admin_preview.html
+
+flutter test test/admin_generator: 6 tests passed.
+flutter analyze: No issues found.
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator: pass.
+Playwright full-page screenshot: captured successfully.
+```
+
 Regression validation:
 
 ```sh

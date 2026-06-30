@@ -47,12 +47,42 @@ void main() {
       expect(generated, contains("static const title = 'Posts';"));
       expect(generated, contains("static const routeName = '/admin/posts';"));
       expect(generated, contains("DataColumn(label: Text('Published'))"));
-      expect(generated, contains('SwitchListTile('));
+      expect(generated, contains('CheckboxListTile('));
+      expect(generated, contains('maxLines: 8'));
       expect(generated, contains("Text('Save Post')"));
       expect(regenerated, generated);
     });
 
+    test('classifies smart form controls', () {
+      final source = File(
+        'tool/admin_generator/fixtures/all_input_types.spy.yaml',
+      ).readAsStringSync();
+
+      final model = generator.parseModel(source);
+      final controls = {
+        for (final field in model.fields) field.name: field.formControl,
+      };
+
+      expect(controls['title'], AdminFormControl.text);
+      expect(controls['body'], AdminFormControl.textarea);
+      expect(controls['summary'], AdminFormControl.textarea);
+      expect(controls['published'], AdminFormControl.checkbox);
+      expect(controls['publishedAt'], AdminFormControl.dateTime);
+      expect(controls['stock'], AdminFormControl.integer);
+      expect(controls['price'], AdminFormControl.decimal);
+      expect(controls['status'], AdminFormControl.enumSelect);
+      expect(controls['categoryId'], AdminFormControl.relationSelect);
+      expect(controls['tags'], AdminFormControl.arrayList);
+      expect(model.fields.first.isRequired, isTrue);
+      expect(model.fields[2].isNullable, isTrue);
+    });
+
     test('generates a static admin preview', () {
+      final allInputTypes = generator.parseModel(
+        File(
+          'tool/admin_generator/fixtures/all_input_types.spy.yaml',
+        ).readAsStringSync(),
+      );
       final product = generator.parseModel(
         File(
           'tool/admin_generator/fixtures/product.spy.yaml',
@@ -62,14 +92,25 @@ void main() {
         File('tool/admin_generator/fixtures/post.spy.yaml').readAsStringSync(),
       );
 
-      final html = generator.generatePreviewHtml([product, post]);
+      final html = generator.generatePreviewHtml([
+        allInputTypes,
+        product,
+        post,
+      ]);
 
       expect(html, contains('<title>PocketPod Admin Preview</title>'));
       expect(html, contains('PocketPod Admin'));
-      expect(html, contains('Collections / Products'));
+      expect(html, contains('Collections / Admin Input Examples'));
       expect(html, contains('API preview'));
-      expect(html, contains('Search Products...'));
+      expect(html, contains('Search Admin Input Examples...'));
       expect(html, contains('Records'));
+      expect(html, contains('<textarea'));
+      expect(html, contains('type="checkbox"'));
+      expect(html, contains('type="datetime-local"'));
+      expect(html, contains('<select'));
+      expect(html, contains('<span class="required">*</span>'));
+      expect(html, contains('<span class="optional">optional</span>'));
+      expect(html, contains('Admin Input Examples'));
       expect(html, contains('Products'));
       expect(html, contains('Posts'));
       expect(html, contains('admin scope required'));
@@ -90,6 +131,10 @@ void main() {
       ]);
 
       expect(result.exitCode, 0, reason: result.stderr as String?);
+      expect(
+        File('${tempDir.path}/admin_input_example_admin.dart').existsSync(),
+        isTrue,
+      );
       expect(File('${tempDir.path}/product_admin.dart').existsSync(), isTrue);
       expect(File('${tempDir.path}/post_admin.dart').existsSync(), isTrue);
       expect(File('${tempDir.path}/admin_preview.html').existsSync(), isTrue);

@@ -32,27 +32,27 @@ Improve generated admin forms so fields use appropriate controls instead of rend
 
 Planned control mapping:
 
-- [ ] `String` short fields use a single-line text input.
-- [ ] Long text fields such as `body`, `description`, `content`, `excerpt`, `notes`, and `summary` use a textarea-style multi-line control.
-- [ ] `bool` fields use a checkbox or switch control.
-- [ ] `DateTime` fields use a datetime selector style in the HTML preview and an appropriate generated Flutter control placeholder.
-- [ ] `int` and `double` fields keep numeric input behavior.
-- [ ] Enum-like fields use a dropdown/select control when the generator can infer finite choices.
-- [ ] Foreign-key-like fields such as `categoryId`, `authorId`, `productId`, and relation fields use a dropdown/select placeholder until live lookup data exists.
-- [ ] Required non-nullable fields show a red asterisk marker in labels.
-- [ ] Nullable fields show optional affordance text in the preview.
-- [ ] Update fixtures to include at least one dropdown-style field.
-- [ ] Update generated preview screenshot.
-- [ ] Add tests for field-to-control mapping.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] `String` short fields use a single-line text input.
+- [x] Long text fields such as `body`, `description`, `content`, `excerpt`, `notes`, and `summary` use a textarea-style multi-line control.
+- [x] `bool` fields use a checkbox or switch control.
+- [x] `DateTime` fields use a datetime selector style in the HTML preview and an appropriate generated Flutter control placeholder.
+- [x] `int` and `double` fields keep numeric input behavior.
+- [x] Enum-like fields use a dropdown/select control when the generator can infer finite choices.
+- [x] Foreign-key-like fields such as `categoryId`, `authorId`, `productId`, and relation fields use a dropdown/select placeholder until live lookup data exists.
+- [x] Required non-nullable fields show a red asterisk marker in labels.
+- [x] Nullable fields show optional affordance text in the preview.
+- [x] Update fixtures to include at least one dropdown-style field.
+- [x] Update generated preview screenshot.
+- [x] Add tests for field-to-control mapping.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Implementation notes:
 
-- [ ] Add a form-control classification layer separate from raw Dart type parsing.
-- [ ] Keep the first pass deterministic and schema-only; do not require a live database.
-- [ ] Prefer explicit future metadata over fragile name guesses when Serverpod YAML provides enough information.
-- [ ] Use field-name heuristics only as a practical fallback for Cycle 2A.
-- [ ] Keep PocketBase as UI inspiration only; do not copy PocketBase code, assets, icons, or branding.
+- [x] Add a form-control classification layer separate from raw Dart type parsing.
+- [x] Keep the first pass deterministic and schema-only; do not require a live database.
+- [x] Prefer explicit future metadata over fragile name guesses when Serverpod YAML provides enough information.
+- [x] Use field-name heuristics only as a practical fallback for Cycle 2A.
+- [x] Keep PocketBase as UI inspiration only; do not copy PocketBase code, assets, icons, or branding.
 
 ## Cycle 3: Serverpod Auth Bootstrap
 

@@ -234,6 +234,50 @@
       background: #f9fbfd;
       color: var(--muted);
     }
+    textarea.input {
+      display: block;
+      width: 100%;
+      min-height: 96px;
+      padding: 10px 11px;
+      resize: vertical;
+      font: inherit;
+    }
+    input.input,
+    select.input {
+      width: 100%;
+      font: inherit;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      padding: 0 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f9fbfd;
+      color: var(--muted);
+    }
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-strong);
+    }
+    .required {
+      color: var(--danger);
+      font-weight: 900;
+    }
+    .optional {
+      margin-left: 6px;
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .hint {
+      margin-top: 5px;
+      color: var(--soft);
+      font-size: 12px;
+    }
     .pill {
       display: inline-flex;
       align-items: center;
@@ -262,6 +306,11 @@
       <div class="nav-label">Collections</div>
         <button class="nav-item active">
           <span class="nav-dot"></span>
+          <span>Admin Input Examples</span>
+          <strong>10</strong>
+        </button>
+        <button class="nav-item">
+          <span class="nav-dot"></span>
           <span>Posts</span>
           <strong>6</strong>
         </button>
@@ -274,54 +323,91 @@
     <main class="content">
       <div class="toolbar">
         <div>
-          <div class="crumb">Collections / Posts</div>
-          <h1>Posts</h1>
-          <div class="meta">Post model · 6 fields · admin scope required</div>
+          <div class="crumb">Collections / Admin Input Examples</div>
+          <h1>Admin Input Examples</h1>
+          <div class="meta">AdminInputExample model · 10 fields · admin scope required</div>
         </div>
         <div class="actions">
           <button class="button secondary">API preview</button>
-          <button class="button">New Post</button>
+          <button class="button">New Admin Input Example</button>
         </div>
       </div>
       <div class="layout">
         <section class="panel">
           <div class="panel-header">
             <div class="panel-title">Records</div>
-            <div class="search">Search Posts...</div>
+            <div class="search">Search Admin Input Examples...</div>
           </div>
           <table>
-            <thead><tr><th>Title</th><th>Slug</th><th>Excerpt</th><th>Body</th><th>Published</th><th>Published At</th></tr></thead>
-            <tbody><tr><td>Sample Title</td><td>Sample Slug</td><td>Sample Excerpt</td><td>Sample Body</td><td><span class="pill">Active</span></td><td>2026-06-30</td></tr></tbody>
+            <thead><tr><th>Title</th><th>Body</th><th>Summary</th><th>Published</th><th>Published At</th><th>Stock</th><th>Price</th><th>Status</th><th>Category Id</th><th>Tags</th></tr></thead>
+            <tbody><tr><td>Sample Title</td><td>Long text...</td><td>Long text...</td><td><span class="pill">Enabled</span></td><td>2026-06-30 09:30</td><td>42</td><td>129.00</td><td>Published</td><td>Featured category</td><td>news, launch</td></tr></tbody>
           </table>
         </section>
         <section class="panel form">
-          <div class="panel-title">Edit Post</div>
+          <div class="panel-title">Edit Admin Input Example</div>
           <div style="height: 14px"></div>
           <div class="field">
-            <label>Title</label>
-            <div class="input">String</div>
+            <label for="title">Title <span class="required">*</span></label>
+            <input id="title" class="input" type="text" placeholder="Title">
+            <div class="hint">Short text field</div>
           </div>
           <div class="field">
-            <label>Slug</label>
-            <div class="input">String</div>
+            <label for="body">Body <span class="required">*</span></label>
+            <textarea id="body" class="input" placeholder="Body details"></textarea>
+            <div class="hint">Long text field</div>
           </div>
           <div class="field">
-            <label>Excerpt</label>
-            <div class="input">String?</div>
+            <label for="summary">Summary <span class="optional">optional</span></label>
+            <textarea id="summary" class="input" placeholder="Summary details"></textarea>
+            <div class="hint">Long text field</div>
           </div>
           <div class="field">
-            <label>Body</label>
-            <div class="input">String</div>
+            <label for="published">Published <span class="required">*</span></label>
+            <label class="checkbox-row" for="published">
+              <input id="published" type="checkbox" checked>
+              <span>Published</span>
+            </label>
+            <div class="hint">Boolean field</div>
           </div>
           <div class="field">
-            <label>Published</label>
-            <div class="input">bool</div>
+            <label for="published-at">Published At <span class="optional">optional</span></label>
+            <input id="published-at" class="input" type="datetime-local" value="2026-06-30T09:30">
+            <div class="hint">Date and time field</div>
           </div>
           <div class="field">
-            <label>Published At</label>
-            <div class="input">DateTime?</div>
+            <label for="stock">Stock <span class="required">*</span></label>
+            <input id="stock" class="input" type="number" step="1" placeholder="0">
+            <div class="hint">Integer number field</div>
           </div>
-          <button class="button">Save Post</button>
+          <div class="field">
+            <label for="price">Price <span class="required">*</span></label>
+            <input id="price" class="input" type="number" step="0.01" placeholder="0.00">
+            <div class="hint">Decimal number field</div>
+          </div>
+          <div class="field">
+            <label for="status">Status <span class="required">*</span></label>
+            <select id="status" class="input">
+              <option>Draft</option>
+              <option selected>Published</option>
+              <option>Archived</option>
+            </select>
+            <div class="hint">Enum or finite choice field</div>
+          </div>
+          <div class="field">
+            <label for="category-id">Category Id <span class="required">*</span></label>
+            <select id="category-id" class="input">
+              <option selected>Select category</option>
+              <option>Featured category</option>
+              <option>Default category</option>
+            </select>
+            <div class="hint">Relation or foreign-key lookup placeholder</div>
+          </div>
+          <div class="field">
+            <label for="tags">Tags <span class="optional">optional</span></label>
+            <input id="tags" class="input" type="text" value="news, launch, featured">
+            <div class="hint">Array/list placeholder</div>
+          </div>
+          <button class="button">Save Admin Input Example</button>
         </section>
       </div>
     </main>

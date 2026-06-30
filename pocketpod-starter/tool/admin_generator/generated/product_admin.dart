@@ -13,7 +13,7 @@ class ProductAdminScreen extends StatelessWidget {
       appBar: AppBar(title: const Text(title)),
       body: ListView(
         padding: const EdgeInsets.all(24),
-        children: const [_ProductTable(), SizedBox(height: 24), _ProductForm()],
+        children: [_ProductTable(), SizedBox(height: 24), _ProductForm()],
       ),
     );
   }
@@ -50,29 +50,40 @@ class _ProductForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(decoration: const InputDecoration(labelText: 'Name')),
+        TextFormField(decoration: const InputDecoration(labelText: 'Name *')),
         const SizedBox(height: 12),
-        TextFormField(decoration: const InputDecoration(labelText: 'Slug')),
+        TextFormField(decoration: const InputDecoration(labelText: 'Slug *')),
         const SizedBox(height: 12),
         TextFormField(
-          decoration: const InputDecoration(labelText: 'Description'),
+          minLines: 4,
+          maxLines: 8,
+          decoration: const InputDecoration(
+            labelText: 'Description (optional)',
+          ),
         ),
         const SizedBox(height: 12),
         TextFormField(
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Price'),
+          decoration: const InputDecoration(labelText: 'Price *'),
         ),
         const SizedBox(height: 12),
         TextFormField(
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Stock'),
+          decoration: const InputDecoration(labelText: 'Stock *'),
         ),
         const SizedBox(height: 12),
-        SwitchListTile(value: false, onChanged: null, title: Text('Active')),
+        CheckboxListTile(
+          value: false,
+          onChanged: null,
+          title: Text('Active *'),
+        ),
         const SizedBox(height: 12),
         TextFormField(
           readOnly: true,
-          decoration: const InputDecoration(labelText: 'Created At'),
+          decoration: const InputDecoration(
+            labelText: 'Created At *',
+            suffixIcon: Icon(Icons.calendar_today),
+          ),
         ),
         const SizedBox(height: 12),
         const SizedBox(height: 16),
