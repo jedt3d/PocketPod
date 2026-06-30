@@ -141,7 +141,7 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
       return LoginScreen(error: _error, onSubmit: _login);
     }
 
-    return AdminShell(session: session, onLogout: _logout);
+    return AdminShell(api: widget.api, session: session, onLogout: _logout);
   }
 }
 
@@ -246,11 +246,107 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class AdminShell extends StatelessWidget {
-  const AdminShell({required this.session, required this.onLogout, super.key});
+class AdminShell extends StatefulWidget {
+  const AdminShell({
+    required this.api,
+    required this.session,
+    required this.onLogout,
+    super.key,
+  });
 
+  final AdminApi api;
   final AdminSession session;
   final Future<void> Function() onLogout;
+
+  @override
+  State<AdminShell> createState() => _AdminShellState();
+}
+
+class _AdminShellState extends State<AdminShell> {
+  List<AdminCollection> _collections = const [];
+  AdminCollection? _activeCollection;
+  List<AdminRecord> _records = const [];
+  AdminRecord? _selectedRecord;
+  bool _loadingCollections = true;
+  bool _loadingRecords = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCollections();
+  }
+
+  Future<void> _loadCollections() async {
+    setState(() {
+      _loadingCollections = true;
+      _error = null;
+    });
+
+    try {
+      final collections = await widget.api.listCollections();
+      if (!mounted) return;
+      setState(() {
+        _collections = collections;
+        _activeCollection = collections.isEmpty ? null : collections.first;
+        _loadingCollections = false;
+      });
+      final active = _activeCollection;
+      if (active != null) {
+        await _selectCollection(active);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingCollections = false;
+        _error = 'Collection load failed: $error';
+      });
+    }
+  }
+
+  Future<void> _selectCollection(AdminCollection collection) async {
+    setState(() {
+      _activeCollection = collection;
+      _selectedRecord = null;
+      _loadingRecords = true;
+      _error = null;
+    });
+
+    try {
+      final response = await widget.api.listRecords(collection.key);
+      if (!mounted) return;
+      setState(() {
+        _activeCollection = response.collection;
+        _records = response.rows;
+        _loadingRecords = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingRecords = false;
+        _error = 'Record load failed: $error';
+      });
+    }
+  }
+
+  Future<void> _openRecord(AdminRecord record) async {
+    final collection = _activeCollection;
+    if (collection == null) return;
+
+    setState(() {
+      _selectedRecord = null;
+      _error = null;
+    });
+
+    try {
+      final loaded = await widget.api.getRecord(collection.key, record.id);
+      if (!mounted) return;
+      setState(() => _selectedRecord = loaded);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = 'Record open failed: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -259,9 +355,24 @@ class AdminShell extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const AdminSidebar(),
+            AdminSidebar(
+              collections: _collections,
+              activeCollection: _activeCollection,
+              loading: _loadingCollections,
+              onSelect: _selectCollection,
+            ),
             Expanded(
-              child: AdminWorkspace(session: session, onLogout: onLogout),
+              child: AdminWorkspace(
+                session: widget.session,
+                collections: _collections,
+                activeCollection: _activeCollection,
+                records: _records,
+                selectedRecord: _selectedRecord,
+                loadingRecords: _loadingRecords,
+                error: _error,
+                onOpenRecord: _openRecord,
+                onLogout: widget.onLogout,
+              ),
             ),
           ],
         ),
@@ -271,7 +382,18 @@ class AdminShell extends StatelessWidget {
 }
 
 class AdminSidebar extends StatelessWidget {
-  const AdminSidebar({super.key});
+  const AdminSidebar({
+    required this.collections,
+    required this.activeCollection,
+    required this.loading,
+    required this.onSelect,
+    super.key,
+  });
+
+  final List<AdminCollection> collections;
+  final AdminCollection? activeCollection;
+  final bool loading;
+  final ValueChanged<AdminCollection> onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -300,13 +422,19 @@ class AdminSidebar extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           const _NavLabel('Collections'),
-          const _CollectionNavItem(
-            label: 'Admin Input Examples',
-            count: 2,
-            selected: true,
-          ),
-          const _CollectionNavItem(label: 'Products', count: 3),
-          const _CollectionNavItem(label: 'Posts', count: 2),
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(),
+            )
+          else
+            for (final collection in collections)
+              _CollectionNavItem(
+                label: collection.title,
+                count: collection.rowCount,
+                selected: collection.key == activeCollection?.key,
+                onTap: () => onSelect(collection),
+              ),
           const Spacer(),
           const _NavLabel('System'),
           const _CollectionNavItem(label: 'Auth', count: 1),
@@ -319,15 +447,31 @@ class AdminSidebar extends StatelessWidget {
 class AdminWorkspace extends StatelessWidget {
   const AdminWorkspace({
     required this.session,
+    required this.collections,
+    required this.activeCollection,
+    required this.records,
+    required this.selectedRecord,
+    required this.loadingRecords,
+    required this.onOpenRecord,
     required this.onLogout,
+    this.error,
     super.key,
   });
 
   final AdminSession session;
+  final List<AdminCollection> collections;
+  final AdminCollection? activeCollection;
+  final List<AdminRecord> records;
+  final AdminRecord? selectedRecord;
+  final bool loadingRecords;
+  final String? error;
+  final ValueChanged<AdminRecord> onOpenRecord;
   final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
+    final activeCollection = this.activeCollection;
+
     return Padding(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -361,9 +505,23 @@ class AdminWorkspace extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _MetricStrip(session: session),
+          _MetricStrip(session: session, collectionCount: collections.length),
           const SizedBox(height: 18),
-          const Expanded(child: _CollectionPanel()),
+          if (error != null) ...[
+            _ErrorBanner(error!),
+            const SizedBox(height: 12),
+          ],
+          Expanded(
+            child: activeCollection == null
+                ? const _EmptyPanel(message: 'No collections available.')
+                : _CollectionPanel(
+                    collection: activeCollection,
+                    records: records,
+                    selectedRecord: selectedRecord,
+                    loading: loadingRecords,
+                    onOpenRecord: onOpenRecord,
+                  ),
+          ),
         ],
       ),
     );
@@ -371,9 +529,10 @@ class AdminWorkspace extends StatelessWidget {
 }
 
 class _MetricStrip extends StatelessWidget {
-  const _MetricStrip({required this.session});
+  const _MetricStrip({required this.session, required this.collectionCount});
 
   final AdminSession session;
+  final int collectionCount;
 
   @override
   Widget build(BuildContext context) {
@@ -383,8 +542,8 @@ class _MetricStrip extends StatelessWidget {
           child: _MetricCard(label: 'Auth', value: 'Serverpod'),
         ),
         const SizedBox(width: 14),
-        const Expanded(
-          child: _MetricCard(label: 'Required Scope', value: 'admin'),
+        Expanded(
+          child: _MetricCard(label: 'Collections', value: '$collectionCount'),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -399,66 +558,280 @@ class _MetricStrip extends StatelessWidget {
 }
 
 class _CollectionPanel extends StatelessWidget {
-  const _CollectionPanel();
+  const _CollectionPanel({
+    required this.collection,
+    required this.records,
+    required this.selectedRecord,
+    required this.loading,
+    required this.onOpenRecord,
+  });
+
+  final AdminCollection collection;
+  final List<AdminRecord> records;
+  final AdminRecord? selectedRecord;
+  final bool loading;
+  final ValueChanged<AdminRecord> onOpenRecord;
 
   @override
   Widget build(BuildContext context) {
-    final placeholderClient = Client('http://localhost:8080/');
-
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFFD9DEE7))),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Admin Input Examples',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'API base ready for ${placeholderClient.host}.',
-                  key: const Key('client_base_line'),
-                  style: const TextStyle(color: Color(0xFF6B7280)),
-                ),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _FieldChip('text'),
-                _FieldChip('textarea'),
-                _FieldChip('checkbox'),
-                _FieldChip('datetime'),
-                _FieldChip('dropdown'),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Collection data loads in Cycle 3.',
-                key: Key('cycle_1_placeholder'),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: Color(0xFFD9DEE7))),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    collection.title,
+                    key: const Key('active_collection_title'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    collection.description,
+                    style: const TextStyle(color: Color(0xFF6B7280)),
+                  ),
+                ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final field in collection.fields)
+                    _FieldChip(
+                      '${field.label}${field.required ? ' *' : ''} / ${field.control}',
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            loading
+                ? const SizedBox(
+                    height: 180,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _RecordsTable(
+                    collection: collection,
+                    records: records,
+                    onOpenRecord: onOpenRecord,
+                  ),
+            if (selectedRecord != null)
+              _RecordDetail(collection: collection, record: selectedRecord!),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordsTable extends StatelessWidget {
+  const _RecordsTable({
+    required this.collection,
+    required this.records,
+    required this.onOpenRecord,
+  });
+
+  final AdminCollection collection;
+  final List<AdminRecord> records;
+  final ValueChanged<AdminRecord> onOpenRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    if (records.isEmpty) {
+      return const SizedBox(
+        height: 180,
+        child: Center(child: Text('No records in this collection yet.')),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: [
+          const DataColumn(label: Text('ID')),
+          for (final field in collection.fields)
+            DataColumn(label: Text(field.label)),
+          const DataColumn(label: Text('Actions')),
+        ],
+        rows: [
+          for (final record in records)
+            DataRow(
+              cells: [
+                DataCell(Text(record.id)),
+                for (final field in collection.fields)
+                  DataCell(
+                    _RecordCell(
+                      collection: collection,
+                      record: record,
+                      field: field,
+                      onOpenRecord: onOpenRecord,
+                    ),
+                  ),
+                DataCell(
+                  TextButton(
+                    onPressed: isEditableCollection(collection.key)
+                        ? () => onOpenRecord(record)
+                        : null,
+                    child: Text(
+                      isEditableCollection(collection.key)
+                          ? 'Edit'
+                          : 'Read-only',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldChip extends StatelessWidget {
+  const _FieldChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F6F8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD9DEE7)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF374151),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordCell extends StatelessWidget {
+  const _RecordCell({
+    required this.collection,
+    required this.record,
+    required this.field,
+    required this.onOpenRecord,
+  });
+
+  final AdminCollection collection;
+  final AdminRecord record;
+  final AdminField field;
+  final ValueChanged<AdminRecord> onOpenRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = record.valueFor(field.name);
+    if (field.name == primaryEditField(collection.key)) {
+      return TextButton(
+        key: Key('primary_${collection.key}_${record.id}'),
+        onPressed: () => onOpenRecord(record),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          alignment: Alignment.centerLeft,
+        ),
+        child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis),
+      );
+    }
+    return Text(value, maxLines: 1, overflow: TextOverflow.ellipsis);
+  }
+}
+
+class _RecordDetail extends StatelessWidget {
+  const _RecordDetail({required this.collection, required this.record});
+
+  final AdminCollection collection;
+  final AdminRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('record_detail'),
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFBFCFD),
+        border: Border(top: BorderSide(color: Color(0xFFD9DEE7))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${isEditableCollection(collection.key) ? 'Edit' : 'View'} ${collection.title} #${record.id}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 8,
+            children: [
+              for (final field in collection.fields)
+                Text('${field.label}: ${record.valueFor(field.name)}'),
+            ],
           ),
         ],
       ),
     );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1F0),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFFDA29B)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFFB42318),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyPanel extends StatelessWidget {
+  const _EmptyPanel({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(child: Center(child: Text(message)));
   }
 }
 
@@ -498,54 +871,45 @@ class _CollectionNavItem extends StatelessWidget {
     required this.label,
     required this.count,
     this.selected = false,
+    this.onTap,
   });
 
   final String label;
   final int count;
   final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 38,
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFD7F4EF) : Colors.transparent,
+    return Material(
+      color: selected ? const Color(0xFFD7F4EF) : Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        key: Key('nav_$label'),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: selected
-                    ? const Color(0xFF064E47)
-                    : const Color(0xFF374151),
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+        child: Container(
+          height: 38,
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: selected
+                        ? const Color(0xFF064E47)
+                        : const Color(0xFF374151),
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
+              Text('$count', style: const TextStyle(color: Color(0xFF6B7280))),
+            ],
           ),
-          Text('$count', style: const TextStyle(color: Color(0xFF6B7280))),
-        ],
+        ),
       ),
-    );
-  }
-}
-
-class _FieldChip extends StatelessWidget {
-  const _FieldChip(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      side: const BorderSide(color: Color(0xFFD9DEE7)),
-      backgroundColor: const Color(0xFFF8FAFC),
-      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -568,5 +932,26 @@ class _NavLabel extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+bool isEditableCollection(String key) => key == 'products' || key == 'posts';
+
+String? primaryEditField(String key) {
+  return switch (key) {
+    'products' => 'name',
+    'posts' || 'admin_input_examples' => 'title',
+    _ => null,
+  };
+}
+
+extension on AdminRecord {
+  String valueFor(String fieldName) {
+    for (final cell in cells) {
+      if (cell.field == fieldName) {
+        return cell.value;
+      }
+    }
+    return '';
   }
 }

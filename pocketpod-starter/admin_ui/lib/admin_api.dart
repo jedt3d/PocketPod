@@ -20,6 +20,12 @@ abstract interface class AdminApi {
   Future<AdminSession> login({required String email, required String password});
 
   Future<AdminDashboard> dashboard();
+
+  Future<List<AdminCollection>> listCollections();
+
+  Future<AdminCollectionRecords> listRecords(String collectionKey);
+
+  Future<AdminRecord> getRecord(String collectionKey, String id);
 }
 
 class ServerpodAdminApi implements AdminApi {
@@ -65,6 +71,21 @@ class ServerpodAdminApi implements AdminApi {
   @override
   Future<AdminDashboard> dashboard() {
     return _client.admin.dashboard();
+  }
+
+  @override
+  Future<List<AdminCollection>> listCollections() {
+    return _client.admin.listCollections();
+  }
+
+  @override
+  Future<AdminCollectionRecords> listRecords(String collectionKey) {
+    return _client.admin.listRecords(collectionKey);
+  }
+
+  @override
+  Future<AdminRecord> getRecord(String collectionKey, String id) {
+    return _client.admin.getRecord(collectionKey, id);
   }
 }
 

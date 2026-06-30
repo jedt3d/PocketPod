@@ -134,3 +134,47 @@ Notes:
 The pinned generated Serverpod client exposes `authenticationKeyManager` rather than the newer `authKeyProvider`, so the Flutter admin app uses a small local compatibility wrapper and scopes the deprecated API ignore to `admin_api.dart`.
 Screenshot evidence is still pending for Cycle 2 and can be captured once the app is run in Chrome.
 ```
+
+## Cycle 3: Collection Browser
+
+Status: complete except screenshot evidence.
+
+Changes:
+
+- Added protected client calls for `listCollections`, `listRecords`, and `getRecord`.
+- Added dynamic collection navigation for Admin Input Examples, Products, and Posts.
+- Added collection counts and active collection selection.
+- Added loaded, loading, empty, and error-safe collection panel states.
+- Added scroll-safe table rendering for shorter browser heights and wider schemas.
+- Made the primary field clickable in every collection:
+  - Admin Input Examples: `title`.
+  - Products: `name`.
+  - Posts: `title`.
+- Kept an explicit Edit action for editable Product/Post rows.
+- Added a read-only detail preview for collection rows.
+- Added widget coverage for switching collections and opening a record from the primary field.
+
+Validation:
+
+```sh
+dart format admin_ui/lib admin_ui/test
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd admin_ui && flutter build web
+```
+
+Result:
+
+```text
+PASS
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 6 tests passed.
+flutter build web: built build/web.
+```
+
+Notes:
+
+```text
+The collection panel uses a bounded scroll area so field chips, tables, and detail previews remain usable on shorter screens.
+Screenshot evidence is still pending and should be captured from the running web app before the Phase 4 acceptance gate.
+```

@@ -69,20 +69,20 @@ An admin can sign in and reach the Flutter admin shell. Invalid or expired auth 
 
 ## Cycle 3: Collection Browser
 
-- [ ] Build the sidebar collection navigation.
-- [ ] Fetch collection metadata from protected admin endpoints.
-- [ ] Render Admin Input Examples, Products, and Posts.
-- [ ] Show collection counts.
-- [ ] Render table loading, empty, error, and loaded states.
-- [ ] Make the primary field clickable in every collection:
+- [x] Build the sidebar collection navigation.
+- [x] Fetch collection metadata from protected admin endpoints.
+- [x] Render Admin Input Examples, Products, and Posts.
+- [x] Show collection counts.
+- [x] Render table loading, empty, error, and loaded states.
+- [x] Make the primary field clickable in every collection:
   - Admin Input Examples: `title`
   - Products: `name`
   - Posts: `title`
-- [ ] Keep an explicit Edit action for editable collections.
-- [ ] Add responsive layout behavior for desktop and narrow widths.
-- [ ] Add widget tests for table rendering and primary-field navigation.
+- [x] Keep an explicit Edit action for editable collections.
+- [x] Add responsive layout behavior for desktop and narrow widths.
+- [x] Add widget tests for table rendering and primary-field navigation.
 - [ ] Capture screenshot evidence.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 
