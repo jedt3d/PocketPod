@@ -10,6 +10,8 @@ PocketPod benchmarks are built on [Serverpod](https://serverpod.dev). The curren
 
 PocketPod release tags match the Serverpod baseline version, such as `v3.5.0-beta.10`, so benchmark results can be tied back to the exact Serverpod source version in `serverpod-pocketpod`.
 
+[PocketBase](https://pocketbase.io) is included in the benchmark plan as an inspiration and comparison target because its lightweight SQLite deployment model helped shape the initial PocketPod direction. It is not a PocketPod dependency.
+
 ## Purpose
 
 Before Phase 3, measure whether the SQLite tuning in Phase 2 gives useful evidence, not just correct PRAGMA values.

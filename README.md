@@ -4,11 +4,13 @@ PocketPod is a Serverpod + SQLite starter structure for a small single-server e-
 
 It is not a new backend server. The backend is still Serverpod. PocketPod keeps the starter app, SQLite configuration, benchmark harness, and local Serverpod SQLite tuning patch together in one repository.
 
-## Serverpod Credit
+## Credits
 
 PocketPod is built on top of [Serverpod](https://serverpod.dev), and the core framework, generated protocol model, endpoint runtime, client generation, and project structure all come from the Serverpod team's work.
 
 This repository only adds a focused PocketPod layer around Serverpod for the SQLite use case: a starter layout, SQLite-oriented configuration, a small tuning patch in the copied Serverpod source, and benchmark tooling. The Serverpod team deserves full credit for the framework foundation that makes this possible.
+
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of PocketPod, but it helped frame the goal: keep deployment simple while preserving the Serverpod/Dart workflow.
 
 ## Version
 

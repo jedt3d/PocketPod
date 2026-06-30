@@ -10,6 +10,10 @@ This source tree comes from [Serverpod](https://serverpod.dev). The Serverpod te
 
 PocketPod keeps this copy locally only so the SQLite tuning patch can be inspected, tested, and used by the starter through path dependency overrides.
 
+## PocketBase Inspiration
+
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not part of this Serverpod source copy; it is referenced only as product inspiration and optional benchmark context.
+
 ## Version
 
 This copy is based on Serverpod:

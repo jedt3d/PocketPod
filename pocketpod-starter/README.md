@@ -4,6 +4,8 @@ This directory is the reusable PocketPod starter app/template.
 
 It is built on [Serverpod](https://serverpod.dev). PocketPod does not replace Serverpod; it uses Serverpod as the backend framework and adds a SQLite-focused starter configuration, benchmark harness, and local tuning patch.
 
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of this starter; it is used only as inspiration and as one optional benchmark comparison target.
+
 The Serverpod baseline used by this starter is:
 
 ```text

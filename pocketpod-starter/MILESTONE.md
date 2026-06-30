@@ -4,6 +4,8 @@
 
 PocketPod is built on [Serverpod](https://serverpod.dev), and the Serverpod team deserves credit for the framework, runtime, code generation, and project structure this work extends.
 
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight SQLite deployment feel. PocketBase remains an inspiration and benchmark comparison target, not a PocketPod dependency.
+
 Current Serverpod baseline:
 
 ```text

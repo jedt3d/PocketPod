@@ -10,9 +10,11 @@ The simplest description is:
 
 It is not a replacement for Serverpod. It is also not a new backend framework. PocketPod starts from normal Serverpod, keeps the Serverpod programming model, and changes the deployment/database profile so a small project can use a single SQLite database file instead of requiring the usual Postgres/Docker-style setup from the beginning.
 
-## Serverpod Credit And Version
+## Credits And Version
 
 PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod provides the backend framework, endpoint runtime, generated protocol model, client generation, migrations, and Dart/Flutter project structure. PocketPod adds the SQLite-focused starter configuration, local SQLite tuning patch, benchmark harness, and deployment notes around that foundation.
+
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a PocketPod dependency and is not part of the runtime architecture; it is an inspiration point and optional benchmark comparison target.
 
 Current Serverpod baseline:
 

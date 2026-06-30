@@ -4,6 +4,8 @@
 
 PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod remains the backend framework; PocketPod adds the SQLite starter configuration, tuning patch, and benchmark workflow.
 
+PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight SQLite deployment feel. PocketBase is not part of the PocketPod runtime; it is referenced as inspiration and as an optional benchmark comparison.
+
 Current Serverpod baseline:
 
 ```text

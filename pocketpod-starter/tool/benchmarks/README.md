@@ -4,6 +4,8 @@ These benchmarks run against PocketPod's Serverpod baseline, [Serverpod](https:/
 
 PocketPod release tags intentionally match the Serverpod baseline version, for example `v3.5.0-beta.10`, so benchmark reports can be interpreted against the correct `serverpod-pocketpod` source copy.
 
+[PocketBase](https://pocketbase.io) is included as an optional comparison target because its lightweight SQLite deployment feel inspired the original PocketPod direction. PocketBase is not a PocketPod dependency.
+
 Runs the Phase 2 local benchmark gate before moving to Phase 3.
 
 Default run:
