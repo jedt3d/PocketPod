@@ -39,6 +39,7 @@ Planned control mapping:
 - [ ] `int` and `double` fields keep numeric input behavior.
 - [ ] Enum-like fields use a dropdown/select control when the generator can infer finite choices.
 - [ ] Foreign-key-like fields such as `categoryId`, `authorId`, `productId`, and relation fields use a dropdown/select placeholder until live lookup data exists.
+- [ ] Required non-nullable fields show a red asterisk marker in labels.
 - [ ] Nullable fields show optional affordance text in the preview.
 - [ ] Update fixtures to include at least one dropdown-style field.
 - [ ] Update generated preview screenshot.

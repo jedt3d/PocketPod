@@ -53,4 +53,6 @@ enum/choice           -> dropdown/select
 foreign key/relation  -> dropdown/select placeholder
 ```
 
+Required fields should be visible to the admin user. Non-nullable fields should show a red `*` marker in labels, while nullable fields should show an optional affordance.
+
 The first implementation can use deterministic schema-only heuristics, for example `body`, `description`, and `content` as textarea fields, and `categoryId` or `authorId` as relation dropdown placeholders. Later phases can replace heuristics with explicit metadata or live lookup data.
