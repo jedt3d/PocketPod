@@ -46,10 +46,14 @@ class CreateSysadminOptions {
   bool get isProduction => runMode == 'production';
 }
 
-CreateSysadminCommandResult runCreateSysadminCommand(
+typedef CreateSysadminPersist =
+    Future<CreateSysadminCommandResult> Function(CreateSysadminOptions options);
+
+Future<CreateSysadminCommandResult> runCreateSysadminCommand(
   List<String> arguments, {
   required Map<String, String> environment,
-}) {
+  CreateSysadminPersist? persist,
+}) async {
   final parser = _buildParser();
   late ArgResults parsed;
 
@@ -83,7 +87,8 @@ CreateSysadminCommandResult runCreateSysadminCommand(
         environment['SERVERPOD_RUN_MODE'] ??
         'development',
     dryRun: parsed['dry-run'] as bool,
-    force: parsed['force'] as bool,
+    force:
+        (parsed['force'] as bool) || (parsed['force-password-reset'] as bool),
     allowAdditionalAdmin: parsed['allow-additional-admin'] as bool,
     promoteExisting: parsed['promote-existing'] as bool,
   );
@@ -97,6 +102,11 @@ CreateSysadminCommandResult runCreateSysadminCommand(
   }
 
   if (!options.dryRun) {
+    final persistSysadmin = persist;
+    if (persistSysadmin != null) {
+      return persistSysadmin(options);
+    }
+
     return const CreateSysadminCommandResult(
       exitCode: 78,
       stderrMessage:
@@ -165,6 +175,11 @@ ArgParser _buildParser() {
     ..addFlag(
       'force',
       help: 'Allow replacing the password for an existing sysadmin.',
+      negatable: false,
+    )
+    ..addFlag(
+      'force-password-reset',
+      help: 'Alias for --force.',
       negatable: false,
     )
     ..addFlag(

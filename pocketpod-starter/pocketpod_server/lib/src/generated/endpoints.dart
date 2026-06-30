@@ -13,6 +13,10 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../benchmarks/benchmark_endpoint.dart' as _i2;
 import '../greetings/greeting_endpoint.dart' as _i3;
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+    as _i4;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i5;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -162,5 +166,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    modules['serverpod_auth_idp'] = _i4.Endpoints()
+      ..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _i5.Endpoints()
+      ..initializeEndpoints(server);
   }
 }

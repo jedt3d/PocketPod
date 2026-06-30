@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'lib/bootstrap_sysadmin.dart';
 import 'lib/create_sysadmin.dart';
 
-void main(List<String> arguments) {
-  final result = runCreateSysadminCommand(
+Future<void> main(List<String> arguments) async {
+  final result = await runCreateSysadminCommand(
     arguments,
     environment: Platform.environment,
+    persist: bootstrapSysadmin,
   );
 
   if (result.stdoutMessage.isNotEmpty) {
@@ -15,5 +17,5 @@ void main(List<String> arguments) {
     stderr.writeln(result.stderrMessage);
   }
 
-  exitCode = result.exitCode;
+  exit(result.exitCode);
 }

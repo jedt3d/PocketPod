@@ -15,8 +15,12 @@ import 'dart:async' as _i2;
 import 'package:pocketpod_client/src/protocol/benchmarks/benchmark_record.dart'
     as _i3;
 import 'package:pocketpod_client/src/protocol/greetings/greeting.dart' as _i4;
-import 'package:http/http.dart' as _i5;
-import 'protocol.dart' as _i6;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _i5;
+import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+    as _i6;
+import 'package:http/http.dart' as _i7;
+import 'protocol.dart' as _i8;
 
 /// {@category Endpoint}
 class EndpointBenchmark extends _i1.EndpointRef {
@@ -88,6 +92,17 @@ class EndpointGreeting extends _i1.EndpointRef {
       );
 }
 
+class Modules {
+  Modules(Client client) {
+    serverpod_auth_idp = _i5.Caller(client);
+    serverpod_auth_core = _i6.Caller(client);
+  }
+
+  late final _i5.Caller serverpod_auth_idp;
+
+  late final _i6.Caller serverpod_auth_core;
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -106,10 +121,10 @@ class Client extends _i1.ServerpodClientShared {
     onFailedCall,
     Function(_i1.MethodCallContext)? onSucceededCall,
     bool? disconnectStreamsOnLostInternetConnection,
-    _i5.Client? httpClientOverride,
+    _i7.Client? httpClientOverride,
   }) : super(
          host,
-         _i6.Protocol(),
+         _i8.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -121,11 +136,14 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     benchmark = EndpointBenchmark(this);
     greeting = EndpointGreeting(this);
+    modules = Modules(this);
   }
 
   late final EndpointBenchmark benchmark;
 
   late final EndpointGreeting greeting;
+
+  late final Modules modules;
 
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
@@ -134,5 +152,8 @@ class Client extends _i1.ServerpodClientShared {
   };
 
   @override
-  Map<String, _i1.ModuleEndpointCaller> get moduleLookup => {};
+  Map<String, _i1.ModuleEndpointCaller> get moduleLookup => {
+    'serverpod_auth_idp': modules.serverpod_auth_idp,
+    'serverpod_auth_core': modules.serverpod_auth_core,
+  };
 }

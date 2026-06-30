@@ -150,18 +150,50 @@ fields:
 This table can store PocketPod admin UI preferences or ownership metadata, but it must not replace Serverpod Auth as the login/session/scope authority.
 
 Features:
-1. Add a Dart CLI script, `yaml_to_admin.dart`, that reads Serverpod model YAML.
-2. Add `tool/admin/create_sysadmin.dart` for first-admin bootstrap using Serverpod Auth.
-3. Reintroduce and validate Serverpod Auth dependencies against the SQLite PocketPod starter.
-4. Generate or document admin endpoint guards using `requireLogin` and `Scope.admin`.
-5. Map scalar fields and relations to generated Flutter table/form components.
-6. Add generator tests using representative model fixtures.
-7. Add auth tests proving unauthenticated and non-admin users cannot call generated admin endpoints.
-8. Use PocketBase as admin UX inspiration for fast CRUD navigation, dense data tables, clear model/collection editing, and lightweight local-first ergonomics.
-9. Add PocketBase credit in the admin generator folder README and keep the root README credit updated.
+1. ✅ Add a Dart CLI script, `yaml_to_admin.dart`, that reads Serverpod model YAML.
+2. ✅ Parse representative Serverpod `.spy.yaml` model fixtures into deterministic admin metadata.
+3. ✅ Generate deterministic Flutter admin source from sample models.
+4. ✅ Generate a static HTML admin preview artifact for review.
+5. ✅ Capture screenshot evidence for the generated admin preview.
+6. ✅ Use PocketBase as admin UX inspiration for fast CRUD navigation, dense data tables, clear model/collection editing, and lightweight local-first ergonomics.
+7. ✅ Add PocketBase credit in the admin generator folder README and keep the root README credit updated.
+8. ✅ Map scalar fields and relation-like fields to generated Flutter table/form components.
+9. ✅ Add smart form-control mapping so generated forms no longer render every field as a plain text input.
+10. ✅ Add generator tests using representative model fixtures.
+11. ✅ Add `tool/admin/create_sysadmin.dart` for first-admin bootstrap using Serverpod Auth.
+12. ✅ Reintroduce and validate Serverpod Auth dependencies against the SQLite PocketPod starter.
+13. Generate or document admin endpoint guards using `requireLogin` and `Scope.admin`.
+14. Add auth tests proving unauthenticated and non-admin users cannot call generated admin endpoints.
 
 Cycle 2A completed generator advantage:
 PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview. The current screenshot is embedded in both the root `README.md` and `pocketpod-starter/README.md`.
+
+Cycle 2A completed controls:
+1. ✅ `String` short fields render as single-line text inputs.
+2. ✅ Long text fields such as `body`, `description`, `content`, `excerpt`, `notes`, and `summary` render as textarea-style controls.
+3. ✅ `bool` fields render as checkbox controls.
+4. ✅ `DateTime` fields render as datetime selector placeholders in the HTML preview and generated Flutter source.
+5. ✅ `int` and `double` fields render as numeric controls.
+6. ✅ Enum-like fields render as dropdown/select placeholders when the generator can infer finite choices.
+7. ✅ Foreign-key-like fields such as `categoryId`, `authorId`, `productId`, and relation fields render as dropdown/select placeholders until live lookup data exists.
+8. ✅ Required non-nullable fields show a red `*` marker.
+9. ✅ Nullable fields show an optional affordance in the preview.
+10. ✅ The generated preview and screenshot demonstrate the control matrix in one reviewable place.
+
+Cycle 2A current control matrix:
+
+| Field | Serverpod Type | Required | Generated Control |
+| --- | --- | --- | --- |
+| `title` | `String` | yes | text input |
+| `body` | `String` | yes | textarea |
+| `summary` | `String?` | no | optional textarea |
+| `published` | `bool` | yes | checkbox |
+| `publishedAt` | `DateTime?` | no | optional datetime selector |
+| `stock` | `int` | yes | integer number input |
+| `price` | `double` | yes | decimal number input |
+| `status` | `PublishStatus` | yes | enum dropdown placeholder |
+| `categoryId` | `int` | yes | relation dropdown placeholder |
+| `tags` | `List<String>?` | no | optional array/list placeholder |
 
 Design credit rule:
 PocketBase can guide the admin interaction model, but PocketPod should not copy PocketBase source code, branding, icons, or visual assets unless license and attribution are reviewed separately.

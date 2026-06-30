@@ -15,6 +15,10 @@ import 'benchmarks/benchmark_record.dart' as _i2;
 import 'greetings/greeting.dart' as _i3;
 import 'package:pocketpod_client/src/protocol/benchmarks/benchmark_record.dart'
     as _i4;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _i5;
+import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+    as _i6;
 export 'benchmarks/benchmark_record.dart';
 export 'greetings/greeting.dart';
 export 'client.dart';
@@ -24,7 +28,7 @@ class Protocol extends _i1.SerializationManager {
 
   factory Protocol() => _instance;
 
-  static final Protocol _instance = Protocol._();
+  static final Protocol _instance = Protocol._().._registerHostProtocols();
 
   static String? getClassNameFromObjectJson(dynamic data) {
     if (data is! Map) return null;
@@ -71,6 +75,12 @@ class Protocol extends _i1.SerializationManager {
               .toList()
           as T;
     }
+    try {
+      return _i5.Protocol().deserialize<T>(data, t);
+    } on _i1.DeserializationTypeNotFoundException catch (_) {}
+    try {
+      return _i6.Protocol().deserialize<T>(data, t);
+    } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
 
@@ -97,6 +107,18 @@ class Protocol extends _i1.SerializationManager {
       case _i3.Greeting():
         return 'Greeting';
     }
+    className = _i5.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_idp.$className';
+    }
+    className = _i6.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_core.$className';
+    }
     return null;
   }
 
@@ -112,7 +134,20 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'Greeting') {
       return deserialize<_i3.Greeting>(data['data']);
     }
+    if (dataClassName.startsWith('serverpod_auth_idp.')) {
+      data['className'] = dataClassName.substring(19);
+      return _i5.Protocol().deserializeByClassName(data);
+    }
+    if (dataClassName.startsWith('serverpod_auth_core.')) {
+      data['className'] = dataClassName.substring(20);
+      return _i6.Protocol().deserializeByClassName(data);
+    }
     return super.deserializeByClassName(data);
+  }
+
+  void _registerHostProtocols() {
+    _i5.Protocol().registerHostProtocol('pocketpod', this);
+    _i6.Protocol().registerHostProtocol('pocketpod', this);
   }
 
   @override
@@ -127,6 +162,12 @@ class Protocol extends _i1.SerializationManager {
     if (record == null) {
       return null;
     }
+    try {
+      return _i5.Protocol().mapRecordToJson(record);
+    } catch (_) {}
+    try {
+      return _i6.Protocol().mapRecordToJson(record);
+    } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }
 }

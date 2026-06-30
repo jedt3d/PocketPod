@@ -4,8 +4,8 @@ import '../../tool/admin/lib/create_sysadmin.dart';
 
 void main() {
   group('create_sysadmin command', () {
-    test('validates explicit dry-run credentials', () {
-      final result = runCreateSysadminCommand([
+    test('validates explicit dry-run credentials', () async {
+      final result = await runCreateSysadminCommand([
         '--email',
         'admin@example.com',
         '--password',
@@ -19,8 +19,8 @@ void main() {
       expect(result.stderrMessage, isEmpty);
     });
 
-    test('uses environment fallback values', () {
-      final result = runCreateSysadminCommand(
+    test('uses environment fallback values', () async {
+      final result = await runCreateSysadminCommand(
         ['--dry-run'],
         environment: {
           'POCKETPOD_ADMIN_EMAIL': 'env-admin@example.com',
@@ -34,8 +34,8 @@ void main() {
       expect(result.stdoutMessage, contains('Run mode: staging'));
     });
 
-    test('rejects invalid email and weak password', () {
-      final result = runCreateSysadminCommand([
+    test('rejects invalid email and weak password', () async {
+      final result = await runCreateSysadminCommand([
         '--email',
         'not-an-email',
         '--password',
@@ -48,8 +48,8 @@ void main() {
       expect(result.stderrMessage, contains('at least 8 characters'));
     });
 
-    test('rejects placeholder passwords in production mode', () {
-      final result = runCreateSysadminCommand([
+    test('rejects placeholder passwords in production mode', () async {
+      final result = await runCreateSysadminCommand([
         '--email',
         'admin@example.com',
         '--password',
@@ -63,8 +63,8 @@ void main() {
       expect(result.stderrMessage, contains('placeholder words'));
     });
 
-    test('requires stronger passwords in production mode', () {
-      final result = runCreateSysadminCommand([
+    test('requires stronger passwords in production mode', () async {
+      final result = await runCreateSysadminCommand([
         '--email',
         'admin@example.com',
         '--password',
@@ -79,8 +79,29 @@ void main() {
       expect(result.stderrMessage, contains('number'));
     });
 
-    test('keeps persistence disabled until Serverpod Auth is wired', () {
-      final result = runCreateSysadminCommand([
+    test('delegates to persistence when dry-run is disabled', () async {
+      CreateSysadminOptions? capturedOptions;
+
+      final result = await runCreateSysadminCommand(
+        ['--email', 'admin@example.com', '--password', r'Strong-pass-123'],
+        environment: {},
+        persist: (options) async {
+          capturedOptions = options;
+          return const CreateSysadminCommandResult(
+            exitCode: 0,
+            stdoutMessage: 'created',
+          );
+        },
+      );
+
+      expect(result.exitCode, 0);
+      expect(result.stdoutMessage, 'created');
+      expect(capturedOptions?.email, 'admin@example.com');
+      expect(capturedOptions?.dryRun, isFalse);
+    });
+
+    test('keeps persistence disabled without a persistence callback', () async {
+      final result = await runCreateSysadminCommand([
         '--email',
         'admin@example.com',
         '--password',

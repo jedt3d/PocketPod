@@ -56,14 +56,17 @@ Implementation notes:
 
 ## Cycle 3: Serverpod Auth Bootstrap
 
-- [ ] Reintroduce Serverpod Auth dependencies for the SQLite starter.
+- [x] Reintroduce Serverpod Auth dependencies for the SQLite starter.
 - [x] Add `tool/admin/create_sysadmin.dart` CLI entrypoint.
 - [x] Add argument and environment validation for first-admin bootstrap.
 - [x] Add dry-run mode while Serverpod Auth persistence is being wired.
-- [ ] Connect `tool/admin/create_sysadmin.dart` to Serverpod Auth persistence.
-- [ ] Validate first-admin bootstrap behavior against SQLite.
-- [ ] Add tests for duplicate, promotion, and safe password behavior.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Connect `tool/admin/create_sysadmin.dart` to Serverpod Auth persistence.
+- [x] Add Serverpod Auth SQLite migration.
+- [x] Validate first-admin bootstrap behavior against SQLite.
+- [x] Validate duplicate sysadmin guard against SQLite.
+- [x] Add tests for safe password behavior and persistence delegation.
+- [ ] Add a real promotion test for an existing non-admin auth user.
+- [x] Record validation in `TEST_REPORT.md`.
 
 ## Cycle 4: Admin Endpoint Guard Convention
 

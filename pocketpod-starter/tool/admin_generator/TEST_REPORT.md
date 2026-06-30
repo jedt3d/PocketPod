@@ -202,25 +202,42 @@ pocketpod_flutter widget smoke test: passed.
 
 ## Cycle 3: Serverpod Auth Bootstrap
 
-Status: started.
+Status: in progress.
 
 Changes:
 - Added `tool/admin/create_sysadmin.dart`.
 - Added reusable command validation in `tool/admin/lib/create_sysadmin.dart`.
-- Added support for `--email`, `--password`, `--mode`, `--dry-run`, `--force`, `--allow-additional-admin`, and `--promote-existing`.
+- Added support for `--email`, `--password`, `--mode`, `--dry-run`, `--force`, `--force-password-reset`, `--allow-additional-admin`, and `--promote-existing`.
 - Added environment fallback for `POCKETPOD_ADMIN_EMAIL`, `POCKETPOD_ADMIN_PASSWORD`, and `SERVERPOD_RUN_MODE`.
-- Added password safety validation before persistence is connected.
+- Reintroduced Serverpod Auth core/IDP dependencies for the starter server and generated client protocol.
+- Initialized PocketPod Auth with JWT token support and email identity provider support.
+- Added `pocketpod_server/config/template.passwords.yaml` so new checkouts know the required auth password keys.
+- Generated auth module protocol registrations with the pinned local Serverpod CLI `3.5.0-beta.10`.
+- Added migration `20260630085239040-auth-bootstrap` for Serverpod Auth SQLite tables.
+- Connected the bootstrap command to Serverpod Auth APIs:
+  - `AuthServices.instance.authUsers.create`
+  - `AuthServices.instance.authUsers.update`
+  - `AuthServices.instance.userProfiles.createUserProfile`
+  - `EmailIdp.admin.createEmailAuthentication`
+  - `EmailIdp.admin.findAccount`
+  - `EmailIdp.admin.setPassword`
 
 Current limitation:
-- Serverpod Auth persistence is intentionally disabled in this checkpoint. Running without `--dry-run` returns a clear pending-persistence error until the next Cycle 3 slice wires the command to Serverpod Auth.
+- Promotion behavior is implemented behind `--promote-existing`, but a real promotion test still needs a seeded non-admin auth user fixture.
 
 Validation:
 
 ```sh
 dart run tool/admin/create_sysadmin.dart --email admin@example.com --password 'change-me-now' --dry-run
+dart run tool/admin/create_sysadmin.dart --email cycle3-admin@example.com --password 'change-me-now' --mode test
+dart run tool/admin/create_sysadmin.dart --email cycle3-admin@example.com --password 'change-me-now' --mode test
+dart run tool/admin/create_sysadmin.dart --email cycle3-second@example.com --password 'change-me-now' --mode test
 flutter test test/admin test/admin_generator
 dart format --set-exit-if-changed tool/admin test/admin
 flutter analyze
+cd pocketpod_server && flutter test --reporter expanded
+cd pocketpod_server && flutter test test/integration/sqlite_tuning_test.dart --reporter expanded
+cd pocketpod_flutter && flutter test
 git diff --check -- .
 ```
 
@@ -229,8 +246,14 @@ Result:
 ```text
 PASS
 create_sysadmin dry run: validated admin@example.com in development mode.
-flutter test test/admin test/admin_generator: 12 tests passed.
+create_sysadmin test mode: applied auth migration and created cycle3-admin@example.com.
+create_sysadmin idempotency: reported existing sysadmin without changing password.
+create_sysadmin duplicate guard: blocked cycle3-second@example.com without --allow-additional-admin.
+flutter test test/admin test/admin_generator: 13 tests passed.
 dart format --set-exit-if-changed tool/admin test/admin: pass.
 flutter analyze: No issues found.
+pocketpod_server greeting integration test: passed.
+pocketpod_server SQLite PRAGMA tuning test: passed.
+pocketpod_flutter widget smoke test: passed.
 git diff --check -- .: pass.
 ```
