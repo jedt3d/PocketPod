@@ -30,6 +30,7 @@ Cycle 2A adds smart field-to-control mapping so generated forms are not just gen
 
 ```text
 yaml_to_admin.dart     reads Serverpod model YAML and generates admin code
+../admin/              Serverpod Auth bootstrap tooling for the first sysadmin
 fixtures/              representative model YAML fixtures
 generated/             sample generated Dart and HTML preview output
 screenshots/           browser screenshot evidence for generated preview
@@ -54,6 +55,27 @@ Phase 3 is built in small reviewable slices:
 5. Smart form-control mapping for text, long text, boolean, datetime, enum, and relation-like fields.
 6. Serverpod Auth/sysadmin bootstrap slice.
 7. Admin endpoint guard generation and auth tests.
+
+## Sysadmin Bootstrap Checkpoint
+
+Cycle 3 starts with a validated command surface:
+
+```sh
+dart run tool/admin/create_sysadmin.dart \
+  --email admin@example.com \
+  --password 'Strong-pass-123' \
+  --dry-run
+```
+
+The command also supports environment variables for deployment scripts:
+
+```sh
+POCKETPOD_ADMIN_EMAIL=admin@example.com \
+POCKETPOD_ADMIN_PASSWORD='Strong-pass-123' \
+dart run tool/admin/create_sysadmin.dart --dry-run
+```
+
+The first checkpoint validates inputs only. The next Cycle 3 slice will connect this command to Serverpod Auth tables so the same command can create or report the first `Scope.admin` sysadmin.
 
 ## Smart Form-Control Direction
 

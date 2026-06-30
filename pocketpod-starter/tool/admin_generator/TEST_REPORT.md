@@ -199,3 +199,38 @@ pocketpod_server greeting integration test: passed.
 pocketpod_server SQLite PRAGMA tuning test: passed.
 pocketpod_flutter widget smoke test: passed.
 ```
+
+## Cycle 3: Serverpod Auth Bootstrap
+
+Status: started.
+
+Changes:
+- Added `tool/admin/create_sysadmin.dart`.
+- Added reusable command validation in `tool/admin/lib/create_sysadmin.dart`.
+- Added support for `--email`, `--password`, `--mode`, `--dry-run`, `--force`, `--allow-additional-admin`, and `--promote-existing`.
+- Added environment fallback for `POCKETPOD_ADMIN_EMAIL`, `POCKETPOD_ADMIN_PASSWORD`, and `SERVERPOD_RUN_MODE`.
+- Added password safety validation before persistence is connected.
+
+Current limitation:
+- Serverpod Auth persistence is intentionally disabled in this checkpoint. Running without `--dry-run` returns a clear pending-persistence error until the next Cycle 3 slice wires the command to Serverpod Auth.
+
+Validation:
+
+```sh
+dart run tool/admin/create_sysadmin.dart --email admin@example.com --password 'change-me-now' --dry-run
+flutter test test/admin test/admin_generator
+dart format --set-exit-if-changed tool/admin test/admin
+flutter analyze
+git diff --check -- .
+```
+
+Result:
+
+```text
+PASS
+create_sysadmin dry run: validated admin@example.com in development mode.
+flutter test test/admin test/admin_generator: 12 tests passed.
+dart format --set-exit-if-changed tool/admin test/admin: pass.
+flutter analyze: No issues found.
+git diff --check -- .: pass.
+```
