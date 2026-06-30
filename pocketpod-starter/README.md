@@ -78,6 +78,16 @@ Review the latest screenshot:
 tool/admin_generator/screenshots/admin-preview.png
 ```
 
+## Admin Screen
+
+When the starter server is running, the first real PocketPod admin screen is served at:
+
+```text
+http://localhost:8082/admin/index.html
+```
+
+It signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls the protected `admin.dashboard` endpoint with `Scope.admin`.
+
 This starter points to the in-repo Serverpod copy:
 
 ```text

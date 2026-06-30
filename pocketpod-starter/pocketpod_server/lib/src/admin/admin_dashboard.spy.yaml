@@ -1,0 +1,8 @@
+class: AdminDashboard
+fields:
+  title: String
+  signedInUserId: String
+  scopeNames: List<String>
+  generatedCollections: List<String>
+  message: String
+  checkedAt: DateTime

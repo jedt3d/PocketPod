@@ -162,8 +162,8 @@ Features:
 10. ✅ Add generator tests using representative model fixtures.
 11. ✅ Add `tool/admin/create_sysadmin.dart` for first-admin bootstrap using Serverpod Auth.
 12. ✅ Reintroduce and validate Serverpod Auth dependencies against the SQLite PocketPod starter.
-13. Generate or document admin endpoint guards using `requireLogin` and `Scope.admin`.
-14. Add auth tests proving unauthenticated and non-admin users cannot call generated admin endpoints.
+13. ✅ Generate or document admin endpoint guards using `requireLogin` and `Scope.admin`.
+14. ✅ Add auth tests proving unauthenticated and non-admin users cannot call generated admin endpoints.
 
 Cycle 2A completed generator advantage:
 PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview. The current screenshot is embedded in both the root `README.md` and `pocketpod-starter/README.md`.

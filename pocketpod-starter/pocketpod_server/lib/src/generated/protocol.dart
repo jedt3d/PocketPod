@@ -16,10 +16,12 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'benchmarks/benchmark_record.dart' as _i5;
-import 'greetings/greeting.dart' as _i6;
+import 'admin/admin_dashboard.dart' as _i5;
+import 'benchmarks/benchmark_record.dart' as _i6;
+import 'greetings/greeting.dart' as _i7;
 import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
-    as _i7;
+    as _i8;
+export 'admin/admin_dashboard.dart';
 export 'benchmarks/benchmark_record.dart';
 export 'greetings/greeting.dart';
 
@@ -99,21 +101,30 @@ class Protocol extends _i1.DatabaseSerializationManager {
       }
     }
 
-    if (t == _i5.BenchmarkRecord) {
-      return _i5.BenchmarkRecord.fromJson(data) as T;
+    if (t == _i5.AdminDashboard) {
+      return _i5.AdminDashboard.fromJson(data) as T;
     }
-    if (t == _i6.Greeting) {
-      return _i6.Greeting.fromJson(data) as T;
+    if (t == _i6.BenchmarkRecord) {
+      return _i6.BenchmarkRecord.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.BenchmarkRecord?>()) {
-      return (data != null ? _i5.BenchmarkRecord.fromJson(data) : null) as T;
+    if (t == _i7.Greeting) {
+      return _i7.Greeting.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i6.Greeting?>()) {
-      return (data != null ? _i6.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.AdminDashboard?>()) {
+      return (data != null ? _i5.AdminDashboard.fromJson(data) : null) as T;
     }
-    if (t == List<_i7.BenchmarkRecord>) {
+    if (t == _i1.getType<_i6.BenchmarkRecord?>()) {
+      return (data != null ? _i6.BenchmarkRecord.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i7.Greeting?>()) {
+      return (data != null ? _i7.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<String>) {
+      return (data as List).map((e) => deserialize<String>(e)).toList() as T;
+    }
+    if (t == List<_i8.BenchmarkRecord>) {
       return (data as List)
-              .map((e) => deserialize<_i7.BenchmarkRecord>(e))
+              .map((e) => deserialize<_i8.BenchmarkRecord>(e))
               .toList()
           as T;
     }
@@ -131,8 +142,9 @@ class Protocol extends _i1.DatabaseSerializationManager {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.BenchmarkRecord => 'BenchmarkRecord',
-      _i6.Greeting => 'Greeting',
+      _i5.AdminDashboard => 'AdminDashboard',
+      _i6.BenchmarkRecord => 'BenchmarkRecord',
+      _i7.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -147,9 +159,11 @@ class Protocol extends _i1.DatabaseSerializationManager {
     }
 
     switch (data) {
-      case _i5.BenchmarkRecord():
+      case _i5.AdminDashboard():
+        return 'AdminDashboard';
+      case _i6.BenchmarkRecord():
         return 'BenchmarkRecord';
-      case _i6.Greeting():
+      case _i7.Greeting():
         return 'Greeting';
     }
     className = _i3.Protocol().getClassNameForObject(data);
@@ -177,11 +191,14 @@ class Protocol extends _i1.DatabaseSerializationManager {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'AdminDashboard') {
+      return deserialize<_i5.AdminDashboard>(data['data']);
+    }
     if (dataClassName == 'BenchmarkRecord') {
-      return deserialize<_i5.BenchmarkRecord>(data['data']);
+      return deserialize<_i6.BenchmarkRecord>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i6.Greeting>(data['data']);
+      return deserialize<_i7.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
@@ -224,8 +241,8 @@ class Protocol extends _i1.DatabaseSerializationManager {
       }
     }
     switch (t) {
-      case _i5.BenchmarkRecord:
-        return _i5.BenchmarkRecord.t;
+      case _i6.BenchmarkRecord:
+        return _i6.BenchmarkRecord.t;
     }
     return null;
   }

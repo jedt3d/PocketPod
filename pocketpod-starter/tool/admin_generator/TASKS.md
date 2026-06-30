@@ -70,8 +70,11 @@ Implementation notes:
 
 ## Cycle 4: Admin Endpoint Guard Convention
 
-- [ ] Generate or document admin endpoint guard code.
-- [ ] Prove unauthenticated callers are rejected.
-- [ ] Prove signed-in non-admin callers are rejected.
-- [ ] Prove signed-in admin callers can reach generated admin methods.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Add `adminAuth.login` backed by Serverpod Auth email login.
+- [x] Add a real `/admin/index.html` browser screen served by Serverpod.
+- [x] Add protected `admin.dashboard` endpoint using `requireLogin` and `Scope.admin`.
+- [x] Prove unauthenticated callers are rejected.
+- [x] Prove signed-in non-admin callers are rejected.
+- [x] Prove signed-in admin callers can reach the admin dashboard method.
+- [x] Verify the browser page can log in and call the protected dashboard endpoint over HTTP.
+- [x] Record validation in `TEST_REPORT.md`.

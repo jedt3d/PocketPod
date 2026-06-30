@@ -79,6 +79,14 @@ pocketpod-starter/tool/admin_generator/generated/admin_preview.html
 pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png
 ```
 
+The first real served admin screen is available when the starter server is running:
+
+```text
+http://localhost:8082/admin/index.html
+```
+
+It authenticates through Serverpod Auth and calls a protected `Scope.admin` dashboard endpoint.
+
 The preview currently demonstrates PocketPod's smart control mapping from Serverpod model YAML:
 
 ```text

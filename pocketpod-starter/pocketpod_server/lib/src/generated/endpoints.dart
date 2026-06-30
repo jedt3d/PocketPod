@@ -11,30 +11,91 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
-import '../benchmarks/benchmark_endpoint.dart' as _i2;
-import '../greetings/greeting_endpoint.dart' as _i3;
+import '../admin/admin_auth_endpoint.dart' as _i2;
+import '../admin/admin_endpoint.dart' as _i3;
+import '../benchmarks/benchmark_endpoint.dart' as _i4;
+import '../greetings/greeting_endpoint.dart' as _i5;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i4;
+    as _i6;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i5;
+    as _i7;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
   void initializeEndpoints(_i1.Server server) {
     var endpoints = <String, _i1.Endpoint>{
-      'benchmark': _i2.BenchmarkEndpoint()
+      'adminAuth': _i2.AdminAuthEndpoint()
+        ..initialize(
+          server,
+          'adminAuth',
+          null,
+        ),
+      'admin': _i3.AdminEndpoint()
+        ..initialize(
+          server,
+          'admin',
+          null,
+        ),
+      'benchmark': _i4.BenchmarkEndpoint()
         ..initialize(
           server,
           'benchmark',
           null,
         ),
-      'greeting': _i3.GreetingEndpoint()
+      'greeting': _i5.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
           null,
         ),
     };
+    connectors['adminAuth'] = _i1.EndpointConnector(
+      name: 'adminAuth',
+      endpoint: endpoints['adminAuth']!,
+      methodConnectors: {
+        'login': _i1.MethodConnector(
+          name: 'login',
+          params: {
+            'email': _i1.ParameterDescription(
+              name: 'email',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'password': _i1.ParameterDescription(
+              name: 'password',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['adminAuth'] as _i2.AdminAuthEndpoint).login(
+                    session,
+                    email: params['email'],
+                    password: params['password'],
+                  ),
+        ),
+      },
+    );
+    connectors['admin'] = _i1.EndpointConnector(
+      name: 'admin',
+      endpoint: endpoints['admin']!,
+      methodConnectors: {
+        'dashboard': _i1.MethodConnector(
+          name: 'dashboard',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['admin'] as _i3.AdminEndpoint).dashboard(session),
+        ),
+      },
+    );
     connectors['benchmark'] = _i1.EndpointConnector(
       name: 'benchmark',
       endpoint: endpoints['benchmark']!,
@@ -46,7 +107,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['benchmark'] as _i2.BenchmarkEndpoint)
+              ) async => (endpoints['benchmark'] as _i4.BenchmarkEndpoint)
                   .reset(session),
         ),
         'seed': _i1.MethodConnector(
@@ -62,7 +123,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['benchmark'] as _i2.BenchmarkEndpoint).seed(
+              ) async => (endpoints['benchmark'] as _i4.BenchmarkEndpoint).seed(
                 session,
                 params['count'],
               ),
@@ -81,7 +142,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['benchmark'] as _i2.BenchmarkEndpoint).readOne(
+                  (endpoints['benchmark'] as _i4.BenchmarkEndpoint).readOne(
                     session,
                     params['id'],
                   ),
@@ -100,7 +161,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['benchmark'] as _i2.BenchmarkEndpoint).readList(
+                  (endpoints['benchmark'] as _i4.BenchmarkEndpoint).readList(
                     session,
                     params['limit'],
                   ),
@@ -124,7 +185,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['benchmark'] as _i2.BenchmarkEndpoint).writeOne(
+                  (endpoints['benchmark'] as _i4.BenchmarkEndpoint).writeOne(
                     session,
                     params['value'],
                     params['payload'],
@@ -137,7 +198,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['benchmark'] as _i2.BenchmarkEndpoint)
+              ) async => (endpoints['benchmark'] as _i4.BenchmarkEndpoint)
                   .count(session),
         ),
       },
@@ -159,16 +220,16 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i3.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i5.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i4.Endpoints()
+    modules['serverpod_auth_idp'] = _i6.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i5.Endpoints()
+    modules['serverpod_auth_core'] = _i7.Endpoints()
       ..initializeEndpoints(server);
   }
 }

@@ -257,3 +257,56 @@ pocketpod_server SQLite PRAGMA tuning test: passed.
 pocketpod_flutter widget smoke test: passed.
 git diff --check -- .: pass.
 ```
+
+## Cycle 4: Real Admin Screen And Guarded Dashboard
+
+Status: complete for the first real admin screen checkpoint.
+
+Changes:
+- Added `AdminDashboard` server/client model.
+- Added `adminAuth.login`, backed by Serverpod Auth email login.
+- Added protected `admin.dashboard`, guarded with `requireLogin` and `Scope.admin`.
+- Added real served admin page at `pocketpod_server/web/static/admin/index.html`.
+- The browser page posts to `adminAuth.login`, stores the returned JWT in `localStorage`, then calls `admin.dashboard` with a Bearer token.
+- Added integration coverage for admin login, unauthenticated rejection, non-admin rejection, and admin dashboard access.
+
+Manual URL:
+
+```text
+http://localhost:8082/admin/index.html
+```
+
+Manual test account used locally:
+
+```text
+manual-check@example.com
+change-me-now
+```
+
+Validation:
+
+```sh
+dart run bin/main.dart --apply-migrations
+curl -i http://localhost:8082/admin/index.html
+curl -i -X POST http://localhost:8080/adminAuth/login \
+  -H 'content-type: application/json' \
+  --data '{"email":"manual-check@example.com","password":"change-me-now"}'
+flutter analyze
+cd pocketpod_server && flutter test --reporter expanded
+flutter test test/admin test/admin_generator
+cd pocketpod_flutter && flutter test
+```
+
+Result:
+
+```text
+PASS
+admin page: HTTP 200 from http://localhost:8082/admin/index.html.
+adminAuth.login: HTTP 200 and returned JWT auth with serverpod.admin scope.
+admin.dashboard: HTTP 200 with Bearer token and returned AdminDashboard.
+pocketpod_server admin endpoint integration test: passed.
+pocketpod_server full integration test suite: passed.
+flutter analyze: No issues found.
+flutter test test/admin test/admin_generator: 13 tests passed.
+pocketpod_flutter widget smoke test: passed.
+```

@@ -15,9 +15,13 @@ import 'package:serverpod_test/serverpod_test.dart' as _i1;
 import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:io' as _i3;
 import 'dart:async' as _i4;
-import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i5;
-import 'package:pocketpod_server/src/generated/greetings/greeting.dart' as _i6;
+import 'package:pocketpod_server/src/generated/admin/admin_dashboard.dart'
+    as _i6;
+import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
+    as _i7;
+import 'package:pocketpod_server/src/generated/greetings/greeting.dart' as _i8;
 import 'package:pocketpod_server/src/generated/protocol.dart';
 import 'package:pocketpod_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -141,6 +145,10 @@ void withServerpod(
 }
 
 class TestEndpoints {
+  late final _AdminAuthEndpoint adminAuth;
+
+  late final _AdminEndpoint admin;
+
   late final _BenchmarkEndpoint benchmark;
 
   late final _GreetingEndpoint greeting;
@@ -153,6 +161,14 @@ class _InternalTestEndpoints extends TestEndpoints
     _i2.SerializationManager serializationManager,
     _i2.EndpointDispatch endpoints,
   ) {
+    adminAuth = _AdminAuthEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    admin = _AdminEndpoint(
+      endpoints,
+      serializationManager,
+    );
     benchmark = _BenchmarkEndpoint(
       endpoints,
       serializationManager,
@@ -161,6 +177,93 @@ class _InternalTestEndpoints extends TestEndpoints
       endpoints,
       serializationManager,
     );
+  }
+}
+
+class _AdminAuthEndpoint {
+  _AdminAuthEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i4.Future<_i5.AuthSuccess> login(
+    _i1.TestSessionBuilder sessionBuilder, {
+    required String email,
+    required String password,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'adminAuth',
+            method: 'login',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'adminAuth',
+          methodName: 'login',
+          parameters: _i1.testObjectToJson({
+            'email': email,
+            'password': password,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i4.Future<_i5.AuthSuccess>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _AdminEndpoint {
+  _AdminEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i4.Future<_i6.AdminDashboard> dashboard(
+    _i1.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'admin',
+            method: 'dashboard',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'admin',
+          methodName: 'dashboard',
+          parameters: _i1.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i4.Future<_i6.AdminDashboard>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
   }
 }
 
@@ -233,7 +336,7 @@ class _BenchmarkEndpoint {
     });
   }
 
-  _i4.Future<_i5.BenchmarkRecord?> readOne(
+  _i4.Future<_i7.BenchmarkRecord?> readOne(
     _i1.TestSessionBuilder sessionBuilder,
     int id,
   ) async {
@@ -256,7 +359,7 @@ class _BenchmarkEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<_i5.BenchmarkRecord?>);
+                as _i4.Future<_i7.BenchmarkRecord?>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -264,7 +367,7 @@ class _BenchmarkEndpoint {
     });
   }
 
-  _i4.Future<List<_i5.BenchmarkRecord>> readList(
+  _i4.Future<List<_i7.BenchmarkRecord>> readList(
     _i1.TestSessionBuilder sessionBuilder,
     int limit,
   ) async {
@@ -287,7 +390,7 @@ class _BenchmarkEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<List<_i5.BenchmarkRecord>>);
+                as _i4.Future<List<_i7.BenchmarkRecord>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -369,7 +472,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i4.Future<_i6.Greeting> hello(
+  _i4.Future<_i8.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -392,7 +495,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i4.Future<_i6.Greeting>);
+                as _i4.Future<_i8.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
