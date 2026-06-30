@@ -105,6 +105,8 @@ Regression validation:
 cd pocketpod_server
 flutter test --reporter expanded
 flutter test test/integration/sqlite_tuning_test.dart --reporter expanded
+cd ../pocketpod_flutter
+flutter test
 ```
 
 Initial result:
@@ -128,4 +130,5 @@ Final result:
 PASS
 pocketpod_server greeting integration test: passed.
 pocketpod_server SQLite PRAGMA tuning test: passed.
+pocketpod_flutter widget smoke test: passed.
 ```
