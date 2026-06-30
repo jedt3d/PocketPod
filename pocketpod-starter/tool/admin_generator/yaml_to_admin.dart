@@ -75,6 +75,17 @@ void main(List<String> arguments) {
     stdout.writeln('Generated ${target.path}');
   }
 
+  if (models.isNotEmpty) {
+    final metadataTarget = File(
+      p.join(output.path, generator.adminMetadataFileName),
+    );
+    metadataTarget.writeAsStringSync(
+      generator.generateFlutterMetadataSource(models),
+    );
+    dartTargets.add(metadataTarget.path);
+    stdout.writeln('Generated ${metadataTarget.path}');
+  }
+
   if (results.flag('format') && dartTargets.isNotEmpty) {
     final formatResult = Process.runSync('dart', ['format', ...dartTargets]);
     stdout.write(formatResult.stdout);

@@ -116,6 +116,36 @@ void main() {
       expect(html, contains('admin scope required'));
     });
 
+    test('generates deterministic Flutter metadata for admin_ui runtime', () {
+      final allInputTypes = generator.parseModel(
+        File(
+          'tool/admin_generator/fixtures/all_input_types.spy.yaml',
+        ).readAsStringSync(),
+      );
+      final post = generator.parseModel(
+        File('tool/admin_generator/fixtures/post.spy.yaml').readAsStringSync(),
+      );
+
+      final generated = generator.generateFlutterMetadataSource([
+        post,
+        allInputTypes,
+      ]);
+      final regenerated = generator.generateFlutterMetadataSource([
+        allInputTypes,
+        post,
+      ]);
+
+      expect(generated, contains('class GeneratedAdminCollection'));
+      expect(generated, contains('const generatedAdminCollections'));
+      expect(generated, contains("routeName: '/admin/admin-input-examples'"));
+      expect(generated, contains("control: 'textarea'"));
+      expect(generated, contains("control: 'checkbox'"));
+      expect(generated, contains("control: 'datetime'"));
+      expect(generated, contains("control: 'relation'"));
+      expect(generated, contains('required: true'));
+      expect(regenerated, generated);
+    });
+
     test('CLI writes generated Dart and preview files', () async {
       final tempDir = Directory.systemTemp.createTempSync(
         'pocketpod_admin_generator_test_',
@@ -137,6 +167,10 @@ void main() {
       );
       expect(File('${tempDir.path}/product_admin.dart').existsSync(), isTrue);
       expect(File('${tempDir.path}/post_admin.dart').existsSync(), isTrue);
+      expect(
+        File('${tempDir.path}/generated_admin_collections.dart').existsSync(),
+        isTrue,
+      );
       expect(File('${tempDir.path}/admin_preview.html').existsSync(), isTrue);
     });
 

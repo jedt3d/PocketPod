@@ -226,3 +226,44 @@ Notes:
 The dropdown relation control is currently a local placeholder list because the admin metadata contract does not yet expose relation option endpoints.
 Screenshot evidence for Product and Post edit remains pending for the Phase 4 acceptance gate.
 ```
+
+## Cycle 5: Generator Integration
+
+Status: complete.
+
+Implementation decision:
+
+```text
+Reusable runtime widgets stay in `pocketpod-starter/admin_ui/lib/`.
+Generated output stays deterministic and schema-driven under `tool/admin_generator/generated/`.
+The generator now emits a compact Flutter metadata artifact that can be consumed by the runtime without copying the earlier static HTML preview into the app.
+PocketBase remains credited product-design inspiration only.
+```
+
+Changes:
+
+- Added `AdminGenerator.generateFlutterMetadataSource`.
+- Added deterministic `generated_admin_collections.dart` output.
+- Added `GeneratedAdminCollection` and `GeneratedAdminField` metadata classes in the generated artifact.
+- Mapped generator form controls to Phase 4 runtime control names:
+  - text, textarea, number, checkbox, datetime, select, relation, list, unsupported.
+- Updated the generator CLI to emit the metadata artifact alongside generated screens and HTML preview.
+- Added generator tests for deterministic metadata output and CLI file creation.
+- Regenerated sample artifacts under `tool/admin_generator/generated/`.
+
+Validation:
+
+```sh
+dart run tool/admin_generator/yaml_to_admin.dart --input tool/admin_generator/fixtures --output tool/admin_generator/generated
+flutter test test/admin_generator --reporter expanded
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator
+```
+
+Result:
+
+```text
+PASS
+yaml_to_admin.dart: generated admin_input_example_admin.dart, post_admin.dart, product_admin.dart, generated_admin_collections.dart, and admin_preview.html.
+flutter test test/admin_generator: 7 tests passed.
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator: pass.
+```

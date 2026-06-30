@@ -119,14 +119,14 @@ The Flutter app matches the accepted Phase 3 behavior: view-only demo records an
 
 ## Cycle 5: Generator Integration
 
-- [ ] Decide which parts are generated source and which parts are reusable runtime widgets.
-- [ ] Extend the Phase 3 generator to emit Flutter admin screen code usable by `admin_ui/`.
-- [ ] Keep generated output deterministic.
-- [ ] Add fixture coverage for generated Flutter admin routes/widgets.
-- [ ] Avoid copying the temporary static HTML implementation into Flutter directly.
-- [ ] Keep PocketBase as product-design inspiration only.
-- [ ] Add generator tests for Phase 4 Flutter output.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Decide which parts are generated source and which parts are reusable runtime widgets.
+- [x] Extend the Phase 3 generator to emit Flutter admin screen code usable by `admin_ui/`.
+- [x] Keep generated output deterministic.
+- [x] Add fixture coverage for generated Flutter admin routes/widgets.
+- [x] Avoid copying the temporary static HTML implementation into Flutter directly.
+- [x] Keep PocketBase as product-design inspiration only.
+- [x] Add generator tests for Phase 4 Flutter output.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 
