@@ -79,6 +79,13 @@ pocketpod-starter/tool/admin_generator/generated/admin_preview.html
 pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png
 ```
 
+Phase 3 is accepted and complete for the current milestone. Phase 4 planning now lives in:
+
+```text
+pocketpod-starter/tool/admin_ui/TASKS.md
+pocketpod-starter/tool/admin_ui/TEST_REPORT.md
+```
+
 The first real served admin screen is available when the starter server is running:
 
 ```text

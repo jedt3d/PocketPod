@@ -62,7 +62,7 @@ Features:
 Stop condition:
 ✅ `MILESTONE.md` contains benchmark tables, production-target results, and a decision to proceed toward Phase 3 with `maxConnectionCount: 5` as the starting production setting.
 
-## Phase 3: Admin UI Generator Tooling
+## ✅ Phase 3: Admin UI Generator Tooling
 
 Goal:
 Generate admin CRUD UI code from Serverpod `.spy.yaml` models, protected by Serverpod-style authentication and admin scopes.
@@ -207,7 +207,7 @@ Design credit rule:
 PocketBase can guide the admin interaction model, but PocketPod should not copy PocketBase source code, branding, icons, or visual assets unless license and attribution are reviewed separately.
 
 Stop condition:
-The generator emits deterministic Flutter source for sample models, has fixture coverage, includes PocketBase inspiration credit in the admin generator folder, and has a working Serverpod Auth bootstrap path for creating the first `Scope.admin` sysadmin.
+✅ The generator emits deterministic Flutter source for sample models, has fixture coverage, includes PocketBase inspiration credit in the admin generator folder, and has a working Serverpod Auth bootstrap path for creating the first `Scope.admin` sysadmin.
 
 Phase 3 acceptance gate:
 1. `dart run tool/admin/create_sysadmin.dart --email admin@example.com --password "change-me-now"` creates or reports a sysadmin deterministically in local development.
@@ -230,6 +230,20 @@ Features:
 1. Scaffold `admin_ui/` as a Flutter Web project.
 2. Wire generated widgets to the Serverpod client package.
 3. Add basic navigation, loading, empty, error, create, edit, and delete states.
+4. Recreate the accepted Phase 3 admin behavior in Flutter Web:
+   - Serverpod Auth login.
+   - protected admin shell.
+   - collection browsing.
+   - primary-field record opening in every collection.
+   - view-only Admin Input Examples.
+   - editable SQLite-backed Products and Posts.
+5. Add cycle-by-cycle validation in `tool/admin_ui/TEST_REPORT.md`.
+
+Detailed task ledger:
+
+```text
+tool/admin_ui/TASKS.md
+```
 
 Stop condition:
 The admin app builds for web and can exercise generated CRUD screens against a local Serverpod server.

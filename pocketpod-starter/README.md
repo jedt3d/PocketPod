@@ -78,6 +78,13 @@ Review the latest screenshot:
 tool/admin_generator/screenshots/admin-preview.png
 ```
 
+Phase 4 planning for the standalone Flutter Web admin app lives in:
+
+```text
+tool/admin_ui/TASKS.md
+tool/admin_ui/TEST_REPORT.md
+```
+
 ## Admin Screen
 
 When the starter server is running, the first real PocketPod admin screen is served at:

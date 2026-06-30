@@ -134,6 +134,24 @@ Every collection now opens records from the primary display field:
 
 Cycle 4B has been manually reviewed in the browser and is ready to hand off to the next cycle.
 
+## Phase 4 Planning
+
+Phase 3 is complete for the accepted milestone. Phase 4 should move the current served admin behavior into a standalone Flutter Web admin app.
+
+The detailed Phase 4 task ledger is:
+
+```text
+tool/admin_ui/TASKS.md
+```
+
+The Phase 4 test report will be recorded in:
+
+```text
+tool/admin_ui/TEST_REPORT.md
+```
+
+Phase 4 should keep the existing served HTML admin screen as the reference behavior until the Flutter Web app reaches parity.
+
 Current smart form-control mapping:
 
 | Serverpod Field Shape | Generated Control |
