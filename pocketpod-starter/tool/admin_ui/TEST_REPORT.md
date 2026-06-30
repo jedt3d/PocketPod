@@ -57,3 +57,41 @@ Result:
 PASS
 Cycle 0 planning and app location are documented.
 ```
+
+## Cycle 1: Flutter Web Scaffold
+
+Status: complete.
+
+Changes:
+
+- Scaffolded `pocketpod-starter/admin_ui/` as a Flutter Web app.
+- Added `admin_ui` to the root Dart workspace.
+- Wired `admin_ui` to `pocketpod_client`.
+- Replaced the counter sample with a deterministic PocketPod admin shell.
+- Added a smoke widget test for the Cycle 1 shell.
+
+Validation:
+
+```sh
+flutter pub get
+dart format admin_ui/lib admin_ui/test
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd admin_ui && flutter build web
+```
+
+Result:
+
+```text
+PASS
+flutter pub get: resolved workspace dependencies.
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 1 test passed.
+flutter build web: built build/web.
+```
+
+Note:
+
+```text
+flutter build web emitted a non-fatal scaffold font warning mentioning CupertinoIcons, but the app does not use Cupertino icons and the build completed successfully.
+```

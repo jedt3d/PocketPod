@@ -5,6 +5,7 @@ environment:
   sdk: '^3.10.3'
 
 workspace:
+  - admin_ui
   - pocketpod_client
   - pocketpod_server
   - pocketpod_flutter

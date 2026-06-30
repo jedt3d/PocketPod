@@ -32,15 +32,15 @@ The Phase 4 app location, scope, and reference behavior are documented before co
 
 ## Cycle 1: Flutter Web Scaffold
 
-- [ ] Scaffold a dedicated Flutter Web app for the admin UI.
-- [ ] Add dependency wiring to `pocketpod_client`.
-- [ ] Add analysis/lint configuration consistent with the starter.
-- [ ] Add a minimal app shell with deterministic title, theme, and route structure.
-- [ ] Add a smoke widget test.
-- [ ] Verify `flutter analyze`.
-- [ ] Verify `flutter test`.
-- [ ] Verify `flutter build web` if the local toolchain supports it.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Scaffold a dedicated Flutter Web app for the admin UI.
+- [x] Add dependency wiring to `pocketpod_client`.
+- [x] Add analysis/lint configuration consistent with the starter.
+- [x] Add a minimal app shell with deterministic title, theme, and route structure.
+- [x] Add a smoke widget test.
+- [x] Verify `flutter analyze`.
+- [x] Verify `flutter test`.
+- [x] Verify `flutter build web` if the local toolchain supports it.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 
