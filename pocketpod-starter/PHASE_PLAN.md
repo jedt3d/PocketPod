@@ -264,15 +264,38 @@ tool/admin_ui/TASKS.md
 Stop condition:
 ✅ The admin app builds for web, is served by the local Serverpod web server at `/app/`, and can exercise generated CRUD screens against a local Serverpod server.
 
-## Phase 5: Zero-Docker Packaging
+## ✅ Phase 5: Zero-Docker Packaging
 
 Goal:
 Package PocketPod for minimal VPS deployment without Docker, Postgres, or Redis.
 
 Features:
-1. Compile the Dart server executable.
-2. Build the Flutter Web admin UI and serve it statically through Serverpod.
-3. Document the deploy artifact layout and add a local smoke script.
+1. ✅ Build the Dart server as a native-assets CLI bundle with `dart build cli`.
+2. ✅ Build the Flutter Web admin UI and serve it statically through Serverpod.
+3. ✅ Assemble a local release artifact under `build/pocketpod-release`.
+4. ✅ Include config, migrations, static web assets, native SQLite dynamic libraries, and a SQLite runtime directory.
+5. ✅ Add a local smoke script that starts the compiled release on alternate local ports and verifies the admin app plus SQLite database file.
+6. ✅ Document the deploy artifact layout and validation commands.
+
+Build command:
+
+```sh
+cd pocketpod-starter
+tool/deploy/build_release.sh
+```
+
+Smoke-test command:
+
+```sh
+cd pocketpod-starter
+tool/deploy/smoke_release.sh
+```
+
+Detailed task ledger:
+
+```text
+tool/deploy/TASKS.md
+```
 
 Stop condition:
-A clean artifact can be built locally and smoke-tested against a SQLite database file.
+✅ A clean artifact can be built locally and smoke-tested against a SQLite database file.

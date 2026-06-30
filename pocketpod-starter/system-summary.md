@@ -174,6 +174,53 @@ tool/admin_ui/TEST_REPORT.md
 
 The Flutter admin app signs in through Serverpod Auth, stores the JWT in browser storage, and calls protected `Scope.admin` endpoints through the generated Serverpod client. It supports collection browsing, primary-field record opening, view-only Admin Input Examples, editable SQLite-backed Products and Posts, required-field validation, numeric validation, save success/failure states, and responsive desktop/mobile-width layout.
 
+## Phase 5 Zero-Docker Packaging
+
+Phase 5 is complete for the local validation milestone. PocketPod now has repeatable packaging scripts for a no-Docker, no-Postgres, no-Redis deployment artifact:
+
+```text
+tool/deploy/build_release.sh
+tool/deploy/smoke_release.sh
+tool/deploy/TASKS.md
+tool/deploy/TEST_REPORT.md
+```
+
+The release artifact is generated at:
+
+```text
+build/pocketpod-release/
+```
+
+The artifact contains:
+
+```text
+bin/main        compiled Serverpod executable bundle entrypoint
+lib/            native SQLite dynamic libraries from Dart native assets
+config/         Serverpod config files, excluding real passwords.yaml
+migrations/     Serverpod migration files
+web/            static web assets, including the Flutter admin app at /app/
+.serverpod/     local SQLite runtime directory
+logs/           local runtime logs
+```
+
+The server cannot be packaged with plain `dart compile exe` because the SQLite packages use Dart native-assets build hooks. The correct build command is:
+
+```sh
+dart build cli --target bin/main.dart
+```
+
+The repository script wraps that command and also builds the Flutter admin UI:
+
+```sh
+tool/deploy/build_release.sh
+```
+
+The smoke script starts the compiled artifact in Serverpod `development` mode on alternate local ports, applies migrations, verifies `/app/`, verifies `/app/assets/assets/config.json`, checks that `.serverpod/smoke/database.sqlite` exists, and then stops the process:
+
+```sh
+tool/deploy/smoke_release.sh
+```
+
 Current smart form-control mapping:
 
 | Serverpod Field Shape | Generated Control |

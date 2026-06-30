@@ -155,6 +155,28 @@ pocketpod_server/config/passwords.yaml
 
 Do not commit real project secrets. Generate or copy local passwords when creating a new app from this starter.
 
+## Zero-Docker Release Artifact
+
+Build the local release artifact:
+
+```sh
+tool/deploy/build_release.sh
+```
+
+Smoke-test the compiled release with SQLite:
+
+```sh
+tool/deploy/smoke_release.sh
+```
+
+The generated artifact lives at:
+
+```text
+build/pocketpod-release/
+```
+
+It contains the compiled Serverpod CLI bundle, native SQLite dynamic libraries, Serverpod config, migrations, static web assets, and local `.serverpod/` SQLite runtime directory. The smoke script runs the artifact on alternate local ports and verifies `/app/`, `/app/assets/assets/config.json`, and `.serverpod/smoke/database.sqlite`.
+
 The SQLite runtime tuning itself is in:
 
 ```text
@@ -179,6 +201,8 @@ flutter pub get
 flutter analyze
 dart run tool/benchmarks/run_bench.dart --profile production --targets serverpod-sqlite-tuned
 dart run tool/benchmarks/render_report.dart
+tool/deploy/build_release.sh
+tool/deploy/smoke_release.sh
 ```
 
 Open the generated report:

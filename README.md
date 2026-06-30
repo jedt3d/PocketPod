@@ -166,3 +166,17 @@ Open the benchmark report at:
 ```text
 pocketpod-starter/tool/benchmarks/results/benchmark-report.html
 ```
+
+Build and smoke-test the zero-Docker release artifact:
+
+```sh
+cd pocketpod-starter
+tool/deploy/build_release.sh
+tool/deploy/smoke_release.sh
+```
+
+The generated artifact lives at:
+
+```text
+pocketpod-starter/build/pocketpod-release/
+```
