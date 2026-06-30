@@ -35,5 +35,22 @@ Phase 3 is built in small reviewable slices:
 2. YAML model parser and deterministic admin source generator.
 3. CLI wrapper with fixture-based tests.
 4. Generated admin preview and screenshot evidence.
-5. Serverpod Auth/sysadmin bootstrap slice.
-6. Admin endpoint guard generation and auth tests.
+5. Smart form-control mapping for text, long text, boolean, datetime, enum, and relation-like fields.
+6. Serverpod Auth/sysadmin bootstrap slice.
+7. Admin endpoint guard generation and auth tests.
+
+## Smart Form-Control Direction
+
+The admin generator should not render every field as a plain text input. Before the Serverpod Auth bootstrap cycle, the generator should classify fields into practical controls:
+
+```text
+String short text     -> text input
+long text/body fields -> textarea
+bool                  -> checkbox/switch
+DateTime              -> datetime selector
+int/double            -> numeric input
+enum/choice           -> dropdown/select
+foreign key/relation  -> dropdown/select placeholder
+```
+
+The first implementation can use deterministic schema-only heuristics, for example `body`, `description`, and `content` as textarea fields, and `categoryId` or `authorId` as relation dropdown placeholders. Later phases can replace heuristics with explicit metadata or live lookup data.
