@@ -110,5 +110,5 @@ Move from read-only sample rows to editable SQLite-backed records for the starte
 - [x] Add tests proving unauthenticated and non-admin callers cannot edit records.
 - [x] Add tests proving admin edits persist in SQLite.
 - [x] Verify Product and Post edits over real HTTP.
-- [ ] Capture manual browser evidence for editing a Product and a Post.
+- [x] Record user manual browser acceptance for primary-field navigation and Product/Post editing.
 - [x] Record validation in `TEST_REPORT.md`.

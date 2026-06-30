@@ -85,7 +85,7 @@ The first real served admin screen is available when the starter server is runni
 http://localhost:8082/admin/index.html
 ```
 
-It authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts. Products and Posts are now SQLite-backed starter records with edit/save support through protected admin endpoints.
+It authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
 
 The preview currently demonstrates PocketPod's smart control mapping from Serverpod model YAML:
 

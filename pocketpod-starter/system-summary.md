@@ -124,7 +124,15 @@ Cycle 4B has now added the first persistent editing slice. Products and Posts ar
 SQLite-backed Product/Post models -> protected list/get/update endpoints -> smart admin edit form -> persisted changes
 ```
 
-The remaining Cycle 4B review item is browser screenshot/manual acceptance evidence for editing a Product and a Post.
+Every collection now opens records from the primary display field:
+
+| Collection | Primary Link Field | Form Mode |
+| --- | --- | --- |
+| Admin Input Examples | `title` | view-only |
+| Products | `name` | editable |
+| Posts | `title` | editable |
+
+Cycle 4B has been manually reviewed in the browser and is ready to hand off to the next cycle.
 
 Current smart form-control mapping:
 

@@ -321,7 +321,7 @@ Changes:
 - Updated the served admin page so the sidebar collections are clickable.
 - Rendered Products, Posts, and Admin Input Examples as real collection views with record tables.
 - Added field/control chips above each table so the user can see the generated form-control intent.
-- Kept the data as server-provided sample rows for this checkpoint; persistent generated CRUD remains a later cycle.
+- Kept the data as server-provided sample rows for the Cycle 4A checkpoint. Persistent editing is covered by Cycle 4B below.
 
 Validation:
 
@@ -357,12 +357,12 @@ User acceptance:
 
 ```text
 Cycle 4A is valid as a read-only collection browsing checkpoint.
-Editing is intentionally deferred because the current Product/Post rows are server-provided samples, not persistent database-backed records.
+Editing was intentionally deferred during Cycle 4A because those Product/Post rows were server-provided samples. Cycle 4B replaces that limitation with SQLite-backed Product/Post editing.
 ```
 
 ## Cycle 4B: Persistent Record Editing
 
-Status: first editing slice complete; browser screenshot/manual acceptance still pending.
+Status: complete and user-accepted for the Cycle 4B checkpoint.
 
 Purpose:
 Cycle 4B should turn the current admin browsing screen into an editable starter admin by adding real SQLite-backed Product and Post records, protected update endpoints, smart edit forms, and persistence tests.
@@ -380,6 +380,7 @@ Completed in this slice:
 - Added success/error UI for save attempts.
 - Added integration tests for unauthenticated rejection, non-admin rejection, and admin edit persistence.
 - Verified Product and Post edits over real HTTP against the running server.
+- User manually reviewed the browser flow and confirmed the current admin navigation/editing behavior looks good before moving to the next cycle.
 
 Planned validation:
 
@@ -408,5 +409,5 @@ HTTP Post edit: persisted and reloaded.
 Acceptance target:
 
 ```text
-An admin can open /admin/index.html, click Products or Posts, open an existing record, edit supported fields, save it, and see the persisted value after refresh. Unauthenticated and non-admin callers must be rejected by tests.
+An admin can open /admin/index.html, click the primary field in every collection, open the record form, edit persistent Product/Post records, save them, and see the persisted value after refresh. Admin Input Examples opens as a view-only control/demo record. Unauthenticated and non-admin callers must be rejected by tests.
 ```

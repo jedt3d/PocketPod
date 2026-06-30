@@ -170,7 +170,8 @@ Features:
 18. ✅ Build persistent Product and Post sample models backed by SQLite.
 19. ✅ Add protected edit endpoints and admin forms for updating records.
 20. ✅ Add tests proving admin edits persist and non-admin edits are rejected.
-21. Capture browser screenshot/manual acceptance evidence for the new edit flow.
+21. ✅ Make every collection's primary record field open its record form.
+22. ✅ Record manual browser acceptance evidence for the Cycle 4B edit/navigation flow.
 
 Cycle 2A completed generator advantage:
 PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview. The current screenshot is embedded in both the root `README.md` and `pocketpod-starter/README.md`.
@@ -218,7 +219,7 @@ Phase 3 acceptance gate:
 7. Auth migrations work with SQLite in the PocketPod starter.
 8. ✅ Cycle 4A accepted: a real admin screen can log in, browse collections, and view Product/Post sample rows.
 9. ✅ Cycle 4B first slice: admin users can edit persistent SQLite-backed Product/Post records through smart generated controls.
-10. Cycle 4B remaining gate: capture browser screenshot/manual acceptance evidence for the new edit flow.
+10. ✅ Cycle 4B accepted: every collection opens records from its primary field, Admin Input Examples is view-only, and Products/Posts are editable.
 
 ## Phase 4: Flutter Admin App
 

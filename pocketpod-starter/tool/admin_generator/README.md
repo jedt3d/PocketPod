@@ -55,6 +55,8 @@ Phase 3 is built in small reviewable slices:
 5. Smart form-control mapping for text, long text, boolean, datetime, enum, and relation-like fields.
 6. Serverpod Auth/sysadmin bootstrap slice.
 7. Admin endpoint guard generation and auth tests.
+8. Real served admin screen with protected collection browsing.
+9. Persistent Product/Post record editing, with every collection opening records from its primary field.
 
 ## Sysadmin Bootstrap Checkpoint
 
