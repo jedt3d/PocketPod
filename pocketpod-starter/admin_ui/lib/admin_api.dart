@@ -36,7 +36,10 @@ abstract interface class AdminApi {
 
 class ServerpodAdminApi implements AdminApi {
   ServerpodAdminApi({
-    String serverUrl = 'http://localhost:8080/',
+    String serverUrl = const String.fromEnvironment(
+      'POCKETPOD_API_URL',
+      defaultValue: 'http://localhost:8080/',
+    ),
     MutableBearerAuthenticationKeyManager? authKeyManager,
   }) : this._(
          serverUrl,

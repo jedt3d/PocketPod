@@ -154,14 +154,14 @@ The Flutter admin UI is usable, readable, and visually consistent across desktop
 
 ## Cycle 7: Static Build And Serverpod Hosting
 
-- [ ] Build the Flutter Web admin app.
-- [ ] Decide the static output path for Serverpod web hosting.
-- [ ] Add a repeatable local script for building/copying the admin bundle.
-- [ ] Serve the built admin app through the Serverpod web server.
-- [ ] Preserve backend API base configuration for local and production modes.
-- [ ] Add a local smoke test for the hosted build.
-- [ ] Document the build and serve commands.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Build the Flutter Web admin app.
+- [x] Decide the static output path for Serverpod web hosting.
+- [x] Add a repeatable local script for building/copying the admin bundle.
+- [x] Serve the built admin app through the Serverpod web server.
+- [x] Preserve backend API base configuration for local and production modes.
+- [x] Add a local smoke test for the hosted build.
+- [x] Document the build and serve commands.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 

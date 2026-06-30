@@ -90,6 +90,41 @@ flutter test admin_ui: 1 test passed.
 flutter build web: built build/web.
 ```
 
+## Cycle 7: Static Build And Serverpod Hosting
+
+Status: complete.
+
+Decisions:
+
+```text
+The Flutter Web admin bundle is hosted at `pocketpod_server/web/app/` and served as `/app/` by the Serverpod web server.
+The older `/admin/index.html` served HTML prototype remains available as historical/reference output until documentation moves users fully to the Flutter app.
+```
+
+Changes:
+
+- Added `tool/admin_ui/build_serverpod_admin.sh`.
+- The script builds `admin_ui/` with `--base-href /app/`.
+- The script writes static output to `pocketpod_server/web/app/`.
+- Added build-time API URL configuration through `POCKETPOD_API_URL`.
+- Updated `ServerpodAdminApi` to read `POCKETPOD_API_URL` from Dart environment defines, defaulting to `http://localhost:8080/`.
+- Documented build and serve commands in `tool/admin_ui/README.md`.
+
+Validation:
+
+```sh
+tool/admin_ui/build_serverpod_admin.sh
+curl -s -o /tmp/pocketpod-app-index.html -w '%{http_code}\n' http://127.0.0.1:8082/app/
+```
+
+Result:
+
+```text
+PASS
+build_serverpod_admin.sh: built pocketpod_server/web/app.
+curl http://127.0.0.1:8082/app/: 200.
+```
+
 Note:
 
 ```text
