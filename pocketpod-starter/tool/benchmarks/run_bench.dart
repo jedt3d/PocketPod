@@ -11,6 +11,7 @@ import 'package:sqlite_async/sqlite_async.dart';
 
 const _serverpodPort = 18080;
 const _pocketBasePort = 18090;
+const _serverpodBaselineVersion = '3.5.0-beta.10';
 const _pocketBaseVersion = '0.39.5';
 
 Future<void> main(List<String> args) async {
@@ -127,6 +128,7 @@ Future<void> main(List<String> args) async {
     'seed': config.seed,
     'requests': config.requests,
     'sqliteReaders': config.sqliteReaders,
+    'serverpodBaselineVersion': _serverpodBaselineVersion,
     'pocketBaseVersion': _pocketBaseVersion,
     'targets': targetIds,
     'results': results.map((result) => result.toJson()).toList(),
@@ -1048,6 +1050,10 @@ String renderMarkdown(
     ..writeln('- Seed rows per target: `${payload['seed']}`')
     ..writeln('- Requests per non-smoke run: `${payload['requests']}`')
     ..writeln('- Tuned Serverpod SQLite readers: `${payload['sqliteReaders']}`')
+    ..writeln('- Serverpod baseline: `${payload['serverpodBaselineVersion']}`')
+    ..writeln(
+      '- PocketPod release tag policy: match Serverpod baseline, e.g. `v${payload['serverpodBaselineVersion']}`',
+    )
     ..writeln('- PocketBase: `v$_pocketBaseVersion`')
     ..writeln()
     ..writeln('## Throughput And P95')

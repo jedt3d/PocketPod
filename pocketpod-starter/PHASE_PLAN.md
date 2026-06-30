@@ -1,5 +1,17 @@
 # PocketPod Phase Plan
 
+## Version And Attribution
+
+PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod remains the backend framework; PocketPod adds the SQLite starter configuration, tuning patch, and benchmark workflow.
+
+Current Serverpod baseline:
+
+```text
+3.5.0-beta.10
+```
+
+PocketPod release tags intentionally match this Serverpod version, for example `v3.5.0-beta.10`, so each PocketPod release clearly identifies its Serverpod source baseline.
+
 ## Phase 1: Serverpod SQLite Scaffold
 
 Goal:

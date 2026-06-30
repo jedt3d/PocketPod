@@ -1,5 +1,9 @@
 # PocketPod Benchmarks
 
+These benchmarks run against PocketPod's Serverpod baseline, [Serverpod](https://serverpod.dev) `3.5.0-beta.10`.
+
+PocketPod release tags intentionally match the Serverpod baseline version, for example `v3.5.0-beta.10`, so benchmark reports can be interpreted against the correct `serverpod-pocketpod` source copy.
+
 Runs the Phase 2 local benchmark gate before moving to Phase 3.
 
 Default run:

@@ -4,6 +4,28 @@ This directory is the in-repository Serverpod source copy used by PocketPod.
 
 It is not a new backend framework. It is Serverpod with the local PocketPod SQLite tuning patch applied.
 
+## Serverpod Credit
+
+This source tree comes from [Serverpod](https://serverpod.dev). The Serverpod team built the framework, CLI, runtime, protocol generation, and package structure that PocketPod depends on.
+
+PocketPod keeps this copy locally only so the SQLite tuning patch can be inspected, tested, and used by the starter through path dependency overrides.
+
+## Version
+
+This copy is based on Serverpod:
+
+```text
+3.5.0-beta.10
+```
+
+PocketPod uses the same release tag:
+
+```text
+v3.5.0-beta.10
+```
+
+The version number is intentionally the same as Serverpod's baseline version so users can quickly match `serverpod-pocketpod` to the upstream Serverpod version it was built from.
+
 ## Why This Exists
 
 PocketPod needs explicit SQLite runtime settings:

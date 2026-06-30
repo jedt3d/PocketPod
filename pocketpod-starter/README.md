@@ -2,6 +2,22 @@
 
 This directory is the reusable PocketPod starter app/template.
 
+It is built on [Serverpod](https://serverpod.dev). PocketPod does not replace Serverpod; it uses Serverpod as the backend framework and adds a SQLite-focused starter configuration, benchmark harness, and local tuning patch.
+
+The Serverpod baseline used by this starter is:
+
+```text
+3.5.0-beta.10
+```
+
+PocketPod release tags intentionally match the Serverpod baseline, for example:
+
+```text
+v3.5.0-beta.10
+```
+
+This makes it easy to know which Serverpod version the starter and `serverpod-pocketpod` source copy are aligned with.
+
 From the repository root, refresh the local path overrides and README files with:
 
 ```sh

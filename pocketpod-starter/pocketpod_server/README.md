@@ -2,6 +2,8 @@
 
 This is the Serverpod backend for PocketPod.
 
+PocketPod is built on [Serverpod](https://serverpod.dev). The current Serverpod baseline is `3.5.0-beta.10`, and PocketPod release tags match that baseline, for example `v3.5.0-beta.10`.
+
 The Phase 1 scaffold is configured for Serverpod's SQLite dialect. It does not
 require Docker, Postgres, or Redis.
 

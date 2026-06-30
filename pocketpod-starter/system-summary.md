@@ -10,6 +10,24 @@ The simplest description is:
 
 It is not a replacement for Serverpod. It is also not a new backend framework. PocketPod starts from normal Serverpod, keeps the Serverpod programming model, and changes the deployment/database profile so a small project can use a single SQLite database file instead of requiring the usual Postgres/Docker-style setup from the beginning.
 
+## Serverpod Credit And Version
+
+PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod provides the backend framework, endpoint runtime, generated protocol model, client generation, migrations, and Dart/Flutter project structure. PocketPod adds the SQLite-focused starter configuration, local SQLite tuning patch, benchmark harness, and deployment notes around that foundation.
+
+Current Serverpod baseline:
+
+```text
+3.5.0-beta.10
+```
+
+PocketPod release tags intentionally match the Serverpod baseline version:
+
+```text
+v3.5.0-beta.10
+```
+
+This version policy makes the relationship explicit: when someone sees a PocketPod release tag, they can immediately identify which Serverpod version the `serverpod-pocketpod` source copy was built from. PocketPod-specific changes are described by commits and documentation; the release number identifies the Serverpod baseline.
+
 The project is trying to bring some of the lightweight deployment feel people like from tools such as PocketBase, but without leaving the Serverpod ecosystem. The intent is:
 
 - keep Serverpod endpoints, generated protocol code, migrations, and Dart/Flutter workflow.
@@ -66,7 +84,7 @@ tool/benchmarks/results/benchmark-report.html
 
 So if someone asks whether this is a new package, the accurate answer is:
 
-> Not yet. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, and benchmark tooling. It could become a reusable package or project template later.
+> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, and benchmark tooling. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using a PocketPod release tag that matches the Serverpod baseline version.
 
 ## How To Explain PocketPod To Other People
 
@@ -635,7 +653,7 @@ By default, it creates in-repository directories:
 ./serverpod-pocketpod
 ```
 
-It copies the current PocketPod prototype into `pocketpod-starter`, copies the local Serverpod source into `serverpod-pocketpod`, removes build/runtime folders, and rewrites the starter dependency overrides to point at the local `serverpod-pocketpod` path.
+It uses `pocketpod-starter` as the canonical starter source, can refresh the local Serverpod source copy in `serverpod-pocketpod`, removes build/runtime folders from copied targets, and rewrites the starter dependency overrides to point at the local `serverpod-pocketpod` path.
 
 Each generated directory has its own `README.md`:
 
