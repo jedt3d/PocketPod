@@ -63,6 +63,8 @@ system-summary.md      architecture, benchmark, and setup notes
 
 The Phase 3 admin generator is the first PocketPod-specific product layer beyond SQLite tuning:
 
+![PocketPod smart admin generator preview](pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png)
+
 ```sh
 cd pocketpod-starter
 dart run tool/admin_generator/yaml_to_admin.dart \
@@ -75,6 +77,21 @@ The current generated preview and screenshot live at:
 ```text
 pocketpod-starter/tool/admin_generator/generated/admin_preview.html
 pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png
+```
+
+The preview currently demonstrates PocketPod's smart control mapping from Serverpod model YAML:
+
+```text
+short String fields   -> text input
+long content fields   -> textarea
+bool                  -> checkbox
+DateTime              -> datetime selector
+int / double          -> numeric input
+enum-like fields      -> dropdown placeholder
+foreign-key fields    -> relation dropdown placeholder
+list fields           -> array/list placeholder
+non-nullable fields   -> red required * marker
+nullable fields       -> optional marker
 ```
 
 `serverpod-pocketpod` contains the local Serverpod source copy used by the starter through path dependency overrides. The SQLite tuning patch is in:

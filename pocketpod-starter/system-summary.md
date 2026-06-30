@@ -101,6 +101,13 @@ tool/admin_generator/generated/admin_preview.html
 tool/admin_generator/screenshots/admin-preview.png
 ```
 
+The latest admin preview screenshot is embedded in both:
+
+```text
+README.md
+pocketpod-starter/README.md
+```
+
 The current generator reads Serverpod `.spy.yaml` models and emits deterministic Flutter admin screen source plus an HTML preview. Its main advantage over the original PocketBase-inspired idea is that PocketPod stays inside the Serverpod/Dart model workflow: the admin UI is generated from typed Serverpod models and remains normal Flutter source that can be reviewed, tested, and customized.
 
 Current smart form-control mapping:

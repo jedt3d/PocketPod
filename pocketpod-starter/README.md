@@ -49,6 +49,8 @@ system-summary.md      architecture, benchmark, and setup notes
 
 Run the current Phase 3 generator from this starter directory:
 
+![PocketPod smart admin generator preview](tool/admin_generator/screenshots/admin-preview.png)
+
 ```sh
 dart run tool/admin_generator/yaml_to_admin.dart \
   --input tool/admin_generator/fixtures \

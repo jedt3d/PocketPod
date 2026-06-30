@@ -190,6 +190,7 @@ Current artifacts:
 - Generated sample source: `tool/admin_generator/generated/admin_input_example_admin.dart`.
 - Preview: `tool/admin_generator/generated/admin_preview.html`.
 - Screenshot: `tool/admin_generator/screenshots/admin-preview.png`.
+- Screenshot placement: embedded in the root `README.md` and `pocketpod-starter/README.md`.
 - Report: `tool/admin_generator/TEST_REPORT.md`.
 
 Cycle 2A smart form controls:

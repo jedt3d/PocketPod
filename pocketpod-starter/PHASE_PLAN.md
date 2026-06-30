@@ -161,7 +161,7 @@ Features:
 9. Add PocketBase credit in the admin generator folder README and keep the root README credit updated.
 
 Cycle 2A completed generator advantage:
-PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview.
+PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview. The current screenshot is embedded in both the root `README.md` and `pocketpod-starter/README.md`.
 
 Design credit rule:
 PocketBase can guide the admin interaction model, but PocketPod should not copy PocketBase source code, branding, icons, or visual assets unless license and attribution are reviewed separately.

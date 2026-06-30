@@ -14,6 +14,8 @@ PocketBase is not a PocketPod dependency and is not part of the PocketPod runtim
 
 PocketBase helped inspire the lightweight collection-admin direction. PocketPod's advantage is that the admin UI is generated from Serverpod `.spy.yaml` models into normal Flutter source.
 
+![PocketPod smart admin generator preview](screenshots/admin-preview.png)
+
 That means the admin UI can stay aligned with:
 
 - Serverpod model definitions.
