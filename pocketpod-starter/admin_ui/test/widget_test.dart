@@ -53,6 +53,23 @@ void main() {
     expect(find.textContaining('Sign in failed'), findsOneWidget);
   });
 
+  testWidgets('login without admin scope displays permission error', (
+    tester,
+  ) async {
+    final api = FakeAdminApi(session: nonAdminSession);
+    final store = MemoryAdminSessionStore();
+
+    await tester.pumpWidget(PocketPodAdminApp(api: api, sessionStore: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('login_submit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('login_error')), findsOneWidget);
+    expect(find.textContaining('Admin access required'), findsOneWidget);
+    expect(await store.read(), isNull);
+  });
+
   testWidgets('stored session restores the admin shell', (tester) async {
     final store = MemoryAdminSessionStore();
     await store.save(testSession);
@@ -110,6 +127,7 @@ void main() {
     expect(find.byKey(const Key('input_description')), findsOneWidget);
     expect(find.byKey(const Key('input_published')), findsOneWidget);
     expect(find.byKey(const Key('input_categoryId')), findsOneWidget);
+    expect(find.text('Starter'), findsWidgets);
 
     await tester.enterText(find.byKey(const Key('input_name')), '');
     await tester.ensureVisible(find.byKey(const Key('save_record')));
@@ -177,6 +195,36 @@ void main() {
     expect(find.text('New Product'), findsNothing);
   });
 
+  testWidgets('searches and pages collection records', (tester) async {
+    final store = MemoryAdminSessionStore();
+    await store.save(testSession);
+    final api = FakeAdminApi();
+
+    await tester.pumpWidget(PocketPodAdminApp(api: api, sessionStore: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('nav_Products')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PocketPod Starter License'), findsOneWidget);
+    expect(find.byKey(const Key('page_size')), findsOneWidget);
+
+    expect(find.byKey(const Key('next_page')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('next_page')));
+    await tester.tap(find.byKey(const Key('next_page')));
+    await tester.pumpAndSettle();
+    expect(api.lastOffset, 10);
+
+    await tester.ensureVisible(find.byKey(const Key('record_search')));
+    await tester.enterText(find.byKey(const Key('record_search')), 'Support');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(api.lastQuery, 'Support');
+    expect(find.text('SQLite Tuning Support'), findsOneWidget);
+    expect(find.text('PocketPod Starter License'), findsNothing);
+  });
+
   testWidgets('logout clears the session and returns to login', (tester) async {
     final store = MemoryAdminSessionStore();
     await store.save(testSession);
@@ -200,14 +248,22 @@ const testSession = AdminSession(
   scopeNames: {'serverpod.admin'},
 );
 
+const nonAdminSession = AdminSession(
+  token: 'test-token',
+  userId: 'test-user',
+  scopeNames: {'serverpod.user'},
+);
+
 class FakeAdminApi implements AdminApi {
-  FakeAdminApi({this.loginShouldFail = false});
+  FakeAdminApi({this.loginShouldFail = false, this.session = testSession});
 
   final bool loginShouldFail;
+  final AdminSession session;
   String? token;
   int updatedRecords = 0;
   int createdRecords = 0;
   int deletedRecords = 0;
+  final Map<String, List<AdminRecord>> records = _cloneRecords();
 
   @override
   void setAuthToken(String? token) {
@@ -222,8 +278,8 @@ class FakeAdminApi implements AdminApi {
     if (loginShouldFail) {
       throw StateError('bad credentials');
     }
-    token = testSession.token;
-    return testSession;
+    token = session.token;
+    return session;
   }
 
   @override
@@ -233,8 +289,8 @@ class FakeAdminApi implements AdminApi {
     }
     return AdminDashboard(
       title: 'PocketPod Admin',
-      signedInUserId: testSession.userId,
-      scopeNames: testSession.scopeNames.toList(),
+      signedInUserId: session.userId,
+      scopeNames: session.scopeNames.toList(),
       generatedCollections: const ['Admin Input Examples', 'Products', 'Posts'],
       message: 'Signed in with Serverpod Auth and Scope.admin.',
       checkedAt: DateTime.utc(2026, 6, 30),
@@ -244,25 +300,61 @@ class FakeAdminApi implements AdminApi {
   @override
   Future<List<AdminCollection>> listCollections() async {
     _requireToken();
-    return fakeCollections;
+    return [
+      for (final collection in fakeCollections)
+        collection.copyWith(rowCount: records[collection.key]?.length ?? 0),
+    ];
   }
 
   @override
-  Future<AdminCollectionRecords> listRecords(String collectionKey) async {
+  Future<AdminCollectionRecords> listRecords(
+    String collectionKey, {
+    int offset = 0,
+    int limit = 10,
+    String query = '',
+  }) async {
     _requireToken();
     final collection = fakeCollections.firstWhere(
       (collection) => collection.key == collectionKey,
     );
+    lastOffset = offset;
+    lastLimit = limit;
+    lastQuery = query;
+    final rows = _filterRows(records[collectionKey] ?? const [], query);
     return AdminCollectionRecords(
-      collection: collection,
-      rows: fakeRecords[collectionKey] ?? const [],
+      collection: collection.copyWith(rowCount: rows.length),
+      rows: rows.skip(offset).take(limit).toList(),
     );
+  }
+
+  int lastOffset = 0;
+  int lastLimit = 25;
+  String lastQuery = '';
+
+  @override
+  Future<List<AdminRecordCell>> relationOptions(
+    String collectionKey,
+    String fieldName,
+  ) async {
+    _requireToken();
+    return switch ((collectionKey, fieldName)) {
+      ('products', 'categoryId') => [
+        AdminRecordCell(field: '1', value: 'Starter'),
+        AdminRecordCell(field: '2', value: 'Services'),
+        AdminRecordCell(field: '3', value: 'Guides'),
+      ],
+      ('posts', 'authorId') => [
+        AdminRecordCell(field: '1', value: 'Admin'),
+        AdminRecordCell(field: '2', value: 'Editor'),
+      ],
+      _ => const [],
+    };
   }
 
   @override
   Future<AdminRecord> getRecord(String collectionKey, String id) async {
     _requireToken();
-    return (fakeRecords[collectionKey] ?? const []).firstWhere(
+    return (records[collectionKey] ?? const []).firstWhere(
       (record) => record.id == id,
     );
   }
@@ -276,8 +368,8 @@ class FakeAdminApi implements AdminApi {
     _requireToken();
     updatedRecords += 1;
     final updated = AdminRecord(id: id, cells: cells);
-    final rows = fakeRecords[collectionKey]!;
-    fakeRecords[collectionKey] = [
+    final rows = records[collectionKey]!;
+    records[collectionKey] = [
       for (final row in rows)
         if (row.id == id) updated else row,
     ];
@@ -291,7 +383,7 @@ class FakeAdminApi implements AdminApi {
   ) async {
     _requireToken();
     createdRecords += 1;
-    final rows = fakeRecords[collectionKey]!;
+    final rows = records[collectionKey]!;
     final nextId =
         (rows
                     .map((record) => int.tryParse(record.id) ?? 0)
@@ -299,7 +391,7 @@ class FakeAdminApi implements AdminApi {
                 1)
             .toString();
     final created = AdminRecord(id: nextId, cells: cells);
-    fakeRecords[collectionKey] = [...rows, created];
+    records[collectionKey] = [...rows, created];
     return created;
   }
 
@@ -307,8 +399,8 @@ class FakeAdminApi implements AdminApi {
   Future<bool> deleteRecord(String collectionKey, String id) async {
     _requireToken();
     deletedRecords += 1;
-    final rows = fakeRecords[collectionKey]!;
-    fakeRecords[collectionKey] = [
+    final rows = records[collectionKey]!;
+    records[collectionKey] = [
       for (final row in rows)
         if (row.id != id) row,
     ];
@@ -365,7 +457,7 @@ final fakeCollections = [
   ),
 ];
 
-final fakeRecords = {
+final initialFakeRecords = {
   'admin_input_examples': [
     _record('1', {
       'title': 'Launch article',
@@ -384,6 +476,27 @@ final fakeRecords = {
       'categoryId': '1',
       'updatedAt': '2026-06-30T09:00:00.000Z',
     }),
+    _record('2', {
+      'name': 'SQLite Tuning Support',
+      'sku': 'SKU-1002',
+      'description': 'Implementation support for PocketPod SQLite settings.',
+      'price': '149.00',
+      'stock': '25',
+      'published': 'true',
+      'categoryId': '2',
+      'updatedAt': '2026-06-30T09:00:00.000Z',
+    }),
+    for (var index = 3; index <= 12; index++)
+      _record('$index', {
+        'name': 'Catalog Item $index',
+        'sku': 'SKU-${1000 + index}',
+        'description': 'Generated pagination item $index.',
+        'price': '$index.00',
+        'stock': '$index',
+        'published': 'true',
+        'categoryId': '1',
+        'updatedAt': '2026-06-30T09:00:00.000Z',
+      }),
   ],
   'posts': [
     _record('1', {
@@ -395,6 +508,27 @@ final fakeRecords = {
     }),
   ],
 };
+
+Map<String, List<AdminRecord>> _cloneRecords() {
+  return {
+    for (final entry in initialFakeRecords.entries)
+      entry.key: [for (final record in entry.value) record.copyWith()],
+  };
+}
+
+List<AdminRecord> _filterRows(List<AdminRecord> rows, String query) {
+  final normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return rows;
+  }
+  return [
+    for (final row in rows)
+      if (row.cells.any(
+        (cell) => cell.value.toLowerCase().contains(normalized),
+      ))
+        row,
+  ];
+}
 
 AdminField _field(String name, String label, String dartType, String control) {
   return AdminField(

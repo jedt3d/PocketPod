@@ -4,6 +4,7 @@ admin:
   - dashboard:
   - listCollections:
   - listRecords:
+  - relationOptions:
   - getRecord:
   - updateRecord:
   - createRecord:

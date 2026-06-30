@@ -48,7 +48,7 @@ The project is trying to bring some of the lightweight deployment feel people li
 At the current stage, PocketPod is best described as:
 
 ```text
-Serverpod + SQLite tuning patch + app configuration + benchmark harness + admin generator foundation + guarded admin browsing screen
+Serverpod + SQLite tuning patch + app configuration + benchmark harness + admin generator foundation + guarded Flutter admin CRUD app
 ```
 
 It is not yet:
@@ -223,13 +223,15 @@ tool/deploy/smoke_release.sh
 
 ## Phase 6 Admin CRUD Hardening
 
-Phase 6 has started. The first completed slice adds real create/delete behavior to the Flutter admin app for SQLite-backed Product and Post records.
+Phase 6 is complete for the current admin CRUD hardening milestone. It extends the Flutter admin app from edit-only records into a practical starter admin workflow for SQLite-backed Product and Post records.
 
 New protected Serverpod admin endpoints:
 
 ```text
+admin.listRecords(offset, limit, query)
 admin.createRecord
 admin.deleteRecord
+admin.relationOptions
 ```
 
 Flutter admin behavior:
@@ -240,16 +242,40 @@ New opens a create form with safe default values.
 Saving a new form inserts a SQLite-backed row.
 Existing Product/Post records show Delete.
 Delete requires a confirmation dialog.
+Record tables support search, page size selection, previous page, and next page.
+Relation dropdowns use server-provided option labels for category-like and author-like fields.
+Users who authenticate without serverpod.admin scope see an explicit admin-access-required state.
 Admin Input Examples remains read-only.
+```
+
+Phase 6 also preserves the existing edit workflow:
+
+```text
+Primary display fields open records.
+Products use name.
+Posts use title.
+Admin Input Examples uses title in a view-only form.
+Supported controls still include text, textarea, checkbox, datetime, integer, decimal, enum/select, relation/select, and list placeholders.
 ```
 
 Validation:
 
 ```text
+flutter analyze
 flutter analyze admin_ui
 flutter test admin_ui --reporter expanded
 cd pocketpod_server && flutter test test/integration/admin_endpoint_test.dart --reporter expanded
 flutter test test/admin_generator --reporter expanded
+tool/deploy/build_release.sh
+tool/deploy/smoke_release.sh
+```
+
+Latest focused Phase 6 results:
+
+```text
+flutter analyze: PASS, no issues found.
+flutter test admin_ui: PASS, 10 widget tests.
+admin_endpoint_test.dart: PASS, including protected CRUD, relation lookup, filtered/paged listing, non-admin rejection, and explicit admin promotion coverage.
 ```
 
 The detailed Phase 6 task and test ledgers are:
@@ -276,7 +302,7 @@ Current smart form-control mapping:
 
 So if someone asks whether this is a new package, the accurate answer is:
 
-> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, benchmark tooling, and an admin generator foundation. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using release tags like `v0.1.0+serverpod.3.5.0-beta.10` to show both PocketPod progress and Serverpod compatibility.
+> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, benchmark tooling, admin generator tooling, and a guarded Flutter admin CRUD app. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using release tags like `v0.1.0+serverpod.3.5.0-beta.10` to show both PocketPod progress and Serverpod compatibility.
 
 ## How To Explain PocketPod To Other People
 

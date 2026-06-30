@@ -34,6 +34,9 @@ class AdminEndpoint extends Endpoint {
   Future<AdminCollectionRecords> listRecords(
     Session session,
     String collectionKey,
+    int offset,
+    int limit,
+    String query,
   ) async {
     await _ensureSeedData(session);
     final collections = await _collections(session);
@@ -47,9 +50,26 @@ class AdminEndpoint extends Endpoint {
     );
 
     return AdminCollectionRecords(
-      collection: collection,
-      rows: await _records(session, collection.key),
+      collection: collection.copyWith(
+        rowCount: await _recordCount(session, collection.key, query),
+      ),
+      rows: await _records(session, collection.key, offset, limit, query),
     );
+  }
+
+  Future<List<AdminRecordCell>> relationOptions(
+    Session session,
+    String collectionKey,
+    String fieldName,
+  ) async {
+    await _ensureSeedData(session);
+
+    return switch ((collectionKey, fieldName)) {
+      ('products', 'categoryId') ||
+      ('admin_input_examples', 'categoryId') => _categoryOptions(),
+      ('posts', 'authorId') => _authorOptions(),
+      _ => const [],
+    };
   }
 
   Future<AdminRecord> getRecord(
@@ -272,19 +292,84 @@ AdminField _field(
 Future<List<AdminRecord>> _records(
   Session session,
   String collectionKey,
+  int offset,
+  int limit,
+  String query,
 ) async {
+  final safeOffset = offset < 0 ? 0 : offset;
+  final safeLimit = limit <= 0 ? 25 : limit.clamp(1, 100);
   return switch (collectionKey) {
-    'admin_input_examples' => _adminInputExampleRecords(),
-    'products' => (await Product.db.find(
-      session,
-      orderBy: (table) => table.id,
-    )).map(_productRecord).toList(),
-    'posts' => (await Post.db.find(
-      session,
-      orderBy: (table) => table.id,
-    )).map(_postRecord).toList(),
+    'admin_input_examples' => _filterAdminExamples(
+      query,
+    ).skip(safeOffset).take(safeLimit).toList(),
+    'products' => _filterRecords(
+      (await Product.db.find(
+        session,
+        orderBy: (table) => table.id,
+      )).map(_productRecord).toList(),
+      query,
+      ['sku', 'name', 'description'],
+    ).skip(safeOffset).take(safeLimit).toList(),
+    'posts' => _filterRecords(
+      (await Post.db.find(
+        session,
+        orderBy: (table) => table.id,
+      )).map(_postRecord).toList(),
+      query,
+      ['title', 'body'],
+    ).skip(safeOffset).take(safeLimit).toList(),
     _ => const [],
   };
+}
+
+Future<int> _recordCount(
+  Session session,
+  String collectionKey,
+  String query,
+) async {
+  return switch (collectionKey) {
+    'admin_input_examples' => _filterAdminExamples(query).length,
+    'products' => _filterRecords(
+      (await Product.db.find(session)).map(_productRecord).toList(),
+      query,
+      ['sku', 'name', 'description'],
+    ).length,
+    'posts' => _filterRecords(
+      (await Post.db.find(session)).map(_postRecord).toList(),
+      query,
+      ['title', 'body'],
+    ).length,
+    _ => 0,
+  };
+}
+
+List<AdminRecord> _filterAdminExamples(String query) {
+  return _filterRecords(_adminInputExampleRecords(), query, [
+    'title',
+    'body',
+    'summary',
+  ]);
+}
+
+List<AdminRecord> _filterRecords(
+  List<AdminRecord> records,
+  String query,
+  List<String> fields,
+) {
+  final normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return records;
+  }
+
+  return [
+    for (final record in records)
+      if (fields.any(
+        (field) => record.cells
+            .where((cell) => cell.field == field)
+            .any((cell) => cell.value.toLowerCase().contains(normalized)),
+      ))
+        record,
+  ];
 }
 
 AdminRecord _requireAdminInputExample(String id) {
@@ -327,6 +412,22 @@ AdminRecord _record(String id, Map<String, String> values) {
         .map((entry) => AdminRecordCell(field: entry.key, value: entry.value))
         .toList(),
   );
+}
+
+List<AdminRecordCell> _categoryOptions() {
+  return [
+    AdminRecordCell(field: '1', value: 'Starter'),
+    AdminRecordCell(field: '2', value: 'Services'),
+    AdminRecordCell(field: '3', value: 'Guides'),
+  ];
+}
+
+List<AdminRecordCell> _authorOptions() {
+  return [
+    AdminRecordCell(field: '1', value: 'Admin'),
+    AdminRecordCell(field: '2', value: 'Editor'),
+    AdminRecordCell(field: '3', value: 'Guest Contributor'),
+  ];
 }
 
 AdminRecord _productRecord(Product product) {

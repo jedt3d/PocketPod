@@ -1,17 +1,26 @@
-# pocketpod_admin_ui
+# PocketPod Admin UI
 
-A new Flutter project.
+This Flutter Web app is the hosted PocketPod admin surface served from Serverpod at `/app/`.
 
-## Getting Started
+It signs in through Serverpod Auth, stores the returned JWT in browser storage, and calls protected `Scope.admin` endpoints through `pocketpod_client`.
 
-This project is a starting point for a Flutter application.
+Current Phase 6 behavior:
 
-A few resources to get you started if this is your first Flutter project:
+- Admin Input Examples is a read-only generated-control showcase.
+- Products and Posts are writable SQLite-backed collections.
+- Writable collections support create, edit, delete, search, and pagination.
+- Relation-like fields use server-provided dropdown options.
+- Users without `serverpod.admin` scope see an explicit admin-access-required message.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Run local checks from `pocketpod-starter/`:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter analyze
+flutter test admin_ui --reporter expanded
+```
+
+Build the admin app into Serverpod static web assets:
+
+```sh
+tool/admin_ui/build_serverpod_admin.sh
+```

@@ -114,6 +114,21 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'offset': _i1.ParameterDescription(
+              name: 'offset',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'query': _i1.ParameterDescription(
+              name: 'query',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
           },
           call:
               (
@@ -122,7 +137,35 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async => (endpoints['admin'] as _i3.AdminEndpoint).listRecords(
                 session,
                 params['collectionKey'],
+                params['offset'],
+                params['limit'],
+                params['query'],
               ),
+        ),
+        'relationOptions': _i1.MethodConnector(
+          name: 'relationOptions',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'fieldName': _i1.ParameterDescription(
+              name: 'fieldName',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['admin'] as _i3.AdminEndpoint).relationOptions(
+                    session,
+                    params['collectionKey'],
+                    params['fieldName'],
+                  ),
         ),
         'getRecord': _i1.MethodConnector(
           name: 'getRecord',

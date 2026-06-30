@@ -23,7 +23,17 @@ abstract interface class AdminApi {
 
   Future<List<AdminCollection>> listCollections();
 
-  Future<AdminCollectionRecords> listRecords(String collectionKey);
+  Future<AdminCollectionRecords> listRecords(
+    String collectionKey, {
+    int offset = 0,
+    int limit = 10,
+    String query = '',
+  });
+
+  Future<List<AdminRecordCell>> relationOptions(
+    String collectionKey,
+    String fieldName,
+  );
 
   Future<AdminRecord> getRecord(String collectionKey, String id);
 
@@ -95,8 +105,26 @@ class ServerpodAdminApi implements AdminApi {
   }
 
   @override
-  Future<AdminCollectionRecords> listRecords(String collectionKey) {
-    return _client.admin.listRecords(collectionKey);
+  Future<AdminCollectionRecords> listRecords(
+    String collectionKey, {
+    int offset = 0,
+    int limit = 10,
+    String query = '',
+  }) {
+    return _client.admin.listRecords(
+      collectionKey,
+      offset: offset,
+      limit: limit,
+      query: query,
+    );
+  }
+
+  @override
+  Future<List<AdminRecordCell>> relationOptions(
+    String collectionKey,
+    String fieldName,
+  ) {
+    return _client.admin.relationOptions(collectionKey, fieldName);
   }
 
   @override

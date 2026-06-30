@@ -18,6 +18,37 @@ void main() {
 
       await _createAdminUser(setupSession, email: email, password: password);
 
+      const promotedEmail = 'promote-admin-endpoint-test@example.com';
+      const promotedPassword = 'change-me-too';
+      final promotedUserId = await _createAuthUser(
+        setupSession,
+        email: promotedEmail,
+        password: promotedPassword,
+        scopes: {},
+      );
+
+      await expectLater(
+        endpoints.adminAuth.login(
+          sessionBuilder,
+          email: promotedEmail,
+          password: promotedPassword,
+        ),
+        throwsA(isA<Exception>()),
+      );
+
+      await AuthServices.instance.authUsers.update(
+        setupSession,
+        authUserId: promotedUserId,
+        scopes: {Scope.admin},
+      );
+
+      final promotedAuthSuccess = await endpoints.adminAuth.login(
+        sessionBuilder,
+        email: promotedEmail,
+        password: promotedPassword,
+      );
+      expect(promotedAuthSuccess.scopeNames, contains(Scope.admin.name));
+
       final authSuccess = await endpoints.adminAuth.login(
         sessionBuilder,
         email: email,
@@ -82,6 +113,36 @@ void main() {
         products.rows.first.cells.map((cell) => cell.field),
         contains('sku'),
       );
+
+      final categoryOptions = await endpoints.admin.relationOptions(
+        adminSession,
+        'products',
+        'categoryId',
+      );
+      expect(
+        categoryOptions.map((option) => option.value),
+        contains('Starter'),
+      );
+
+      final filteredProducts = await endpoints.admin.listRecords(
+        adminSession,
+        'products',
+        query: 'Support',
+      );
+      expect(filteredProducts.rows, hasLength(1));
+      expect(
+        _cellValue(filteredProducts.rows.single, 'name'),
+        contains('Support'),
+      );
+
+      final pagedProducts = await endpoints.admin.listRecords(
+        adminSession,
+        'products',
+        offset: 1,
+        limit: 1,
+      );
+      expect(pagedProducts.rows, hasLength(1));
+      expect(pagedProducts.collection.rowCount, greaterThanOrEqualTo(3));
 
       final posts = await endpoints.admin.listRecords(
         adminSession,
@@ -272,7 +333,21 @@ Future<void> _createAdminUser(
   required String email,
   required String password,
 }) async {
-  await session.db.transaction((transaction) async {
+  await _createAuthUser(
+    session,
+    email: email,
+    password: password,
+    scopes: {Scope.admin},
+  );
+}
+
+Future<UuidValue> _createAuthUser(
+  Session session, {
+  required String email,
+  required String password,
+  required Set<Scope> scopes,
+}) async {
+  return session.db.transaction((transaction) async {
     final authServices = AuthServices.instance;
     final existingAccount = await authServices.emailIdp.admin.findAccount(
       session,
@@ -281,12 +356,12 @@ Future<void> _createAdminUser(
     );
 
     if (existingAccount != null) {
-      return;
+      return existingAccount.authUserId;
     }
 
     final authUser = await authServices.authUsers.create(
       session,
-      scopes: {Scope.admin},
+      scopes: scopes,
       transaction: transaction,
     );
 
@@ -308,5 +383,7 @@ Future<void> _createAdminUser(
       password: password,
       transaction: transaction,
     );
+
+    return authUser.id;
   });
 }

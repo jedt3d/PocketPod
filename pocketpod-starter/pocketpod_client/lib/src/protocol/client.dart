@@ -72,12 +72,33 @@ class EndpointAdmin extends _i1.EndpointRef {
         {},
       );
 
-  _i2.Future<_i6.AdminCollectionRecords> listRecords(String collectionKey) =>
-      caller.callServerEndpoint<_i6.AdminCollectionRecords>(
-        'admin',
-        'listRecords',
-        {'collectionKey': collectionKey},
-      );
+  _i2.Future<_i6.AdminCollectionRecords> listRecords(
+    String collectionKey, {
+    int offset = 0,
+    int limit = 10,
+    String query = '',
+  }) => caller.callServerEndpoint<_i6.AdminCollectionRecords>(
+    'admin',
+    'listRecords',
+    {
+      'collectionKey': collectionKey,
+      'offset': offset,
+      'limit': limit,
+      'query': query,
+    },
+  );
+
+  _i2.Future<List<_i8.AdminRecordCell>> relationOptions(
+    String collectionKey,
+    String fieldName,
+  ) => caller.callServerEndpoint<List<_i8.AdminRecordCell>>(
+    'admin',
+    'relationOptions',
+    {
+      'collectionKey': collectionKey,
+      'fieldName': fieldName,
+    },
+  );
 
   _i2.Future<_i7.AdminRecord> getRecord(
     String collectionKey,

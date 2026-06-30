@@ -113,9 +113,9 @@ The older served HTML admin prototype remains available for reference at:
 http://localhost:8082/admin/index.html
 ```
 
-The Flutter admin app signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+The Flutter admin app signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with create, edit, delete, search, pagination, and server-provided relation dropdown support through protected admin endpoints. Users who sign in without `serverpod.admin` scope get an explicit admin-access-required message.
 
-Phase 6 adds the first CRUD hardening slice: Products and Posts now support protected create and delete actions in addition to edit/save. Admin Input Examples remains read-only.
+Phase 6 is complete for the current admin CRUD hardening milestone: Products and Posts now support protected create/delete, server-backed relation options, search and pagination, and clearer admin-scope permission messaging. Admin Input Examples remains read-only.
 
 The app screenshot evidence is stored in:
 

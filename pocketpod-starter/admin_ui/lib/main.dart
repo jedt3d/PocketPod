@@ -104,6 +104,16 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
 
     try {
       final session = await widget.api.login(email: email, password: password);
+      if (!session.scopeNames.contains('serverpod.admin')) {
+        widget.api.setAuthToken(null);
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error =
+              'Admin access required: signed-in user is missing serverpod.admin scope.';
+        });
+        return;
+      }
       await widget.sessionStore.save(session);
       if (!mounted) return;
       setState(() {
@@ -115,7 +125,7 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Sign in failed: $error';
+        _error = _adminAuthErrorMessage(error);
       });
     }
   }
@@ -143,6 +153,16 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
 
     return AdminShell(api: widget.api, session: session, onLogout: _logout);
   }
+}
+
+String _adminAuthErrorMessage(Object error) {
+  final message = error.toString();
+  if (message.contains('Admin scope required') ||
+      message.contains('InsufficientAccess') ||
+      message.contains('serverpod.admin')) {
+    return 'Admin access required: sign in with a Serverpod user that has serverpod.admin scope.';
+  }
+  return 'Sign in failed: $error';
 }
 
 class LoginScreen extends StatefulWidget {
@@ -267,6 +287,10 @@ class _AdminShellState extends State<AdminShell> {
   AdminCollection? _activeCollection;
   List<AdminRecord> _records = const [];
   AdminRecord? _selectedRecord;
+  Map<String, List<AdminRecordCell>> _relationOptions = const {};
+  int _recordOffset = 0;
+  int _pageSize = 10;
+  String _searchQuery = '';
   bool _loadingCollections = true;
   bool _loadingRecords = false;
   String? _error;
@@ -308,12 +332,30 @@ class _AdminShellState extends State<AdminShell> {
     setState(() {
       _activeCollection = collection;
       _selectedRecord = null;
+      _relationOptions = const {};
+      _recordOffset = 0;
+      _searchQuery = '';
+      _loadingRecords = true;
+      _error = null;
+    });
+
+    await _loadRelationOptions(collection);
+    await _loadRecords(collection);
+  }
+
+  Future<void> _loadRecords(AdminCollection collection) async {
+    setState(() {
       _loadingRecords = true;
       _error = null;
     });
 
     try {
-      final response = await widget.api.listRecords(collection.key);
+      final response = await widget.api.listRecords(
+        collection.key,
+        offset: _recordOffset,
+        limit: _pageSize,
+        query: _searchQuery,
+      );
       if (!mounted) return;
       setState(() {
         _activeCollection = response.collection;
@@ -327,6 +369,71 @@ class _AdminShellState extends State<AdminShell> {
         _error = 'Record load failed: $error';
       });
     }
+  }
+
+  Future<void> _loadRelationOptions(AdminCollection collection) async {
+    final relationFields = collection.fields.where(
+      (field) => field.control == 'relation',
+    );
+    if (relationFields.isEmpty) {
+      return;
+    }
+
+    final loaded = <String, List<AdminRecordCell>>{};
+    for (final field in relationFields) {
+      loaded[field.name] = await widget.api.relationOptions(
+        collection.key,
+        field.name,
+      );
+    }
+    if (!mounted) return;
+    setState(() => _relationOptions = loaded);
+  }
+
+  Future<void> _searchRecords(String query) async {
+    final collection = _activeCollection;
+    if (collection == null) return;
+    setState(() {
+      _searchQuery = query.trim();
+      _recordOffset = 0;
+      _selectedRecord = null;
+    });
+    await _loadRecords(collection);
+  }
+
+  Future<void> _changePageSize(int pageSize) async {
+    final collection = _activeCollection;
+    if (collection == null) return;
+    setState(() {
+      _pageSize = pageSize;
+      _recordOffset = 0;
+      _selectedRecord = null;
+    });
+    await _loadRecords(collection);
+  }
+
+  Future<void> _previousPage() async {
+    final collection = _activeCollection;
+    if (collection == null || _recordOffset == 0) return;
+    setState(() {
+      _recordOffset = (_recordOffset - _pageSize)
+          .clamp(0, _recordOffset)
+          .toInt();
+      _selectedRecord = null;
+    });
+    await _loadRecords(collection);
+  }
+
+  Future<void> _nextPage() async {
+    final collection = _activeCollection;
+    if (collection == null) return;
+    final total = collection.rowCount;
+    if (_recordOffset + _pageSize >= total) return;
+    setState(() {
+      _recordOffset += _pageSize;
+      _selectedRecord = null;
+    });
+    await _loadRecords(collection);
   }
 
   Future<void> _openRecord(AdminRecord record) async {
@@ -372,7 +479,9 @@ class _AdminShellState extends State<AdminShell> {
               for (final row in _records)
                 if (row.id == saved.id) saved else row,
             ];
-      _activeCollection = collection.copyWith(rowCount: _records.length);
+      _activeCollection = collection.copyWith(
+        rowCount: creating ? collection.rowCount + 1 : collection.rowCount,
+      );
       _collections = [
         for (final item in _collections)
           if (item.key == collection.key) _activeCollection! else item,
@@ -419,7 +528,9 @@ class _AdminShellState extends State<AdminShell> {
             if (row.id != record.id) row,
         ];
         _selectedRecord = null;
-        _activeCollection = collection.copyWith(rowCount: _records.length);
+        _activeCollection = collection.copyWith(
+          rowCount: collection.rowCount > 0 ? collection.rowCount - 1 : 0,
+        );
         _collections = [
           for (final item in _collections)
             if (item.key == collection.key) _activeCollection! else item,
@@ -456,10 +567,18 @@ class _AdminShellState extends State<AdminShell> {
                 selectedRecord: _selectedRecord,
                 loadingRecords: _loadingRecords,
                 error: _error,
+                relationOptions: _relationOptions,
+                recordOffset: _recordOffset,
+                pageSize: _pageSize,
+                searchQuery: _searchQuery,
                 onOpenRecord: _openRecord,
                 onNewRecord: _newRecord,
                 onSaveRecord: _saveRecord,
                 onDeleteRecord: _deleteRecord,
+                onSearchRecords: _searchRecords,
+                onChangePageSize: _changePageSize,
+                onPreviousPage: _previousPage,
+                onNextPage: _nextPage,
                 onLogout: widget.onLogout,
               );
 
@@ -570,10 +689,18 @@ class AdminWorkspace extends StatelessWidget {
     required this.records,
     required this.selectedRecord,
     required this.loadingRecords,
+    required this.relationOptions,
+    required this.recordOffset,
+    required this.pageSize,
+    required this.searchQuery,
     required this.onOpenRecord,
     required this.onNewRecord,
     required this.onSaveRecord,
     required this.onDeleteRecord,
+    required this.onSearchRecords,
+    required this.onChangePageSize,
+    required this.onPreviousPage,
+    required this.onNextPage,
     required this.onLogout,
     this.error,
     super.key,
@@ -586,10 +713,18 @@ class AdminWorkspace extends StatelessWidget {
   final AdminRecord? selectedRecord;
   final bool loadingRecords;
   final String? error;
+  final Map<String, List<AdminRecordCell>> relationOptions;
+  final int recordOffset;
+  final int pageSize;
+  final String searchQuery;
   final ValueChanged<AdminRecord> onOpenRecord;
   final VoidCallback onNewRecord;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
   final Future<void> Function(AdminRecord record) onDeleteRecord;
+  final ValueChanged<String> onSearchRecords;
+  final ValueChanged<int> onChangePageSize;
+  final VoidCallback onPreviousPage;
+  final VoidCallback onNextPage;
   final Future<void> Function() onLogout;
 
   @override
@@ -638,10 +773,18 @@ class AdminWorkspace extends StatelessWidget {
                         records: records,
                         selectedRecord: selectedRecord,
                         loading: loadingRecords,
+                        relationOptions: relationOptions,
+                        recordOffset: recordOffset,
+                        pageSize: pageSize,
+                        searchQuery: searchQuery,
                         onOpenRecord: onOpenRecord,
                         onNewRecord: onNewRecord,
                         onSaveRecord: onSaveRecord,
                         onDeleteRecord: onDeleteRecord,
+                        onSearchRecords: onSearchRecords,
+                        onChangePageSize: onChangePageSize,
+                        onPreviousPage: onPreviousPage,
+                        onNextPage: onNextPage,
                       ),
               ),
             ],
@@ -749,20 +892,36 @@ class _CollectionPanel extends StatelessWidget {
     required this.records,
     required this.selectedRecord,
     required this.loading,
+    required this.relationOptions,
+    required this.recordOffset,
+    required this.pageSize,
+    required this.searchQuery,
     required this.onOpenRecord,
     required this.onNewRecord,
     required this.onSaveRecord,
     required this.onDeleteRecord,
+    required this.onSearchRecords,
+    required this.onChangePageSize,
+    required this.onPreviousPage,
+    required this.onNextPage,
   });
 
   final AdminCollection collection;
   final List<AdminRecord> records;
   final AdminRecord? selectedRecord;
   final bool loading;
+  final Map<String, List<AdminRecordCell>> relationOptions;
+  final int recordOffset;
+  final int pageSize;
+  final String searchQuery;
   final ValueChanged<AdminRecord> onOpenRecord;
   final VoidCallback onNewRecord;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
   final Future<void> Function(AdminRecord record) onDeleteRecord;
+  final ValueChanged<String> onSearchRecords;
+  final ValueChanged<int> onChangePageSize;
+  final VoidCallback onPreviousPage;
+  final VoidCallback onNextPage;
 
   @override
   Widget build(BuildContext context) {
@@ -821,6 +980,16 @@ class _CollectionPanel extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
+            _TableControls(
+              collection: collection,
+              offset: recordOffset,
+              pageSize: pageSize,
+              searchQuery: searchQuery,
+              onSearchRecords: onSearchRecords,
+              onChangePageSize: onChangePageSize,
+              onPreviousPage: onPreviousPage,
+              onNextPage: onNextPage,
+            ),
             loading
                 ? const SizedBox(
                     height: 180,
@@ -835,11 +1004,130 @@ class _CollectionPanel extends StatelessWidget {
               _RecordDetail(
                 collection: collection,
                 record: selectedRecord!,
+                relationOptions: relationOptions,
                 onSaveRecord: onSaveRecord,
                 onDeleteRecord: onDeleteRecord,
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TableControls extends StatefulWidget {
+  const _TableControls({
+    required this.collection,
+    required this.offset,
+    required this.pageSize,
+    required this.searchQuery,
+    required this.onSearchRecords,
+    required this.onChangePageSize,
+    required this.onPreviousPage,
+    required this.onNextPage,
+  });
+
+  final AdminCollection collection;
+  final int offset;
+  final int pageSize;
+  final String searchQuery;
+  final ValueChanged<String> onSearchRecords;
+  final ValueChanged<int> onChangePageSize;
+  final VoidCallback onPreviousPage;
+  final VoidCallback onNextPage;
+
+  @override
+  State<_TableControls> createState() => _TableControlsState();
+}
+
+class _TableControlsState extends State<_TableControls> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TableControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchQuery != widget.searchQuery &&
+        _searchController.text != widget.searchQuery) {
+      _searchController.text = widget.searchQuery;
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final start = widget.collection.rowCount == 0 ? 0 : widget.offset + 1;
+    final end = (widget.offset + widget.pageSize).clamp(
+      0,
+      widget.collection.rowCount,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(
+            width: 260,
+            child: TextField(
+              key: const Key('record_search'),
+              controller: _searchController,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                labelText: 'Search',
+              ),
+              onSubmitted: widget.onSearchRecords,
+            ),
+          ),
+          FilledButton.tonal(
+            key: const Key('apply_search'),
+            onPressed: () => widget.onSearchRecords(_searchController.text),
+            child: const Text('Search'),
+          ),
+          DropdownButton<int>(
+            key: const Key('page_size'),
+            value: widget.pageSize,
+            items: const [
+              DropdownMenuItem(value: 10, child: Text('10')),
+              DropdownMenuItem(value: 25, child: Text('25')),
+              DropdownMenuItem(value: 50, child: Text('50')),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                widget.onChangePageSize(value);
+              }
+            },
+          ),
+          Text('$start-$end of ${widget.collection.rowCount}'),
+          IconButton(
+            key: const Key('previous_page'),
+            tooltip: 'Previous page',
+            onPressed: widget.offset == 0 ? null : widget.onPreviousPage,
+            icon: const Icon(Icons.chevron_left),
+          ),
+          IconButton(
+            key: const Key('next_page'),
+            tooltip: 'Next page',
+            onPressed:
+                widget.offset + widget.pageSize >= widget.collection.rowCount
+                ? null
+                : widget.onNextPage,
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ],
       ),
     );
   }
@@ -973,12 +1261,14 @@ class _RecordDetail extends StatefulWidget {
   const _RecordDetail({
     required this.collection,
     required this.record,
+    required this.relationOptions,
     required this.onSaveRecord,
     required this.onDeleteRecord,
   });
 
   final AdminCollection collection;
   final AdminRecord record;
+  final Map<String, List<AdminRecordCell>> relationOptions;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
   final Future<void> Function(AdminRecord record) onDeleteRecord;
 
@@ -1180,6 +1470,8 @@ class _RecordDetailState extends State<_RecordDetail> {
                           field: field,
                           controller: _controllers[field.name],
                           boolValue: _boolValues[field.name] ?? false,
+                          options:
+                              widget.relationOptions[field.name] ?? const [],
                           readOnly: !_editable || field.name == 'updatedAt',
                           onBoolChanged: (value) {
                             setState(() {
@@ -1269,6 +1561,7 @@ class _AdminFieldControl extends StatelessWidget {
     required this.field,
     required this.readOnly,
     required this.boolValue,
+    required this.options,
     required this.onBoolChanged,
     this.controller,
     super.key,
@@ -1278,6 +1571,7 @@ class _AdminFieldControl extends StatelessWidget {
   final TextEditingController? controller;
   final bool readOnly;
   final bool boolValue;
+  final List<AdminRecordCell> options;
   final ValueChanged<bool?> onBoolChanged;
 
   @override
@@ -1335,7 +1629,7 @@ class _AdminFieldControl extends StatelessWidget {
         initialValue: _dropdownValue,
         items: [
           for (final option in _options)
-            DropdownMenuItem(value: option, child: Text(option)),
+            DropdownMenuItem(value: option.field, child: Text(option.value)),
         ],
         onChanged: readOnly
             ? null
@@ -1385,19 +1679,26 @@ class _AdminFieldControl extends StatelessWidget {
   String? get _dropdownValue {
     final value = controller?.text.trim() ?? '';
     if (value.isEmpty) return null;
-    return _options.contains(value) ? value : _options.first;
+    return _options.any((option) => option.field == value)
+        ? value
+        : _options.first.field;
   }
 
-  List<String> get _options {
+  List<AdminRecordCell> get _options {
     final current = controller?.text.trim() ?? '';
-    final options = switch (field.name) {
-      'status' => ['draft', 'published', 'archived'],
-      'categoryId' || 'authorId' => ['1', '2', '3'],
-      _ => <String>[],
+    final baseOptions = switch (field.name) {
+      'status' => [
+        AdminRecordCell(field: 'draft', value: 'Draft'),
+        AdminRecordCell(field: 'published', value: 'Published'),
+        AdminRecordCell(field: 'archived', value: 'Archived'),
+      ],
+      _ => options,
     };
     return [
-      if (current.isNotEmpty && !options.contains(current)) current,
-      ...options,
+      if (current.isNotEmpty &&
+          !baseOptions.any((option) => option.field == current))
+        AdminRecordCell(field: current, value: current),
+      ...baseOptions,
     ];
   }
 

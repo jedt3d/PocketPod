@@ -107,7 +107,7 @@ The older served HTML admin prototype remains available for reference at:
 http://localhost:8082/admin/index.html
 ```
 
-The Flutter admin app authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+The Flutter admin app authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with create, edit, delete, search, pagination, and server-provided relation dropdown support through protected admin endpoints. Users who sign in without `serverpod.admin` scope get an explicit admin-access-required message.
 
 The app screenshot evidence is stored in:
 
@@ -181,7 +181,7 @@ The generated artifact lives at:
 pocketpod-starter/build/pocketpod-release/
 ```
 
-Phase 6 has started as admin CRUD hardening. The current completed slice adds protected create/delete for SQLite-backed Products and Posts:
+Phase 6 is complete for the current admin CRUD hardening milestone. It adds protected create/delete, server-backed relation options, search and pagination, and explicit admin-scope permission messaging for the Flutter admin app:
 
 ```text
 pocketpod-starter/tool/admin_ui/PHASE6_TASKS.md

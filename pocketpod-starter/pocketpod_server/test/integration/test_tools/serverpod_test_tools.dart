@@ -305,8 +305,11 @@ class _AdminEndpoint {
 
   _i4.Future<_i8.AdminCollectionRecords> listRecords(
     _i1.TestSessionBuilder sessionBuilder,
-    String collectionKey,
-  ) async {
+    String collectionKey, {
+    int offset = 0,
+    int limit = 10,
+    String query = '',
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
@@ -318,7 +321,12 @@ class _AdminEndpoint {
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'admin',
           methodName: 'listRecords',
-          parameters: _i1.testObjectToJson({'collectionKey': collectionKey}),
+          parameters: _i1.testObjectToJson({
+            'collectionKey': collectionKey,
+            'offset': offset,
+            'limit': limit,
+            'query': query,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =
@@ -327,6 +335,41 @@ class _AdminEndpoint {
                   _localCallContext.arguments,
                 )
                 as _i4.Future<_i8.AdminCollectionRecords>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i4.Future<List<_i10.AdminRecordCell>> relationOptions(
+    _i1.TestSessionBuilder sessionBuilder,
+    String collectionKey,
+    String fieldName,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'admin',
+            method: 'relationOptions',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'admin',
+          methodName: 'relationOptions',
+          parameters: _i1.testObjectToJson({
+            'collectionKey': collectionKey,
+            'fieldName': fieldName,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i4.Future<List<_i10.AdminRecordCell>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

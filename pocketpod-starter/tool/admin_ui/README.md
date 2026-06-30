@@ -1,6 +1,7 @@
 # PocketPod Flutter Admin UI
 
 Phase 4 turns the validated served admin prototype into a standalone Flutter Web admin app.
+Phase 6 hardens that app with protected create/delete, server-provided relation options, search, pagination, and explicit admin-scope permission messaging.
 
 The goal is not to replace the Phase 3 generator work. The goal is to host generated CRUD screens inside a real Flutter Web shell that can use the generated Serverpod client package, keep the admin workflow typed, and eventually be built as static files for deployment.
 
@@ -19,6 +20,7 @@ Expected result:
 - table, detail, edit, loading, empty, error, and save states.
 - generated smart controls matching Phase 3 behavior.
 - browser screenshots and validation notes for every cycle.
+- Phase 6 CRUD hardening for writable Product/Post records.
 
 The current Phase 3 served HTML page remains useful as a fast reference implementation while the Flutter app is built.
 

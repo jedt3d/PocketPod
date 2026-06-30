@@ -41,11 +41,11 @@ Admins can create and delete Product/Post records through the Flutter admin UI, 
 
 ## Cycle 2: Relation Lookup Endpoints
 
-- [ ] Add metadata for relation option sources.
-- [ ] Add protected lookup endpoints for category-like and author-like relation options.
-- [ ] Replace hard-coded relation dropdown options in the Flutter admin app.
-- [ ] Add tests for loaded relation option states.
-- [ ] Record validation in `PHASE6_TEST_REPORT.md`.
+- [x] Add metadata for relation option sources.
+- [x] Add protected lookup endpoints for category-like and author-like relation options.
+- [x] Replace hard-coded relation dropdown options in the Flutter admin app.
+- [x] Add tests for loaded relation option states.
+- [x] Record validation in `PHASE6_TEST_REPORT.md`.
 
 Acceptance:
 
@@ -55,11 +55,11 @@ Relation dropdowns are backed by server-provided options instead of local placeh
 
 ## Cycle 3: Pagination And Search
 
-- [ ] Add pagination parameters to record listing.
-- [ ] Add search query support for primary text fields.
-- [ ] Add table controls for search, page size, previous, and next.
-- [ ] Add tests for paging and search state.
-- [ ] Record validation in `PHASE6_TEST_REPORT.md`.
+- [x] Add pagination parameters to record listing.
+- [x] Add search query support for primary text fields.
+- [x] Add table controls for search, page size, previous, and next.
+- [x] Add tests for paging and search state.
+- [x] Record validation in `PHASE6_TEST_REPORT.md`.
 
 Acceptance:
 
@@ -69,10 +69,10 @@ Collections remain usable with larger Product/Post datasets.
 
 ## Cycle 4: Role And Permission Hardening
 
-- [ ] Add explicit UI states for insufficient permissions.
-- [ ] Add role/permission documentation beyond the initial `Scope.admin` gate.
-- [ ] Add the older hardening test for promoting an existing non-admin auth user.
-- [ ] Record validation in `PHASE6_TEST_REPORT.md`.
+- [x] Add explicit UI states for insufficient permissions.
+- [x] Add role/permission documentation beyond the initial `Scope.admin` gate.
+- [x] Add the older hardening test for promoting an existing non-admin auth user.
+- [x] Record validation in `PHASE6_TEST_REPORT.md`.
 
 Acceptance:
 
@@ -80,7 +80,7 @@ Acceptance:
 Admin authorization behavior is clearer to users and covered by regression tests.
 ```
 
-## Backlog Not Blocking Cycle 1
+## Backlog Not Blocking Phase 6
 
 - [ ] Add bulk delete after single-record delete is stable.
 - [ ] Add create/delete screenshot evidence from a real browser session.
