@@ -24,6 +24,10 @@ dev_dependencies:
 dependency_overrides:
   serverpod:
     path: ../serverpod-pocketpod/packages/serverpod
+  serverpod_auth_core_server:
+    path: ../serverpod-pocketpod/modules/serverpod_auth/serverpod_auth_core/serverpod_auth_core_server
+  serverpod_auth_idp_server:
+    path: ../serverpod-pocketpod/modules/serverpod_auth/serverpod_auth_idp/serverpod_auth_idp_server
   serverpod_client:
     path: ../serverpod-pocketpod/packages/serverpod_client
   serverpod_database:
