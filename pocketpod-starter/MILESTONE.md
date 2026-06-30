@@ -171,3 +171,50 @@ Current tuning target:
 
 Decision:
 Proceed toward Phase 3 with Serverpod SQLite, but keep the production target at 5 SQLite readers until a real 2-4 vCPU VPS benchmark proves a higher reader pool is beneficial.
+
+## Phase 3 Admin Generator Foundation
+
+Goal:
+Start the first PocketPod-specific product layer beyond SQLite tuning: generate admin UI source from Serverpod `.spy.yaml` model definitions.
+
+Completed cycles:
+- Cycle 0: planning baseline, feature branch, and PocketBase inspiration credit.
+- Cycle 1: YAML model parser and deterministic Flutter admin source generation.
+- Cycle 2: `yaml_to_admin.dart` CLI, generated Dart samples, generated HTML preview, and screenshot evidence.
+- Cycle 2A: smart form controls and all-input-types example model.
+
+Current artifacts:
+- Generator CLI: `tool/admin_generator/yaml_to_admin.dart`.
+- Generator library: `tool/admin_generator/lib/admin_generator.dart`.
+- Example model: `tool/admin_generator/fixtures/all_input_types.spy.yaml`.
+- Generated sample source: `tool/admin_generator/generated/admin_input_example_admin.dart`.
+- Preview: `tool/admin_generator/generated/admin_preview.html`.
+- Screenshot: `tool/admin_generator/screenshots/admin-preview.png`.
+- Report: `tool/admin_generator/TEST_REPORT.md`.
+
+Cycle 2A smart form controls:
+
+| Field Shape | Generated Control |
+| --- | --- |
+| short `String` | text input |
+| long text names such as `body` / `description` | textarea |
+| `bool` | checkbox |
+| `DateTime` | datetime selector placeholder |
+| `int` / `double` | numeric input |
+| enum-like type such as `PublishStatus` | dropdown placeholder |
+| foreign-key-like field such as `categoryId` | relation dropdown placeholder |
+| `List<T>` | array/list placeholder |
+| non-nullable field | red `*` required marker |
+| nullable field | optional marker |
+
+Why this matters:
+PocketBase inspired the lightweight collection-admin direction, but PocketPod's advantage is that admin UI can be generated from Serverpod's typed model YAML into normal Flutter source. This keeps the admin experience aligned with Serverpod models, code review, Dart tests, and future custom Flutter editing.
+
+Validation:
+- `flutter test test/admin_generator`: 6 tests passed.
+- `flutter analyze`: no issues found.
+- `dart format --set-exit-if-changed tool/admin_generator test/admin_generator`: passed.
+- Playwright full-page screenshot captured: `tool/admin_generator/screenshots/admin-preview.png`.
+
+Next:
+Proceed to Cycle 3, Serverpod Auth bootstrap, after reviewing the generated admin preview and smart-control behavior.

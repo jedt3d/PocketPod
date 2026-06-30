@@ -10,6 +10,20 @@ The admin experience may borrow product-design direction from [PocketBase](https
 
 PocketBase is not a PocketPod dependency and is not part of the PocketPod runtime. Treat PocketBase as design inspiration only. Do not copy PocketBase source code, branding, icons, or visual assets unless license and attribution are reviewed separately.
 
+## PocketPod Advantage
+
+PocketBase helped inspire the lightweight collection-admin direction. PocketPod's advantage is that the admin UI is generated from Serverpod `.spy.yaml` models into normal Flutter source.
+
+That means the admin UI can stay aligned with:
+
+- Serverpod model definitions.
+- generated Dart/Flutter client and server code.
+- code review and source control.
+- project-specific customization.
+- focused Dart tests.
+
+Cycle 2A adds smart field-to-control mapping so generated forms are not just generic text inputs.
+
 ## Planned Tooling
 
 ```text

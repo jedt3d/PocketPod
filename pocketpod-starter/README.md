@@ -6,6 +6,8 @@ It is built on [Serverpod](https://serverpod.dev). PocketPod does not replace Se
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of this starter; it is used only as inspiration and as one optional benchmark comparison target.
 
+The admin generator also takes product-design inspiration from PocketBase's fast collection/admin experience, but PocketPod's approach is different: it generates typed Flutter admin source from Serverpod `.spy.yaml` models and keeps the result inspectable and customizable in the Dart/Flutter workflow.
+
 PocketPod version:
 
 ```text
@@ -38,8 +40,40 @@ tool/automation/create_pocketpod_repos.sh
 pocketpod_client/      generated Dart client package
 pocketpod_server/      Serverpod backend configured for SQLite
 pocketpod_flutter/     Flutter companion app
+tool/admin_generator/  Serverpod model YAML to admin UI generator
 tool/benchmarks/       benchmark runner and HTML report generator
 system-summary.md      architecture, benchmark, and setup notes
+```
+
+## Admin Generator Preview
+
+Run the current Phase 3 generator from this starter directory:
+
+```sh
+dart run tool/admin_generator/yaml_to_admin.dart \
+  --input tool/admin_generator/fixtures \
+  --output tool/admin_generator/generated
+```
+
+The generated preview demonstrates PocketPod's smart form controls:
+
+```text
+String short text     -> text input
+long text/body fields -> textarea
+bool                  -> checkbox
+DateTime              -> datetime selector
+int/double            -> numeric input
+enum/choice           -> dropdown placeholder
+foreign key/relation  -> dropdown placeholder
+List<T>               -> array/list placeholder
+required fields       -> red * marker
+nullable fields       -> optional marker
+```
+
+Review the latest screenshot:
+
+```text
+tool/admin_generator/screenshots/admin-preview.png
 ```
 
 This starter points to the in-repo Serverpod copy:

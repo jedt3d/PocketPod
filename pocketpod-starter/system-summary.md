@@ -42,12 +42,13 @@ The project is trying to bring some of the lightweight deployment feel people li
 - use SQLite for a simpler early production deployment.
 - tune SQLite explicitly instead of relying on accidental defaults.
 - benchmark the result against a realistic small e-commerce/CMS traffic profile.
+- generate typed admin UI source from Serverpod model definitions instead of treating admin screens as a separate runtime-only layer.
 - keep a clear path to move upward later if the project outgrows SQLite.
 
 At the current stage, PocketPod is best described as:
 
 ```text
-Serverpod + SQLite tuning patch + app configuration + benchmark harness
+Serverpod + SQLite tuning patch + app configuration + benchmark harness + admin generator foundation
 ```
 
 It is not yet:
@@ -90,9 +91,36 @@ tool/benchmarks/render_report.dart
 tool/benchmarks/results/benchmark-report.html
 ```
 
+We also started the Phase 3 admin generator:
+
+```text
+tool/admin_generator/yaml_to_admin.dart
+tool/admin_generator/lib/admin_generator.dart
+tool/admin_generator/fixtures/all_input_types.spy.yaml
+tool/admin_generator/generated/admin_preview.html
+tool/admin_generator/screenshots/admin-preview.png
+```
+
+The current generator reads Serverpod `.spy.yaml` models and emits deterministic Flutter admin screen source plus an HTML preview. Its main advantage over the original PocketBase-inspired idea is that PocketPod stays inside the Serverpod/Dart model workflow: the admin UI is generated from typed Serverpod models and remains normal Flutter source that can be reviewed, tested, and customized.
+
+Current smart form-control mapping:
+
+| Serverpod Field Shape | Generated Control |
+| --- | --- |
+| short `String` | text input |
+| long text names such as `body`, `description`, `content` | textarea |
+| `bool` | checkbox |
+| `DateTime` | datetime selector placeholder |
+| `int` / `double` | numeric input |
+| enum-like type such as `PublishStatus` | dropdown placeholder |
+| foreign-key-like field such as `categoryId` | relation dropdown placeholder |
+| `List<T>` / `Set<T>` / `Map<K,V>` | array/list placeholder |
+| non-nullable field | red `*` required marker |
+| nullable field | optional marker |
+
 So if someone asks whether this is a new package, the accurate answer is:
 
-> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, and benchmark tooling. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using release tags like `v0.1.0+serverpod.3.5.0-beta.10` to show both PocketPod progress and Serverpod compatibility.
+> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, benchmark tooling, and an admin generator foundation. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using release tags like `v0.1.0+serverpod.3.5.0-beta.10` to show both PocketPod progress and Serverpod compatibility.
 
 ## How To Explain PocketPod To Other People
 
