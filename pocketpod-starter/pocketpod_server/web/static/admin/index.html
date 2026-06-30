@@ -417,7 +417,7 @@
             <h3 id="editTitle">Edit record</h3>
             <div id="editFields" class="edit-grid"></div>
             <div class="form-actions">
-              <button type="submit">Save changes</button>
+              <button id="saveEditButton" type="submit">Save changes</button>
               <button id="cancelEditButton" class="secondary" type="button">Cancel</button>
             </div>
             <div id="editError" class="error"></div>
@@ -450,6 +450,7 @@
       const editTitle = document.getElementById('editTitle');
       const editFields = document.getElementById('editFields');
       const editError = document.getElementById('editError');
+      const saveEditButton = document.getElementById('saveEditButton');
       const cancelEditButton = document.getElementById('cancelEditButton');
       const recordsHead = document.getElementById('recordsHead');
       const recordsBody = document.getElementById('recordsBody');
@@ -600,7 +601,6 @@
 
       function renderRecordCell(collection, row, field, value) {
         if (
-          isEditableCollection(collection.key) &&
           field.name === primaryEditField(collection.key)
         ) {
           return `
@@ -720,12 +720,17 @@
           id,
         }, authToken);
         const values = Object.fromEntries(response.cells.map((cell) => [cell.field, cell.value]));
+        const editable = isEditableCollection(activeCollectionKey);
         editRecordId = response.id;
-        editTitle.textContent = `Edit ${activeCollection.title} #${response.id}`;
+        editTitle.textContent = `${editable ? 'Edit' : 'View'} ${activeCollection.title} #${response.id}`;
         editError.style.display = 'none';
         editFields.innerHTML = activeCollection.fields
           .map((field) => renderEditControl(field, values[field.name] ?? ''))
           .join('');
+        saveEditButton.classList.toggle('hidden', !editable);
+        editFields.querySelectorAll('input, select, textarea').forEach((control) => {
+          control.disabled = !editable || control.name === 'updatedAt';
+        });
         editForm.classList.remove('hidden');
       }
 

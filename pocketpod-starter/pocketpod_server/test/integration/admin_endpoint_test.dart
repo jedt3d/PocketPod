@@ -94,6 +94,13 @@ void main() {
         contains('textarea'),
       );
 
+      final adminExample = await endpoints.admin.getRecord(
+        adminSession,
+        'admin_input_examples',
+        '1',
+      );
+      expect(_cellValue(adminExample, 'title'), 'Launch article');
+
       final productId = products.rows.first.id;
       await expectLater(
         endpoints.admin.updateRecord(

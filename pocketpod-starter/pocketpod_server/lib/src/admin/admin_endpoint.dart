@@ -60,6 +60,7 @@ class AdminEndpoint extends Endpoint {
     await _ensureSeedData(session);
 
     return switch (collectionKey) {
+      'admin_input_examples' => _requireAdminInputExample(id),
       'products' => _productRecord(
         await _requireProduct(session, int.parse(id)),
       ),
@@ -224,6 +225,14 @@ Future<List<AdminRecord>> _records(
     )).map(_postRecord).toList(),
     _ => const [],
   };
+}
+
+AdminRecord _requireAdminInputExample(String id) {
+  try {
+    return _adminInputExampleRecords().firstWhere((record) => record.id == id);
+  } on StateError {
+    throw ArgumentError.value(id, 'id', 'Admin input example not found.');
+  }
 }
 
 List<AdminRecord> _adminInputExampleRecords() {
