@@ -81,6 +81,8 @@ pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png
 
 Phase 3 is accepted and complete for the current milestone. Phase 4 is also complete: the PocketPod admin surface now exists as a standalone Flutter Web app under `pocketpod-starter/admin_ui/`.
 
+![PocketPod Flutter admin app](pocketpod-starter/tool/admin_ui/screenshots/cycle6-desktop.png)
+
 ```text
 pocketpod-starter/tool/admin_ui/TASKS.md
 pocketpod-starter/tool/admin_ui/TEST_REPORT.md
@@ -106,6 +108,13 @@ http://localhost:8082/admin/index.html
 ```
 
 The Flutter admin app authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+
+The app screenshot evidence is stored in:
+
+```text
+pocketpod-starter/tool/admin_ui/screenshots/cycle6-desktop.png
+pocketpod-starter/tool/admin_ui/screenshots/cycle6-mobile.png
+```
 
 The preview currently demonstrates PocketPod's smart control mapping from Serverpod model YAML:
 

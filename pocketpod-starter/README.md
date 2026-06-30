@@ -93,6 +93,8 @@ tool/admin_ui/TEST_REPORT.md
 
 ## Admin Screen
 
+![PocketPod Flutter admin app](tool/admin_ui/screenshots/cycle6-desktop.png)
+
 Build the Flutter admin app into Serverpod's static web directory:
 
 ```sh
@@ -112,6 +114,13 @@ http://localhost:8082/admin/index.html
 ```
 
 The Flutter admin app signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+
+The app screenshot evidence is stored in:
+
+```text
+tool/admin_ui/screenshots/cycle6-desktop.png
+tool/admin_ui/screenshots/cycle6-mobile.png
+```
 
 This starter points to the in-repo Serverpod copy:
 
