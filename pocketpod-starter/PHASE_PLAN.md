@@ -221,23 +221,39 @@ Phase 3 acceptance gate:
 9. ✅ Cycle 4B first slice: admin users can edit persistent SQLite-backed Product/Post records through smart generated controls.
 10. ✅ Cycle 4B accepted: every collection opens records from its primary field, Admin Input Examples is view-only, and Products/Posts are editable.
 
-## Phase 4: Flutter Admin App
+## ✅ Phase 4: Flutter Admin App
 
 Goal:
 Provide a standalone Flutter Web admin app that hosts generated CRUD screens.
 
 Features:
-1. Scaffold `admin_ui/` as a Flutter Web project.
-2. Wire generated widgets to the Serverpod client package.
-3. Add basic navigation, loading, empty, error, create, edit, and delete states.
-4. Recreate the accepted Phase 3 admin behavior in Flutter Web:
+1. ✅ Scaffold `admin_ui/` as a Flutter Web project.
+2. ✅ Wire the app to the generated Serverpod client package through a typed `AdminApi` boundary.
+3. ✅ Add navigation, loading, empty, error, view, edit, validation, save success, and save failure states.
+4. ✅ Recreate the accepted Phase 3 admin behavior in Flutter Web:
    - Serverpod Auth login.
    - protected admin shell.
    - collection browsing.
    - primary-field record opening in every collection.
    - view-only Admin Input Examples.
    - editable SQLite-backed Products and Posts.
-5. Add cycle-by-cycle validation in `tool/admin_ui/TEST_REPORT.md`.
+5. ✅ Add metadata generation output that can be consumed by the Flutter admin runtime.
+6. ✅ Add responsive desktop/mobile-width layout behavior and screenshot evidence.
+7. ✅ Build the Flutter Web app into Serverpod's static web app path.
+8. ✅ Add cycle-by-cycle validation in `tool/admin_ui/TEST_REPORT.md`.
+
+Served Flutter admin app:
+
+```text
+http://localhost:8082/app/
+```
+
+Build command:
+
+```sh
+cd pocketpod-starter
+tool/admin_ui/build_serverpod_admin.sh
+```
 
 Detailed task ledger:
 
@@ -246,7 +262,7 @@ tool/admin_ui/TASKS.md
 ```
 
 Stop condition:
-The admin app builds for web and can exercise generated CRUD screens against a local Serverpod server.
+✅ The admin app builds for web, is served by the local Serverpod web server at `/app/`, and can exercise generated CRUD screens against a local Serverpod server.
 
 ## Phase 5: Zero-Docker Packaging
 

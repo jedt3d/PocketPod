@@ -134,9 +134,31 @@ Every collection now opens records from the primary display field:
 
 Cycle 4B has been manually reviewed in the browser and is ready to hand off to the next cycle.
 
-## Phase 4 Planning
+## Phase 4 Flutter Admin App
 
-Phase 3 is complete for the accepted milestone. Phase 4 should move the current served admin behavior into a standalone Flutter Web admin app.
+Phase 4 is complete for the accepted milestone. PocketPod now has a standalone Flutter Web admin app at:
+
+```text
+admin_ui/
+```
+
+The app is built into Serverpod's static web directory with:
+
+```sh
+tool/admin_ui/build_serverpod_admin.sh
+```
+
+When the starter server is running, the Flutter admin app is served at:
+
+```text
+http://localhost:8082/app/
+```
+
+The older served HTML admin prototype remains available for reference at:
+
+```text
+http://localhost:8082/admin/index.html
+```
 
 The detailed Phase 4 task ledger is:
 
@@ -144,13 +166,13 @@ The detailed Phase 4 task ledger is:
 tool/admin_ui/TASKS.md
 ```
 
-The Phase 4 test report will be recorded in:
+The Phase 4 test report is recorded in:
 
 ```text
 tool/admin_ui/TEST_REPORT.md
 ```
 
-Phase 4 should keep the existing served HTML admin screen as the reference behavior until the Flutter Web app reaches parity.
+The Flutter admin app signs in through Serverpod Auth, stores the JWT in browser storage, and calls protected `Scope.admin` endpoints through the generated Serverpod client. It supports collection browsing, primary-field record opening, view-only Admin Input Examples, editable SQLite-backed Products and Posts, required-field validation, numeric validation, save success/failure states, and responsive desktop/mobile-width layout.
 
 Current smart form-control mapping:
 

@@ -90,41 +90,6 @@ flutter test admin_ui: 1 test passed.
 flutter build web: built build/web.
 ```
 
-## Cycle 7: Static Build And Serverpod Hosting
-
-Status: complete.
-
-Decisions:
-
-```text
-The Flutter Web admin bundle is hosted at `pocketpod_server/web/app/` and served as `/app/` by the Serverpod web server.
-The older `/admin/index.html` served HTML prototype remains available as historical/reference output until documentation moves users fully to the Flutter app.
-```
-
-Changes:
-
-- Added `tool/admin_ui/build_serverpod_admin.sh`.
-- The script builds `admin_ui/` with `--base-href /app/`.
-- The script writes static output to `pocketpod_server/web/app/`.
-- Added build-time API URL configuration through `POCKETPOD_API_URL`.
-- Updated `ServerpodAdminApi` to read `POCKETPOD_API_URL` from Dart environment defines, defaulting to `http://localhost:8080/`.
-- Documented build and serve commands in `tool/admin_ui/README.md`.
-
-Validation:
-
-```sh
-tool/admin_ui/build_serverpod_admin.sh
-curl -s -o /tmp/pocketpod-app-index.html -w '%{http_code}\n' http://127.0.0.1:8082/app/
-```
-
-Result:
-
-```text
-PASS
-build_serverpod_admin.sh: built pocketpod_server/web/app.
-curl http://127.0.0.1:8082/app/: 200.
-```
-
 Note:
 
 ```text
@@ -133,7 +98,7 @@ flutter build web emitted a non-fatal scaffold font warning mentioning Cupertino
 
 ## Cycle 2: Auth Shell
 
-Status: complete except screenshot evidence.
+Status: complete.
 
 Changes:
 
@@ -167,12 +132,12 @@ Notes:
 
 ```text
 The pinned generated Serverpod client exposes `authenticationKeyManager` rather than the newer `authKeyProvider`, so the Flutter admin app uses a small local compatibility wrapper and scopes the deprecated API ignore to `admin_api.dart`.
-Screenshot evidence is still pending for Cycle 2 and can be captured once the app is run in Chrome.
+Final Phase 4 screenshot evidence is recorded in Cycle 8 after the authenticated shell, collection browser, and edit form work were integrated.
 ```
 
 ## Cycle 3: Collection Browser
 
-Status: complete except screenshot evidence.
+Status: complete.
 
 Changes:
 
@@ -211,12 +176,12 @@ Notes:
 
 ```text
 The collection panel uses a bounded scroll area so field chips, tables, and detail previews remain usable on shorter screens.
-Screenshot evidence is still pending and should be captured from the running web app before the Phase 4 acceptance gate.
+Final Phase 4 screenshot evidence is recorded in Cycle 8 after the collection browser was integrated with the hosted app.
 ```
 
 ## Cycle 4: Detail And Edit Forms
 
-Status: complete except screenshot evidence.
+Status: complete.
 
 Changes:
 
@@ -259,7 +224,7 @@ Notes:
 
 ```text
 The dropdown relation control is currently a local placeholder list because the admin metadata contract does not yet expose relation option endpoints.
-Screenshot evidence for Product and Post edit remains pending for the Phase 4 acceptance gate.
+Final Phase 4 screenshot evidence is recorded in Cycle 8 after the edit form was integrated with the hosted app.
 ```
 
 ## Cycle 5: Generator Integration
@@ -344,4 +309,95 @@ PASS
 flutter analyze admin_ui: No issues found.
 flutter test admin_ui: 7 tests passed.
 flutter build web: built build/web.
+```
+
+## Cycle 7: Static Build And Serverpod Hosting
+
+Status: complete.
+
+Decisions:
+
+```text
+The Flutter Web admin bundle is hosted at `pocketpod_server/web/app/` and served as `/app/` by the Serverpod web server.
+The older `/admin/index.html` served HTML prototype remains available as historical/reference output until documentation moves users fully to the Flutter app.
+```
+
+Changes:
+
+- Added `tool/admin_ui/build_serverpod_admin.sh`.
+- The script builds `admin_ui/` with `--base-href /app/`.
+- The script writes static output to `pocketpod_server/web/app/`.
+- Added build-time API URL configuration through `POCKETPOD_API_URL`.
+- Updated `ServerpodAdminApi` to read `POCKETPOD_API_URL` from Dart environment defines, defaulting to `http://localhost:8080/`.
+- Documented build and serve commands in `tool/admin_ui/README.md`.
+
+Validation:
+
+```sh
+tool/admin_ui/build_serverpod_admin.sh
+curl -s -o /tmp/pocketpod-app-index.html -w '%{http_code}\n' http://127.0.0.1:8082/app/
+```
+
+Result:
+
+```text
+PASS
+build_serverpod_admin.sh: built pocketpod_server/web/app.
+curl http://127.0.0.1:8082/app/: 200.
+```
+
+## Cycle 8: Phase 4 Acceptance Gate
+
+Status: complete.
+
+Final deliverable:
+
+```text
+Standalone Flutter Web admin app:
+admin_ui/
+
+Serverpod-served build path:
+pocketpod_server/web/app/
+
+Local served URL:
+http://localhost:8082/app/
+```
+
+Final validation:
+
+```sh
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+flutter test test/admin_generator --reporter expanded
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator
+cd pocketpod_server && flutter test --reporter expanded
+tool/admin_ui/build_serverpod_admin.sh
+curl -s -o /tmp/pocketpod-app-index.html -w '%{http_code}\n' http://127.0.0.1:8082/app/
+```
+
+Result:
+
+```text
+PASS
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 7 tests passed.
+flutter test test/admin_generator: 7 tests passed.
+dart format --set-exit-if-changed tool/admin_generator test/admin_generator: pass.
+cd pocketpod_server && flutter test: 3 tests passed.
+tool/admin_ui/build_serverpod_admin.sh: built pocketpod_server/web/app.
+curl http://127.0.0.1:8082/app/: 200.
+```
+
+Screenshots:
+
+```text
+tool/admin_ui/screenshots/cycle6-desktop.png
+tool/admin_ui/screenshots/cycle6-mobile.png
+```
+
+Notes:
+
+```text
+`dart test` from pocketpod_server is not the correct command in this workspace because the workspace includes Flutter SDK packages; `flutter test` is the working server test command.
+The generated static bundle under pocketpod_server/web/app is reproducible and ignored by git; use tool/admin_ui/build_serverpod_admin.sh to refresh it.
 ```

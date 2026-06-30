@@ -79,20 +79,33 @@ pocketpod-starter/tool/admin_generator/generated/admin_preview.html
 pocketpod-starter/tool/admin_generator/screenshots/admin-preview.png
 ```
 
-Phase 3 is accepted and complete for the current milestone. Phase 4 planning now lives in:
+Phase 3 is accepted and complete for the current milestone. Phase 4 is also complete: the PocketPod admin surface now exists as a standalone Flutter Web app under `pocketpod-starter/admin_ui/`.
 
 ```text
 pocketpod-starter/tool/admin_ui/TASKS.md
 pocketpod-starter/tool/admin_ui/TEST_REPORT.md
 ```
 
-The first real served admin screen is available when the starter server is running:
+Build the Flutter admin app into Serverpod's static web directory:
+
+```sh
+cd pocketpod-starter
+tool/admin_ui/build_serverpod_admin.sh
+```
+
+When the starter server is running, open the Flutter admin app at:
+
+```text
+http://localhost:8082/app/
+```
+
+The older served HTML admin prototype remains available for reference at:
 
 ```text
 http://localhost:8082/admin/index.html
 ```
 
-It authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+The Flutter admin app authenticates through Serverpod Auth and calls protected `Scope.admin` admin endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
 
 The preview currently demonstrates PocketPod's smart control mapping from Serverpod model YAML:
 

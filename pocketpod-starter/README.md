@@ -78,7 +78,13 @@ Review the latest screenshot:
 tool/admin_generator/screenshots/admin-preview.png
 ```
 
-Phase 4 planning for the standalone Flutter Web admin app lives in:
+Phase 4 is complete for the current milestone. The standalone Flutter Web admin app lives in:
+
+```text
+admin_ui/
+```
+
+Its task ledger and test report live in:
 
 ```text
 tool/admin_ui/TASKS.md
@@ -87,13 +93,25 @@ tool/admin_ui/TEST_REPORT.md
 
 ## Admin Screen
 
-When the starter server is running, the first real PocketPod admin screen is served at:
+Build the Flutter admin app into Serverpod's static web directory:
+
+```sh
+tool/admin_ui/build_serverpod_admin.sh
+```
+
+When the starter server is running, open the Flutter admin app at:
+
+```text
+http://localhost:8082/app/
+```
+
+The older served HTML admin prototype remains available for reference at:
 
 ```text
 http://localhost:8082/admin/index.html
 ```
 
-It signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
+The Flutter admin app signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
 
 This starter points to the in-repo Serverpod copy:
 

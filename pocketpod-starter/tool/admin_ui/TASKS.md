@@ -58,7 +58,7 @@ The admin UI app builds/tests independently and can be opened as a Flutter Web a
 - [x] Show clear login loading and error states.
 - [x] Add widget tests for login form states.
 - [x] Add service tests for success/failure mapping where practical.
-- [ ] Capture screenshot evidence.
+- [x] Capture screenshot evidence.
 - [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
@@ -81,7 +81,7 @@ An admin can sign in and reach the Flutter admin shell. Invalid or expired auth 
 - [x] Keep an explicit Edit action for editable collections.
 - [x] Add responsive layout behavior for desktop and narrow widths.
 - [x] Add widget tests for table rendering and primary-field navigation.
-- [ ] Capture screenshot evidence.
+- [x] Capture screenshot evidence.
 - [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
@@ -108,7 +108,7 @@ The Flutter app can browse all current collections and open a record from the pr
 - [x] Show save success and failure states.
 - [x] Add widget tests for each control type.
 - [x] Add integration-style tests with mocked admin service responses.
-- [ ] Capture screenshot evidence for Product edit and Post edit.
+- [x] Capture screenshot evidence for Product edit and Post edit.
 - [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
@@ -171,17 +171,17 @@ The built Flutter Web admin app is served through the local PocketPod Serverpod 
 
 ## Cycle 8: Phase 4 Acceptance Gate
 
-- [ ] Run full workspace analysis.
-- [ ] Run server tests.
-- [ ] Run admin UI tests.
-- [ ] Run generator tests.
-- [ ] Run Flutter Web build.
-- [ ] Verify login, browse, view-only, edit, save, and refresh flows manually.
-- [ ] Capture final screenshots.
-- [ ] Update `PHASE_PLAN.md`.
-- [ ] Update root and starter READMEs.
-- [ ] Update `system-summary.md`.
-- [ ] Record final validation in `TEST_REPORT.md`.
+- [x] Run full workspace analysis.
+- [x] Run server tests.
+- [x] Run admin UI tests.
+- [x] Run generator tests.
+- [x] Run Flutter Web build.
+- [x] Verify login, browse, view-only, edit, save, and refresh flows manually.
+- [x] Capture final screenshots.
+- [x] Update `PHASE_PLAN.md`.
+- [x] Update root and starter READMEs.
+- [x] Update `system-summary.md`.
+- [x] Record final validation in `TEST_REPORT.md`.
 
 Acceptance:
 
