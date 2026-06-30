@@ -16,6 +16,7 @@ PocketBase is not a PocketPod dependency and is not part of the PocketPod runtim
 yaml_to_admin.dart     reads Serverpod model YAML and generates admin code
 fixtures/              representative model YAML fixtures
 test/                  generator output tests
+TEST_REPORT.md         cycle-by-cycle validation report
 ```
 
 ## Phase 3 Acceptance Target
@@ -23,3 +24,14 @@ test/                  generator output tests
 ```text
 Given sample Serverpod model YAML files, the generator emits predictable Flutter admin source, and tests verify the output.
 ```
+
+## Development Cycle
+
+Phase 3 is built in small reviewable slices:
+
+1. Task ledger and test report.
+2. YAML model parser and deterministic admin source generator.
+3. CLI wrapper with fixture-based tests.
+4. Generated admin preview and screenshot evidence.
+5. Serverpod Auth/sysadmin bootstrap slice.
+6. Admin endpoint guard generation and auth tests.
