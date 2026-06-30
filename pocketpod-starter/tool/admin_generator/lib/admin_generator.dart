@@ -116,6 +116,268 @@ class AdminGenerator {
     return buffer.toString();
   }
 
+  String adminFileName(AdminModel model) {
+    return '${_snakeCase(model.className)}_admin.dart';
+  }
+
+  String generatePreviewHtml(List<AdminModel> models) {
+    final firstModel = models.isNotEmpty ? models.first : null;
+    final navItems = models
+        .map((model) {
+          final activeClass = model == firstModel ? ' active' : '';
+          return '''
+        <button class="nav-item$activeClass">
+          <span>${_escapeHtml(model.title)}</span>
+          <strong>${model.fields.length}</strong>
+        </button>''';
+        })
+        .join('\n');
+
+    final content = firstModel == null
+        ? '<main class="content"><h1>No Models</h1></main>'
+        : _previewContent(firstModel);
+
+    return '''
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PocketPod Admin Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #627085;
+      --line: #d4dce7;
+      --panel: #ffffff;
+      --surface: #f3f6fa;
+      --accent: #0b6bcb;
+      --accent-strong: #084c94;
+      --success: #137a44;
+      --warning: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: #102033;
+      color: #f8fbff;
+      padding: 18px 14px;
+      border-right: 1px solid #091320;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 40px;
+      padding: 0 8px;
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background: var(--accent);
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 38px;
+      padding: 0 10px;
+      margin-bottom: 4px;
+      border: 0;
+      border-radius: 6px;
+      color: #d8e3f2;
+      background: transparent;
+      text-align: left;
+      font: inherit;
+    }
+    .nav-item strong {
+      color: #9db4d0;
+      font-size: 12px;
+    }
+    .nav-item.active {
+      color: #ffffff;
+      background: #1f7bd8;
+    }
+    .nav-item.active strong { color: #ffffff; }
+    .content {
+      padding: 24px;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .meta {
+      margin-top: 4px;
+      color: var(--muted);
+    }
+    .button {
+      height: 38px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 6px;
+      color: #ffffff;
+      background: var(--accent);
+      font-weight: 700;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+      gap: 18px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      color: #344257;
+      background: #eaf0f7;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .form {
+      padding: 16px;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #344257;
+      font-weight: 700;
+    }
+    .input {
+      display: flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--muted);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: #ffffff;
+      background: var(--success);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { min-height: auto; }
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <span>PocketPod Admin</span>
+      </div>
+$navItems
+    </aside>
+$content
+  </div>
+</body>
+</html>
+''';
+  }
+
+  String _previewContent(AdminModel model) {
+    final headings = model.fields
+        .map((field) => '<th>${_escapeHtml(field.label)}</th>')
+        .join();
+    final cells = model.fields.map((field) {
+      final value = switch (field.kind) {
+        AdminFieldKind.boolean => '<span class="pill">Active</span>',
+        AdminFieldKind.integer => '42',
+        AdminFieldKind.decimal => '129.00',
+        AdminFieldKind.dateTime => '2026-06-30',
+        AdminFieldKind.text => 'Sample ${_escapeHtml(field.label)}',
+        AdminFieldKind.unsupported => _escapeHtml(field.rawType),
+      };
+      return '<td>$value</td>';
+    }).join();
+    final fields = model.fields
+        .map((field) {
+          return '''
+          <div class="field">
+            <label>${_escapeHtml(field.label)}</label>
+            <div class="input">${_escapeHtml(field.rawType)}</div>
+          </div>''';
+        })
+        .join('\n');
+
+    return '''
+    <main class="content">
+      <div class="toolbar">
+        <div>
+          <h1>${_escapeHtml(model.title)}</h1>
+          <div class="meta">${_escapeHtml(model.className)} model · ${model.fields.length} fields · admin scope required</div>
+        </div>
+        <button class="button">New ${_escapeHtml(_splitWords(model.className))}</button>
+      </div>
+      <div class="layout">
+        <section class="panel">
+          <table>
+            <thead><tr>$headings</tr></thead>
+            <tbody><tr>$cells</tr></tbody>
+          </table>
+        </section>
+        <section class="panel form">
+$fields
+          <button class="button">Save ${_escapeHtml(_splitWords(model.className))}</button>
+        </section>
+      </div>
+    </main>''';
+  }
+
   String _generateTable(AdminModel model) {
     final columns = model.fields
         .map(
@@ -246,6 +508,16 @@ String _kebabCase(String value) {
       .toLowerCase();
 }
 
+String _snakeCase(String value) {
+  return value
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match.group(1)}_${match.group(2)}',
+      )
+      .replaceAll(RegExp(r'[\s-]+'), '_')
+      .toLowerCase();
+}
+
 String _splitWords(String value) {
   final spaced = value
       .replaceAllMapped(
@@ -258,4 +530,13 @@ String _splitWords(String value) {
 
 String _escapeDart(String value) {
   return value.replaceAll(r'\', r'\\').replaceAll("'", r"\'");
+}
+
+String _escapeHtml(String value) {
+  return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
 }

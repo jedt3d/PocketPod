@@ -52,6 +52,45 @@ void main() {
       expect(regenerated, generated);
     });
 
+    test('generates a static admin preview', () {
+      final product = generator.parseModel(
+        File(
+          'tool/admin_generator/fixtures/product.spy.yaml',
+        ).readAsStringSync(),
+      );
+      final post = generator.parseModel(
+        File('tool/admin_generator/fixtures/post.spy.yaml').readAsStringSync(),
+      );
+
+      final html = generator.generatePreviewHtml([product, post]);
+
+      expect(html, contains('<title>PocketPod Admin Preview</title>'));
+      expect(html, contains('PocketPod Admin'));
+      expect(html, contains('Products'));
+      expect(html, contains('Posts'));
+      expect(html, contains('admin scope required'));
+    });
+
+    test('CLI writes generated Dart and preview files', () async {
+      final tempDir = Directory.systemTemp.createTempSync(
+        'pocketpod_admin_generator_test_',
+      );
+      addTearDown(() => tempDir.deleteSync(recursive: true));
+
+      final result = await Process.run('dart', [
+        'tool/admin_generator/yaml_to_admin.dart',
+        '--input',
+        'tool/admin_generator/fixtures',
+        '--output',
+        tempDir.path,
+      ]);
+
+      expect(result.exitCode, 0, reason: result.stderr as String?);
+      expect(File('${tempDir.path}/product_admin.dart').existsSync(), isTrue);
+      expect(File('${tempDir.path}/post_admin.dart').existsSync(), isTrue);
+      expect(File('${tempDir.path}/admin_preview.html').existsSync(), isTrue);
+    });
+
     test('rejects YAML without fields', () {
       expect(
         () => generator.parseModel('class: Empty\n'),

@@ -58,23 +58,43 @@ flutter analyze: No issues found.
 
 ## Cycle 2: CLI And Preview
 
-Status: pending.
+Status: complete.
+
+Changes:
+- Added `tool/admin_generator/yaml_to_admin.dart`.
+- Added CLI support for `--input`, `--output`, `--preview`, `--format`, and `--help`.
+- Added sample generated Dart output under `tool/admin_generator/generated`.
+- Added static HTML preview output at `tool/admin_generator/generated/admin_preview.html`.
+- Captured browser screenshot evidence at `tool/admin_generator/screenshots/admin-preview.png`.
 
 Validation:
 
 ```sh
 dart run tool/admin_generator/yaml_to_admin.dart --help
 dart run tool/admin_generator/yaml_to_admin.dart --input tool/admin_generator/fixtures --output tool/admin_generator/generated
+flutter test test/admin_generator
+flutter analyze
+dart format --set-exit-if-changed tool/admin_generator/generated
+npx playwright screenshot --viewport-size=1440,960 "file://$(pwd)/tool/admin_generator/generated/admin_preview.html" tool/admin_generator/screenshots/admin-preview.png
 ```
 
 Result:
 
 ```text
-PENDING
+PASS
+CLI generated:
+- tool/admin_generator/generated/post_admin.dart
+- tool/admin_generator/generated/product_admin.dart
+- tool/admin_generator/generated/admin_preview.html
+
+flutter test test/admin_generator: 5 tests passed.
+flutter analyze: No issues found.
+dart format --set-exit-if-changed tool/admin_generator/generated: pass.
+Playwright screenshot: captured successfully.
 ```
 
 Screenshot:
 
 ```text
-PENDING
+tool/admin_generator/screenshots/admin-preview.png
 ```

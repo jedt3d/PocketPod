@@ -18,11 +18,11 @@ This task list tracks the Phase 3 implementation lifecycle on the `feature/phase
 
 ## Cycle 2: CLI And Preview
 
-- [ ] Add `yaml_to_admin.dart` CLI.
-- [ ] Generate files from an input directory to an output directory.
-- [ ] Generate a static admin preview artifact for visual review.
-- [ ] Capture screenshot evidence.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Add `yaml_to_admin.dart` CLI.
+- [x] Generate files from an input directory to an output directory.
+- [x] Generate a static admin preview artifact for visual review.
+- [x] Capture screenshot evidence.
+- [x] Record validation in `TEST_REPORT.md`.
 
 ## Cycle 3: Serverpod Auth Bootstrap
 

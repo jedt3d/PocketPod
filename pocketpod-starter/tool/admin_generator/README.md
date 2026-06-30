@@ -15,6 +15,8 @@ PocketBase is not a PocketPod dependency and is not part of the PocketPod runtim
 ```text
 yaml_to_admin.dart     reads Serverpod model YAML and generates admin code
 fixtures/              representative model YAML fixtures
+generated/             sample generated Dart and HTML preview output
+screenshots/           browser screenshot evidence for generated preview
 test/                  generator output tests
 TEST_REPORT.md         cycle-by-cycle validation report
 ```
