@@ -95,6 +95,8 @@ if [[ ! -f "$starter_source/pubspec.yaml" || ! -d "$starter_source/pocketpod_ser
 fi
 
 serverpod_version="$(tr -d '[:space:]' < "$serverpod_source/SERVERPOD_VERSION")"
+pocketpod_version="0.1.0"
+pocketpod_release_tag="v${pocketpod_version}+serverpod.${serverpod_version}"
 
 require_tool() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -259,19 +261,25 @@ It is built on [Serverpod](https://serverpod.dev). PocketPod does not replace Se
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of this starter; it is used only as inspiration and as one optional benchmark comparison target.
 
-The Serverpod baseline used by this starter is:
+PocketPod version:
+
+\`\`\`text
+$pocketpod_version
+\`\`\`
+
+Compatible Serverpod baseline:
 
 \`\`\`text
 $serverpod_version
 \`\`\`
 
-PocketPod release tags intentionally match the Serverpod baseline, for example:
+Release tag:
 
 \`\`\`text
-v$serverpod_version
+$pocketpod_release_tag
 \`\`\`
 
-This makes it easy to know which Serverpod version the starter and \`serverpod-pocketpod\` source copy are aligned with.
+This makes it easy to know both PocketPod's own version and the Serverpod version that the starter and \`serverpod-pocketpod\` source copy are aligned with.
 
 From the repository root, refresh the local path overrides and README files with:
 
@@ -381,19 +389,25 @@ PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), es
 
 ## Version
 
+PocketPod version:
+
+\`\`\`text
+$pocketpod_version
+\`\`\`
+
 This copy is based on Serverpod:
 
 \`\`\`text
 $serverpod_version
 \`\`\`
 
-PocketPod uses the same release tag:
+Release tag:
 
 \`\`\`text
-v$serverpod_version
+$pocketpod_release_tag
 \`\`\`
 
-The version number is intentionally the same as Serverpod's baseline version so users can quickly match \`serverpod-pocketpod\` to the upstream Serverpod version it was built from.
+The PocketPod version is intentionally separate from Serverpod's version so PocketPod can evolve independently. The \`+serverpod.$serverpod_version\` metadata keeps the upstream Serverpod baseline easy to identify.
 
 ## Why This Exists
 

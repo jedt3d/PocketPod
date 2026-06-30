@@ -6,13 +6,19 @@ PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod remains the 
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight SQLite deployment feel. PocketBase is not part of the PocketPod runtime; it is referenced as inspiration and as an optional benchmark comparison.
 
-Current Serverpod baseline:
+PocketPod version:
+
+```text
+0.1.0
+```
+
+Compatible Serverpod baseline:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod release tags intentionally match this Serverpod version, for example `v3.5.0-beta.10`, so each PocketPod release clearly identifies its Serverpod source baseline.
+PocketPod release tags use the PocketPod version plus Serverpod compatibility metadata, for example `v0.1.0+serverpod.3.5.0-beta.10`, so each release can show PocketPod progress while still identifying its Serverpod source baseline.
 
 ## Phase 1: Serverpod SQLite Scaffold
 

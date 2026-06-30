@@ -16,19 +16,25 @@ PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), es
 
 ## Version
 
+PocketPod version:
+
+```text
+0.1.0
+```
+
 This copy is based on Serverpod:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod uses the same release tag:
+Release tag:
 
 ```text
-v3.5.0-beta.10
+v0.1.0+serverpod.3.5.0-beta.10
 ```
 
-The version number is intentionally the same as Serverpod's baseline version so users can quickly match `serverpod-pocketpod` to the upstream Serverpod version it was built from.
+The PocketPod version is intentionally separate from Serverpod's version so PocketPod can evolve independently. The `+serverpod.3.5.0-beta.10` metadata keeps the upstream Serverpod baseline easy to identify.
 
 ## Why This Exists
 

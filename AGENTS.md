@@ -4,19 +4,25 @@ PocketPod is built on [Serverpod](https://serverpod.dev). Preserve that attribut
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight SQLite deployment feel. Mention PocketBase as inspiration or benchmark context only; do not describe it as a dependency or part of the PocketPod runtime.
 
-Current Serverpod baseline:
+PocketPod version:
+
+```text
+0.1.0
+```
+
+Compatible Serverpod baseline:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod release tags should match the Serverpod baseline version, for example:
+Release tags should include the PocketPod version and Serverpod compatibility baseline, for example:
 
 ```text
-v3.5.0-beta.10
+v0.1.0+serverpod.3.5.0-beta.10
 ```
 
-Use this versioning rule so `serverpod-pocketpod` can be matched directly to the upstream Serverpod version it was copied from. PocketPod-specific changes belong in commits, README notes, and benchmark documentation; the release number identifies the Serverpod baseline.
+Use this versioning rule so PocketPod can evolve independently while `serverpod-pocketpod` can still be matched directly to the upstream Serverpod version it was copied from. PocketPod-specific changes advance the PocketPod version; the `+serverpod...` metadata identifies the Serverpod baseline.
 
 Repository layout:
 

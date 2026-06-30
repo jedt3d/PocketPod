@@ -16,19 +16,25 @@ PocketPod is built on [Serverpod](https://serverpod.dev). Serverpod provides the
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a PocketPod dependency and is not part of the runtime architecture; it is an inspiration point and optional benchmark comparison target.
 
-Current Serverpod baseline:
+PocketPod version:
+
+```text
+0.1.0
+```
+
+Compatible Serverpod baseline:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod release tags intentionally match the Serverpod baseline version:
+Release tag:
 
 ```text
-v3.5.0-beta.10
+v0.1.0+serverpod.3.5.0-beta.10
 ```
 
-This version policy makes the relationship explicit: when someone sees a PocketPod release tag, they can immediately identify which Serverpod version the `serverpod-pocketpod` source copy was built from. PocketPod-specific changes are described by commits and documentation; the release number identifies the Serverpod baseline.
+This version policy makes the relationship explicit: `0.1.0` is PocketPod's own version, while `+serverpod.3.5.0-beta.10` identifies which Serverpod version the `serverpod-pocketpod` source copy was built from. PocketPod can evolve independently without losing Serverpod compatibility clarity.
 
 The project is trying to bring some of the lightweight deployment feel people like from tools such as PocketBase, but without leaving the Serverpod ecosystem. The intent is:
 
@@ -86,7 +92,7 @@ tool/benchmarks/results/benchmark-report.html
 
 So if someone asks whether this is a new package, the accurate answer is:
 
-> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, and benchmark tooling. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using a PocketPod release tag that matches the Serverpod baseline version.
+> No. Today PocketPod is a Serverpod project profile and tuning approach: a small Serverpod SQLite adapter patch, app-level SQLite configuration, and benchmark tooling. It is tracked in this repository as `pocketpod-starter` plus `serverpod-pocketpod`, using release tags like `v0.1.0+serverpod.3.5.0-beta.10` to show both PocketPod progress and Serverpod compatibility.
 
 ## How To Explain PocketPod To Other People
 

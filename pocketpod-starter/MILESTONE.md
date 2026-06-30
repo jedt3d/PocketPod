@@ -6,13 +6,19 @@ PocketPod is built on [Serverpod](https://serverpod.dev), and the Serverpod team
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight SQLite deployment feel. PocketBase remains an inspiration and benchmark comparison target, not a PocketPod dependency.
 
-Current Serverpod baseline:
+PocketPod version:
+
+```text
+0.1.0
+```
+
+Compatible Serverpod baseline:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod release tags match the Serverpod baseline version, such as `v3.5.0-beta.10`, so the `serverpod-pocketpod` source copy can be matched directly to the upstream Serverpod version used for this milestone history.
+PocketPod release tags use the PocketPod version plus Serverpod compatibility metadata, such as `v0.1.0+serverpod.3.5.0-beta.10`, so the milestone history shows both PocketPod progress and the upstream Serverpod version used by `serverpod-pocketpod`.
 
 ## Phase 1: Serverpod SQLite Scaffold
 
@@ -71,7 +77,7 @@ Harness:
 - Machine: Apple M4 Pro, 14 CPU cores, 24 GB RAM, macOS Darwin 25.5.0 arm64.
 - Runtime: Dart 3.12.2 for `dart run`; Flutter 3.41.7 workspace tooling.
 - Serverpod source: local `ServerPod` git `fcebaf45c` plus SQLite tuning patch.
-- PocketPod source: tracked repository release matching the Serverpod baseline version, `v3.5.0-beta.10`.
+- PocketPod source: tracked repository release `v0.1.0+serverpod.3.5.0-beta.10`, meaning PocketPod `0.1.0` on Serverpod `3.5.0-beta.10`.
 - PocketBase: v0.39.5 local binary.
 
 Comparison targets:

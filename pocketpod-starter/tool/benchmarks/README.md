@@ -2,7 +2,7 @@
 
 These benchmarks run against PocketPod's Serverpod baseline, [Serverpod](https://serverpod.dev) `3.5.0-beta.10`.
 
-PocketPod release tags intentionally match the Serverpod baseline version, for example `v3.5.0-beta.10`, so benchmark reports can be interpreted against the correct `serverpod-pocketpod` source copy.
+PocketPod release tags use the PocketPod version plus Serverpod compatibility metadata, for example `v0.1.0+serverpod.3.5.0-beta.10`, so benchmark reports show both PocketPod progress and the correct `serverpod-pocketpod` source baseline.
 
 [PocketBase](https://pocketbase.io) is included as an optional comparison target because its lightweight SQLite deployment feel inspired the original PocketPod direction. PocketBase is not a PocketPod dependency.
 

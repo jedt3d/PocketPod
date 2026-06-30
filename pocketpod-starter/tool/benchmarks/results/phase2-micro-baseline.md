@@ -5,7 +5,7 @@
 - Seed rows per target: `1000`
 - Requests per non-smoke run: `200`
 - Serverpod baseline: `3.5.0-beta.10`
-- PocketPod release tag policy: match Serverpod baseline, e.g. `v3.5.0-beta.10`
+- PocketPod release tag: `v0.1.0+serverpod.3.5.0-beta.10`
 - PocketBase: `v0.39.5`
 
 ## Throughput And P95

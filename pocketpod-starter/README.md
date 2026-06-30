@@ -6,19 +6,25 @@ It is built on [Serverpod](https://serverpod.dev). PocketPod does not replace Se
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of this starter; it is used only as inspiration and as one optional benchmark comparison target.
 
-The Serverpod baseline used by this starter is:
+PocketPod version:
+
+```text
+0.1.0
+```
+
+Compatible Serverpod baseline:
 
 ```text
 3.5.0-beta.10
 ```
 
-PocketPod release tags intentionally match the Serverpod baseline, for example:
+Release tag:
 
 ```text
-v3.5.0-beta.10
+v0.1.0+serverpod.3.5.0-beta.10
 ```
 
-This makes it easy to know which Serverpod version the starter and `serverpod-pocketpod` source copy are aligned with.
+This makes it easy to know both PocketPod's own version and the Serverpod version that the starter and `serverpod-pocketpod` source copy are aligned with.
 
 From the repository root, refresh the local path overrides and README files with:
 
