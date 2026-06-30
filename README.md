@@ -12,6 +12,8 @@ This repository only adds a focused PocketPod layer around Serverpod for the SQL
 
 PocketPod was also initially inspired by [PocketBase](https://pocketbase.io), especially its lightweight local SQLite deployment feel. PocketBase is not a dependency of PocketPod, but it helped frame the goal: keep deployment simple while preserving the Serverpod/Dart workflow.
 
+The planned PocketPod admin generator may also borrow product-design direction from PocketBase's practical admin experience: fast CRUD navigation, dense data tables, clear collection/model editing, and a lightweight local-first feel. This should be treated as design inspiration and credited clearly in the admin generator folder. PocketPod should not copy PocketBase source code, branding, icons, or visual assets unless that is reviewed separately for license and attribution.
+
 ## Version
 
 PocketPod version:
