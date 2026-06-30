@@ -11,7 +11,7 @@ class AdminEndpoint extends Endpoint {
 
   Future<AdminDashboard> dashboard(Session session) async {
     final authenticated = session.authenticated!;
-    final collections = _collections();
+    final collections = await _collections(session);
 
     return AdminDashboard(
       title: 'PocketPod Admin',
@@ -28,14 +28,15 @@ class AdminEndpoint extends Endpoint {
   }
 
   Future<List<AdminCollection>> listCollections(Session session) async {
-    return _collections();
+    return _collections(session);
   }
 
   Future<AdminCollectionRecords> listRecords(
     Session session,
     String collectionKey,
   ) async {
-    final collections = _collections();
+    await _ensureSeedData(session);
+    final collections = await _collections(session);
     final collection = collections.firstWhere(
       (collection) => collection.key == collectionKey,
       orElse: () => throw ArgumentError.value(
@@ -47,13 +48,81 @@ class AdminEndpoint extends Endpoint {
 
     return AdminCollectionRecords(
       collection: collection,
-      rows: _recordsByCollection()[collection.key] ?? const [],
+      rows: await _records(session, collection.key),
     );
+  }
+
+  Future<AdminRecord> getRecord(
+    Session session,
+    String collectionKey,
+    String id,
+  ) async {
+    await _ensureSeedData(session);
+
+    return switch (collectionKey) {
+      'products' => _productRecord(
+        await _requireProduct(session, int.parse(id)),
+      ),
+      'posts' => _postRecord(
+        await _requirePost(session, int.parse(id)),
+      ),
+      _ => throw UnsupportedError(
+        'Collection "$collectionKey" does not support editing.',
+      ),
+    };
+  }
+
+  Future<AdminRecord> updateRecord(
+    Session session,
+    String collectionKey,
+    String id,
+    List<AdminRecordCell> cells,
+  ) async {
+    await _ensureSeedData(session);
+    final values = {for (final cell in cells) cell.field: cell.value};
+    final now = DateTime.now().toUtc();
+
+    return switch (collectionKey) {
+      'products' => _productRecord(
+        await Product.db.updateRow(
+          session,
+          (await _requireProduct(session, int.parse(id))).copyWith(
+            sku: _requiredString(values, 'sku'),
+            name: _requiredString(values, 'name'),
+            description: _requiredString(values, 'description'),
+            price: _requiredDouble(values, 'price'),
+            stock: _requiredInt(values, 'stock'),
+            published: _requiredBool(values, 'published'),
+            categoryId: _requiredInt(values, 'categoryId'),
+            updatedAt: now,
+          ),
+        ),
+      ),
+      'posts' => _postRecord(
+        await Post.db.updateRow(
+          session,
+          (await _requirePost(session, int.parse(id))).copyWith(
+            title: _requiredString(values, 'title'),
+            body: _requiredString(values, 'body'),
+            published: _requiredBool(values, 'published'),
+            publishedAt: _optionalDateTime(values, 'publishedAt'),
+            authorId: _requiredInt(values, 'authorId'),
+            updatedAt: now,
+          ),
+        ),
+      ),
+      _ => throw UnsupportedError(
+        'Collection "$collectionKey" does not support editing.',
+      ),
+    };
   }
 }
 
-List<AdminCollection> _collections() {
-  final records = _recordsByCollection();
+Future<List<AdminCollection>> _collections(Session session) async {
+  await _ensureSeedData(session);
+  final adminExampleRecords = _adminInputExampleRecords();
+  final productCount = await Product.db.count(session);
+  final postCount = await Post.db.count(session);
 
   return [
     AdminCollection(
@@ -70,34 +139,55 @@ List<AdminCollection> _collections() {
         _field('categoryId', 'Category', 'int', 'relation', required: true),
         _field('tags', 'Tags', 'List<String>?', 'list'),
       ],
-      rowCount: records['admin_input_examples']?.length ?? 0,
+      rowCount: adminExampleRecords.length,
     ),
     AdminCollection(
       key: 'products',
       title: 'Products',
-      description: 'Sample e-commerce product rows for the admin shell.',
+      description: 'SQLite-backed e-commerce product rows.',
       fields: [
         _field('sku', 'SKU', 'String', 'text', required: true),
         _field('name', 'Name', 'String', 'text', required: true),
+        _field(
+          'description',
+          'Description',
+          'String',
+          'textarea',
+          required: true,
+        ),
         _field('price', 'Price', 'double', 'number', required: true),
         _field('stock', 'Stock', 'int', 'number', required: true),
         _field('published', 'Published', 'bool', 'checkbox', required: true),
         _field('categoryId', 'Category', 'int', 'relation', required: true),
+        _field(
+          'updatedAt',
+          'Updated At',
+          'DateTime',
+          'datetime',
+          required: true,
+        ),
       ],
-      rowCount: records['products']?.length ?? 0,
+      rowCount: productCount,
     ),
     AdminCollection(
       key: 'posts',
       title: 'Posts',
-      description: 'Sample CMS post rows for the admin shell.',
+      description: 'SQLite-backed CMS post rows.',
       fields: [
         _field('title', 'Title', 'String', 'text', required: true),
         _field('body', 'Body', 'String', 'textarea', required: true),
         _field('published', 'Published', 'bool', 'checkbox', required: true),
         _field('publishedAt', 'Published At', 'DateTime?', 'datetime'),
         _field('authorId', 'Author', 'int', 'relation', required: true),
+        _field(
+          'updatedAt',
+          'Updated At',
+          'DateTime',
+          'datetime',
+          required: true,
+        ),
       ],
-      rowCount: records['posts']?.length ?? 0,
+      rowCount: postCount,
     ),
   ];
 }
@@ -118,73 +208,47 @@ AdminField _field(
   );
 }
 
-Map<String, List<AdminRecord>> _recordsByCollection() {
-  return {
-    'admin_input_examples': [
-      _record('1', {
-        'title': 'Launch article',
-        'body': 'Long-form content uses a textarea control.',
-        'summary': 'Generated controls demo',
-        'published': 'true',
-        'publishedAt': '2026-06-30 09:00',
-        'status': 'published',
-        'categoryId': 'News',
-        'tags': 'pocketpod, admin',
-      }),
-      _record('2', {
-        'title': 'Draft product guide',
-        'body': 'Draft content can stay unpublished.',
-        'summary': '',
-        'published': 'false',
-        'publishedAt': '',
-        'status': 'draft',
-        'categoryId': 'Guides',
-        'tags': 'draft',
-      }),
-    ],
-    'products': [
-      _record('SKU-1001', {
-        'sku': 'SKU-1001',
-        'name': 'PocketPod Starter License',
-        'price': '49.00',
-        'stock': '100',
-        'published': 'true',
-        'categoryId': 'Software',
-      }),
-      _record('SKU-1002', {
-        'sku': 'SKU-1002',
-        'name': 'SQLite Tuning Support',
-        'price': '149.00',
-        'stock': '25',
-        'published': 'true',
-        'categoryId': 'Services',
-      }),
-      _record('SKU-1003', {
-        'sku': 'SKU-1003',
-        'name': 'Admin Generator Preview',
-        'price': '0.00',
-        'stock': '999',
-        'published': 'false',
-        'categoryId': 'Preview',
-      }),
-    ],
-    'posts': [
-      _record('post-1', {
-        'title': 'Building with Serverpod and SQLite',
-        'body': 'A CMS post example rendered from protected admin data.',
-        'published': 'true',
-        'publishedAt': '2026-06-29 16:30',
-        'authorId': 'Admin',
-      }),
-      _record('post-2', {
-        'title': 'PocketPod Admin Generator Notes',
-        'body': 'A draft post used to verify boolean and datetime controls.',
-        'published': 'false',
-        'publishedAt': '',
-        'authorId': 'Admin',
-      }),
-    ],
+Future<List<AdminRecord>> _records(
+  Session session,
+  String collectionKey,
+) async {
+  return switch (collectionKey) {
+    'admin_input_examples' => _adminInputExampleRecords(),
+    'products' => (await Product.db.find(
+      session,
+      orderBy: (table) => table.id,
+    )).map(_productRecord).toList(),
+    'posts' => (await Post.db.find(
+      session,
+      orderBy: (table) => table.id,
+    )).map(_postRecord).toList(),
+    _ => const [],
   };
+}
+
+List<AdminRecord> _adminInputExampleRecords() {
+  return [
+    _record('1', {
+      'title': 'Launch article',
+      'body': 'Long-form content uses a textarea control.',
+      'summary': 'Generated controls demo',
+      'published': 'true',
+      'publishedAt': '2026-06-30T09:00:00.000Z',
+      'status': 'published',
+      'categoryId': 'News',
+      'tags': 'pocketpod, admin',
+    }),
+    _record('2', {
+      'title': 'Draft product guide',
+      'body': 'Draft content can stay unpublished.',
+      'summary': '',
+      'published': 'false',
+      'publishedAt': '',
+      'status': 'draft',
+      'categoryId': 'Guides',
+      'tags': 'draft',
+    }),
+  ];
 }
 
 AdminRecord _record(String id, Map<String, String> values) {
@@ -194,4 +258,139 @@ AdminRecord _record(String id, Map<String, String> values) {
         .map((entry) => AdminRecordCell(field: entry.key, value: entry.value))
         .toList(),
   );
+}
+
+AdminRecord _productRecord(Product product) {
+  return _record(product.id.toString(), {
+    'sku': product.sku,
+    'name': product.name,
+    'description': product.description,
+    'price': product.price.toStringAsFixed(2),
+    'stock': product.stock.toString(),
+    'published': product.published.toString(),
+    'categoryId': product.categoryId.toString(),
+    'updatedAt': _dateTimeValue(product.updatedAt),
+  });
+}
+
+AdminRecord _postRecord(Post post) {
+  return _record(post.id.toString(), {
+    'title': post.title,
+    'body': post.body,
+    'published': post.published.toString(),
+    'publishedAt': _dateTimeValue(post.publishedAt),
+    'authorId': post.authorId.toString(),
+    'updatedAt': _dateTimeValue(post.updatedAt),
+  });
+}
+
+Future<Product> _requireProduct(Session session, int id) async {
+  final product = await Product.db.findById(session, id);
+  if (product == null) {
+    throw ArgumentError.value(id, 'id', 'Product record not found.');
+  }
+  return product;
+}
+
+Future<Post> _requirePost(Session session, int id) async {
+  final post = await Post.db.findById(session, id);
+  if (post == null) {
+    throw ArgumentError.value(id, 'id', 'Post record not found.');
+  }
+  return post;
+}
+
+Future<void> _ensureSeedData(Session session) async {
+  final now = DateTime.utc(2026, 6, 30, 9);
+
+  if (await Product.db.count(session) == 0) {
+    await Product.db.insert(session, [
+      Product(
+        sku: 'SKU-1001',
+        name: 'PocketPod Starter License',
+        description: 'Starter package for a Serverpod SQLite application.',
+        price: 49,
+        stock: 100,
+        published: true,
+        categoryId: 1,
+        updatedAt: now,
+      ),
+      Product(
+        sku: 'SKU-1002',
+        name: 'SQLite Tuning Support',
+        description: 'Implementation support for PocketPod SQLite settings.',
+        price: 149,
+        stock: 25,
+        published: true,
+        categoryId: 2,
+        updatedAt: now,
+      ),
+      Product(
+        sku: 'SKU-1003',
+        name: 'Admin Generator Preview',
+        description: 'Preview item used while validating generated admin UI.',
+        price: 0,
+        stock: 999,
+        published: false,
+        categoryId: 3,
+        updatedAt: now,
+      ),
+    ]);
+  }
+
+  if (await Post.db.count(session) == 0) {
+    await Post.db.insert(session, [
+      Post(
+        title: 'Building with Serverpod and SQLite',
+        body: 'A CMS post example rendered from protected admin data.',
+        published: true,
+        publishedAt: DateTime.utc(2026, 6, 29, 16, 30),
+        authorId: 1,
+        updatedAt: now,
+      ),
+      Post(
+        title: 'PocketPod Admin Generator Notes',
+        body: 'A draft post used to verify boolean and datetime controls.',
+        published: false,
+        authorId: 1,
+        updatedAt: now,
+      ),
+    ]);
+  }
+}
+
+String _requiredString(Map<String, String> values, String field) {
+  final value = values[field]?.trim() ?? '';
+  if (value.isEmpty) {
+    throw ArgumentError.value(value, field, 'Field is required.');
+  }
+  return value;
+}
+
+int _requiredInt(Map<String, String> values, String field) {
+  return int.parse(_requiredString(values, field));
+}
+
+double _requiredDouble(Map<String, String> values, String field) {
+  return double.parse(_requiredString(values, field));
+}
+
+bool _requiredBool(Map<String, String> values, String field) {
+  return switch (_requiredString(values, field).toLowerCase()) {
+    'true' || '1' || 'yes' || 'on' => true,
+    'false' || '0' || 'no' || 'off' => false,
+    final value => throw ArgumentError.value(value, field, 'Expected boolean.'),
+  };
+}
+
+DateTime? _optionalDateTime(Map<String, String> values, String field) {
+  final value = values[field]?.trim() ?? '';
+  if (value.isEmpty) {
+    return null;
+  }
+  return DateTime.parse(value).toUtc();
+}
+
+String _dateTimeValue(DateTime? value) {
+  return value?.toUtc().toIso8601String() ?? '';
 }

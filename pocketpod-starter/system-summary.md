@@ -116,13 +116,15 @@ Cycle 4A added the first real served admin screen:
 http://localhost:8082/admin/index.html
 ```
 
-That screen logs in through Serverpod Auth, calls protected `Scope.admin` endpoints, and can browse Admin Input Examples, Products, and Posts. At this checkpoint the Product and Post rows are server-provided sample rows. They prove guarded navigation, endpoint wiring, field metadata, and record table rendering, but they are not editable persistent database rows yet.
+That screen logs in through Serverpod Auth, calls protected `Scope.admin` endpoints, and can browse Admin Input Examples, Products, and Posts. Cycle 4A used server-provided sample rows to prove guarded navigation, endpoint wiring, field metadata, and record table rendering.
 
-Cycle 4B is now the active direction. Its goal is to replace the read-only Product/Post samples with SQLite-backed starter records and add protected edit forms:
+Cycle 4B has now added the first persistent editing slice. Products and Posts are SQLite-backed starter records, the admin endpoint exposes protected get/update methods, and the served admin screen can edit supported fields through generated smart controls:
 
 ```text
 SQLite-backed Product/Post models -> protected list/get/update endpoints -> smart admin edit form -> persisted changes
 ```
+
+The remaining Cycle 4B review item is browser screenshot/manual acceptance evidence for editing a Product and a Post.
 
 Current smart form-control mapping:
 

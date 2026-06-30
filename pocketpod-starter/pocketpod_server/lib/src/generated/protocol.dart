@@ -23,11 +23,15 @@ import 'admin/admin_field.dart' as _i8;
 import 'admin/admin_record.dart' as _i9;
 import 'admin/admin_record_cell.dart' as _i10;
 import 'benchmarks/benchmark_record.dart' as _i11;
-import 'greetings/greeting.dart' as _i12;
+import 'content/post.dart' as _i12;
+import 'content/product.dart' as _i13;
+import 'greetings/greeting.dart' as _i14;
 import 'package:pocketpod_server/src/generated/admin/admin_collection.dart'
-    as _i13;
+    as _i15;
+import 'package:pocketpod_server/src/generated/admin/admin_record_cell.dart'
+    as _i16;
 import 'package:pocketpod_server/src/generated/benchmarks/benchmark_record.dart'
-    as _i14;
+    as _i17;
 export 'admin/admin_collection.dart';
 export 'admin/admin_collection_records.dart';
 export 'admin/admin_dashboard.dart';
@@ -35,6 +39,8 @@ export 'admin/admin_field.dart';
 export 'admin/admin_record.dart';
 export 'admin/admin_record_cell.dart';
 export 'benchmarks/benchmark_record.dart';
+export 'content/post.dart';
+export 'content/product.dart';
 export 'greetings/greeting.dart';
 
 class Protocol extends _i1.DatabaseSerializationManager {
@@ -72,6 +78,126 @@ class Protocol extends _i1.DatabaseSerializationManager {
         ),
         _i2.ColumnDefinition(
           name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'post',
+      dartName: 'Post',
+      schema: 'public',
+      module: 'pocketpod',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _i2.ColumnDefinition(
+          name: 'title',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'body',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'published',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+        ),
+        _i2.ColumnDefinition(
+          name: 'publishedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'authorId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'product',
+      dartName: 'Product',
+      schema: 'public',
+      module: 'pocketpod',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _i2.ColumnDefinition(
+          name: 'sku',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'name',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'description',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'price',
+          columnType: _i2.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+        ),
+        _i2.ColumnDefinition(
+          name: 'stock',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'published',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+        ),
+        _i2.ColumnDefinition(
+          name: 'categoryId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'updatedAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
           dartType: 'DateTime',
@@ -134,8 +260,14 @@ class Protocol extends _i1.DatabaseSerializationManager {
     if (t == _i11.BenchmarkRecord) {
       return _i11.BenchmarkRecord.fromJson(data) as T;
     }
-    if (t == _i12.Greeting) {
-      return _i12.Greeting.fromJson(data) as T;
+    if (t == _i12.Post) {
+      return _i12.Post.fromJson(data) as T;
+    }
+    if (t == _i13.Product) {
+      return _i13.Product.fromJson(data) as T;
+    }
+    if (t == _i14.Greeting) {
+      return _i14.Greeting.fromJson(data) as T;
     }
     if (t == _i1.getType<_i5.AdminCollection?>()) {
       return (data != null ? _i5.AdminCollection.fromJson(data) : null) as T;
@@ -159,8 +291,14 @@ class Protocol extends _i1.DatabaseSerializationManager {
     if (t == _i1.getType<_i11.BenchmarkRecord?>()) {
       return (data != null ? _i11.BenchmarkRecord.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i12.Greeting?>()) {
-      return (data != null ? _i12.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i12.Post?>()) {
+      return (data != null ? _i12.Post.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i13.Product?>()) {
+      return (data != null ? _i13.Product.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i14.Greeting?>()) {
+      return (data != null ? _i14.Greeting.fromJson(data) : null) as T;
     }
     if (t == List<_i8.AdminField>) {
       return (data as List).map((e) => deserialize<_i8.AdminField>(e)).toList()
@@ -179,15 +317,21 @@ class Protocol extends _i1.DatabaseSerializationManager {
               .toList()
           as T;
     }
-    if (t == List<_i13.AdminCollection>) {
+    if (t == List<_i15.AdminCollection>) {
       return (data as List)
-              .map((e) => deserialize<_i13.AdminCollection>(e))
+              .map((e) => deserialize<_i15.AdminCollection>(e))
               .toList()
           as T;
     }
-    if (t == List<_i14.BenchmarkRecord>) {
+    if (t == List<_i16.AdminRecordCell>) {
       return (data as List)
-              .map((e) => deserialize<_i14.BenchmarkRecord>(e))
+              .map((e) => deserialize<_i16.AdminRecordCell>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i17.BenchmarkRecord>) {
+      return (data as List)
+              .map((e) => deserialize<_i17.BenchmarkRecord>(e))
               .toList()
           as T;
     }
@@ -212,7 +356,9 @@ class Protocol extends _i1.DatabaseSerializationManager {
       _i9.AdminRecord => 'AdminRecord',
       _i10.AdminRecordCell => 'AdminRecordCell',
       _i11.BenchmarkRecord => 'BenchmarkRecord',
-      _i12.Greeting => 'Greeting',
+      _i12.Post => 'Post',
+      _i13.Product => 'Product',
+      _i14.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -241,7 +387,11 @@ class Protocol extends _i1.DatabaseSerializationManager {
         return 'AdminRecordCell';
       case _i11.BenchmarkRecord():
         return 'BenchmarkRecord';
-      case _i12.Greeting():
+      case _i12.Post():
+        return 'Post';
+      case _i13.Product():
+        return 'Product';
+      case _i14.Greeting():
         return 'Greeting';
     }
     className = _i3.Protocol().getClassNameForObject(data);
@@ -290,8 +440,14 @@ class Protocol extends _i1.DatabaseSerializationManager {
     if (dataClassName == 'BenchmarkRecord') {
       return deserialize<_i11.BenchmarkRecord>(data['data']);
     }
+    if (dataClassName == 'Post') {
+      return deserialize<_i12.Post>(data['data']);
+    }
+    if (dataClassName == 'Product') {
+      return deserialize<_i13.Product>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i12.Greeting>(data['data']);
+      return deserialize<_i14.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
@@ -336,6 +492,10 @@ class Protocol extends _i1.DatabaseSerializationManager {
     switch (t) {
       case _i11.BenchmarkRecord:
         return _i11.BenchmarkRecord.t;
+      case _i12.Post:
+        return _i12.Post.t;
+      case _i13.Product:
+        return _i13.Product.t;
     }
     return null;
   }

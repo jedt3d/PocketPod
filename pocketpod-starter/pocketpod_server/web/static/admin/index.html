@@ -124,13 +124,30 @@
         font-weight: 700;
       }
 
-      input {
+      input,
+      select,
+      textarea {
         width: 100%;
-        height: 40px;
         border: 1px solid var(--line);
         border-radius: 6px;
         padding: 0 10px;
         font: inherit;
+      }
+
+      input,
+      select {
+        height: 40px;
+      }
+
+      textarea {
+        min-height: 116px;
+        padding: 10px;
+        resize: vertical;
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
       }
 
       button {
@@ -152,6 +169,13 @@
         border: 1px solid var(--line);
         background: white;
         color: var(--ink);
+      }
+
+      button.link-button {
+        height: 30px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--accent);
       }
 
       button.nav-item:hover {
@@ -246,6 +270,41 @@
         color: var(--muted);
       }
 
+      .edit-panel {
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+        padding: 16px;
+      }
+
+      .edit-panel h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+
+      .edit-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 16px;
+      }
+
+      .edit-grid .wide {
+        grid-column: 1 / -1;
+      }
+
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 40px;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
       .hidden {
         display: none;
       }
@@ -261,6 +320,10 @@
         }
 
         .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .edit-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -332,6 +395,15 @@
             <button class="secondary" type="button" disabled>New record</button>
           </div>
           <div id="fieldSummary" style="padding: 14px 16px 8px;"></div>
+          <form id="editForm" class="edit-panel hidden">
+            <h3 id="editTitle">Edit record</h3>
+            <div id="editFields" class="edit-grid"></div>
+            <div class="form-actions">
+              <button type="submit">Save changes</button>
+              <button id="cancelEditButton" class="secondary" type="button">Cancel</button>
+            </div>
+            <div id="editError" class="error"></div>
+          </form>
           <div style="overflow-x: auto;">
             <table>
               <thead id="recordsHead"></thead>
@@ -356,12 +428,20 @@
       const activeCollectionTitle = document.getElementById('activeCollectionTitle');
       const activeCollectionDescription = document.getElementById('activeCollectionDescription');
       const fieldSummary = document.getElementById('fieldSummary');
+      const editForm = document.getElementById('editForm');
+      const editTitle = document.getElementById('editTitle');
+      const editFields = document.getElementById('editFields');
+      const editError = document.getElementById('editError');
+      const cancelEditButton = document.getElementById('cancelEditButton');
       const recordsHead = document.getElementById('recordsHead');
       const recordsBody = document.getElementById('recordsBody');
 
       let authToken = localStorage.getItem('pocketpod.admin.token');
       let collections = [];
       let activeCollectionKey = null;
+      let activeCollection = null;
+      let activeRows = [];
+      let editRecordId = null;
 
       async function callEndpoint(endpoint, method, body, token) {
         const headers = {'content-type': 'application/json'};
@@ -427,6 +507,8 @@
 
       async function selectCollection(collectionKey) {
         activeCollectionKey = collectionKey;
+        editRecordId = null;
+        editForm.classList.add('hidden');
         renderCollectionNav();
 
         const response = await callEndpoint('admin', 'listRecords', {
@@ -435,6 +517,8 @@
 
         const collection = response.collection;
         const rows = response.rows;
+        activeCollection = collection;
+        activeRows = rows;
         activeCollectionTitle.textContent = collection.title;
         activeCollectionDescription.textContent = collection.description;
         fieldSummary.innerHTML = collection.fields.map((field) => `
@@ -449,13 +533,14 @@
           <tr>
             <th>ID</th>
             ${collection.fields.map((field) => `<th>${escapeHtml(field.label)}</th>`).join('')}
+            <th>Actions</th>
           </tr>
         `;
 
         if (!rows.length) {
           recordsBody.innerHTML = `
             <tr>
-              <td colspan="${collection.fields.length + 1}">
+              <td colspan="${collection.fields.length + 2}">
                 <div class="empty-state">No records in this collection yet.</div>
               </td>
             </tr>
@@ -471,9 +556,160 @@
               ${collection.fields.map((field) => `
                 <td>${escapeHtml(values[field.name] ?? '')}</td>
               `).join('')}
+              <td>
+                ${isEditableCollection(collection.key)
+                  ? `<button class="link-button" type="button" data-edit-id="${escapeHtml(row.id)}">Edit</button>`
+                  : '<span class="muted">Read-only</span>'}
+              </td>
             </tr>
           `;
         }).join('');
+      }
+
+      function isEditableCollection(collectionKey) {
+        return collectionKey === 'products' || collectionKey === 'posts';
+      }
+
+      function toInputDateTime(value) {
+        if (!value) {
+          return '';
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return '';
+        }
+        return date.toISOString().slice(0, 16);
+      }
+
+      function toEndpointDateTime(value) {
+        if (!value) {
+          return '';
+        }
+        return new Date(value).toISOString();
+      }
+
+      function relationOptions(fieldName) {
+        if (fieldName === 'categoryId') {
+          return [
+            ['1', 'Software'],
+            ['2', 'Services'],
+            ['3', 'Preview'],
+          ];
+        }
+        if (fieldName === 'authorId') {
+          return [['1', 'Admin']];
+        }
+        return [];
+      }
+
+      function renderEditControl(field, value) {
+        const id = `edit-${field.name}`;
+        const required = field.required ? 'required' : '';
+        const readonly = field.name === 'updatedAt';
+        const requiredMark = field.required ? '<span class="required-dot">*</span>' : '';
+        const label = `<label for="${id}">${escapeHtml(field.label)} ${requiredMark}</label>`;
+
+        if (field.control === 'checkbox') {
+          return `
+            <div>
+              ${label}
+              <div class="check-row">
+                <input id="${id}" name="${escapeHtml(field.name)}" type="checkbox" ${value === 'true' ? 'checked' : ''}>
+                <span class="muted">Enabled when checked</span>
+              </div>
+            </div>
+          `;
+        }
+
+        if (field.control === 'textarea') {
+          return `
+            <div class="wide">
+              ${label}
+              <textarea id="${id}" name="${escapeHtml(field.name)}" ${required}>${escapeHtml(value)}</textarea>
+            </div>
+          `;
+        }
+
+        if (field.control === 'datetime') {
+          return `
+            <div>
+              ${label}
+              <input id="${id}" name="${escapeHtml(field.name)}" type="datetime-local" value="${escapeHtml(toInputDateTime(value))}" ${required} ${readonly ? 'disabled' : ''}>
+            </div>
+          `;
+        }
+
+        if (field.control === 'number') {
+          return `
+            <div>
+              ${label}
+              <input id="${id}" name="${escapeHtml(field.name)}" type="number" step="any" value="${escapeHtml(value)}" ${required}>
+            </div>
+          `;
+        }
+
+        if (field.control === 'relation' || field.control === 'select') {
+          const options = relationOptions(field.name);
+          if (options.length) {
+            return `
+              <div>
+                ${label}
+                <select id="${id}" name="${escapeHtml(field.name)}" ${required}>
+                  ${options.map(([optionValue, optionLabel]) => `
+                    <option value="${escapeHtml(optionValue)}" ${optionValue === value ? 'selected' : ''}>${escapeHtml(optionLabel)}</option>
+                  `).join('')}
+                </select>
+              </div>
+            `;
+          }
+        }
+
+        return `
+          <div>
+            ${label}
+            <input id="${id}" name="${escapeHtml(field.name)}" type="text" value="${escapeHtml(value)}" ${required}>
+          </div>
+        `;
+      }
+
+      async function openEditForm(id) {
+        const response = await callEndpoint('admin', 'getRecord', {
+          collectionKey: activeCollectionKey,
+          id,
+        }, authToken);
+        const values = Object.fromEntries(response.cells.map((cell) => [cell.field, cell.value]));
+        editRecordId = response.id;
+        editTitle.textContent = `Edit ${activeCollection.title} #${response.id}`;
+        editError.style.display = 'none';
+        editFields.innerHTML = activeCollection.fields
+          .map((field) => renderEditControl(field, values[field.name] ?? ''))
+          .join('');
+        editForm.classList.remove('hidden');
+      }
+
+      async function saveEditForm() {
+        const cells = activeCollection.fields
+          .filter((field) => field.name !== 'updatedAt')
+          .map((field) => {
+            const control = editForm.elements[field.name];
+            let value = '';
+            if (field.control === 'checkbox') {
+              value = control.checked ? 'true' : 'false';
+            } else if (field.control === 'datetime') {
+              value = toEndpointDateTime(control.value);
+            } else {
+              value = control.value;
+            }
+            return {field: field.name, value};
+          });
+
+        await callEndpoint('admin', 'updateRecord', {
+          collectionKey: activeCollectionKey,
+          id: editRecordId,
+          cells,
+        }, authToken);
+        statusLine.textContent = `Saved ${activeCollection.title} #${editRecordId}.`;
+        await selectCollection(activeCollectionKey);
       }
 
       loginForm.addEventListener('submit', async (event) => {
@@ -511,6 +747,33 @@
         selectCollection(button.dataset.collectionKey).catch((error) => {
           statusLine.textContent = `Collection load failed: ${error.message}`;
         });
+      });
+
+      recordsBody.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-edit-id]');
+        if (!button) {
+          return;
+        }
+
+        openEditForm(button.dataset.editId).catch((error) => {
+          statusLine.textContent = `Edit load failed: ${error.message}`;
+        });
+      });
+
+      cancelEditButton.addEventListener('click', () => {
+        editRecordId = null;
+        editForm.classList.add('hidden');
+      });
+
+      editForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        editError.style.display = 'none';
+        try {
+          await saveEditForm();
+        } catch (error) {
+          editError.textContent = `Save failed: ${error.message}`;
+          editError.style.display = 'block';
+        }
       });
 
       if (authToken) {

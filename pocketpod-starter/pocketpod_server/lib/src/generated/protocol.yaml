@@ -4,6 +4,8 @@ admin:
   - dashboard:
   - listCollections:
   - listRecords:
+  - getRecord:
+  - updateRecord:
 benchmark:
   - reset:
   - seed:

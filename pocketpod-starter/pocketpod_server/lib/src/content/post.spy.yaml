@@ -1,0 +1,9 @@
+class: Post
+table: post
+fields:
+  title: String
+  body: String
+  published: bool
+  publishedAt: DateTime?
+  authorId: int
+  updatedAt: DateTime

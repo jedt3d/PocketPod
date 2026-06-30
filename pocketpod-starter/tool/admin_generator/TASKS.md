@@ -96,16 +96,17 @@ Implementation notes:
 Goal:
 Move from read-only sample rows to editable SQLite-backed records for the starter admin screen.
 
-- [ ] Add persistent `Product` and `Post` Serverpod models for the starter.
-- [ ] Add SQLite migration coverage for the new starter tables.
-- [ ] Seed a small deterministic development dataset for manual review.
-- [ ] Replace server-only sample Product/Post rows with database-backed list queries.
-- [ ] Add protected get/update endpoints for editable Product and Post records.
-- [ ] Render an edit form from the existing generated field/control metadata.
-- [ ] Use textarea for long body fields, checkbox for booleans, datetime control for date fields, and select-style controls for enum/relation placeholders.
-- [ ] Save edits through protected admin endpoints and refresh the active collection table.
-- [ ] Show validation errors and save success/failure states in the admin screen.
-- [ ] Add tests proving unauthenticated and non-admin callers cannot edit records.
-- [ ] Add tests proving admin edits persist in SQLite.
+- [x] Add persistent `Product` and `Post` Serverpod models for the starter.
+- [x] Add SQLite migration coverage for the new starter tables.
+- [x] Seed a small deterministic development dataset for manual review.
+- [x] Replace server-only sample Product/Post rows with database-backed list queries.
+- [x] Add protected get/update endpoints for editable Product and Post records.
+- [x] Render an edit form from the existing generated field/control metadata.
+- [x] Use textarea for long body fields, checkbox for booleans, datetime control for date fields, and select-style controls for enum/relation placeholders.
+- [x] Save edits through protected admin endpoints and refresh the active collection table.
+- [x] Show validation errors and save success/failure states in the admin screen.
+- [x] Add tests proving unauthenticated and non-admin callers cannot edit records.
+- [x] Add tests proving admin edits persist in SQLite.
+- [x] Verify Product and Post edits over real HTTP.
 - [ ] Capture manual browser evidence for editing a Product and a Post.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Record validation in `TEST_REPORT.md`.

@@ -167,9 +167,10 @@ Features:
 15. ✅ Add a served admin screen that logs in through Serverpod Auth and calls protected admin endpoints.
 16. ✅ Add clickable collection browsing for Admin Input Examples, Products, and Posts.
 17. ✅ Return server-provided sample rows through protected admin collection endpoints.
-18. Build persistent Product and Post sample models backed by SQLite.
-19. Add generated edit endpoints and admin forms for updating records.
-20. Add tests proving admin edits persist and non-admin edits are rejected.
+18. ✅ Build persistent Product and Post sample models backed by SQLite.
+19. ✅ Add protected edit endpoints and admin forms for updating records.
+20. ✅ Add tests proving admin edits persist and non-admin edits are rejected.
+21. Capture browser screenshot/manual acceptance evidence for the new edit flow.
 
 Cycle 2A completed generator advantage:
 PocketPod now has schema-driven smart form-control mapping before the auth bootstrap work starts. The `AdminInputExample` fixture demonstrates text input, textarea, checkbox, datetime selector placeholder, integer input, decimal input, enum dropdown placeholder, relation dropdown placeholder, array/list placeholder, red required `*` markers, and optional markers. This is a PocketPod-specific advantage over the original PocketBase-inspired baseline because the controls are generated from Serverpod model definitions into typed Flutter source and a reviewable preview. The current screenshot is embedded in both the root `README.md` and `pocketpod-starter/README.md`.
@@ -216,7 +217,8 @@ Phase 3 acceptance gate:
 6. `serverpod generate`, server tests, and workspace analysis pass after auth is reintroduced.
 7. Auth migrations work with SQLite in the PocketPod starter.
 8. ✅ Cycle 4A accepted: a real admin screen can log in, browse collections, and view Product/Post sample rows.
-9. Cycle 4B target: admin users can edit persistent SQLite-backed Product/Post records through smart generated controls.
+9. ✅ Cycle 4B first slice: admin users can edit persistent SQLite-backed Product/Post records through smart generated controls.
+10. Cycle 4B remaining gate: capture browser screenshot/manual acceptance evidence for the new edit flow.
 
 ## Phase 4: Flutter Admin App
 

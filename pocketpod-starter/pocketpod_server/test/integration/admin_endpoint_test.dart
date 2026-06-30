@@ -3,6 +3,8 @@ import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:test/test.dart';
 
+import 'package:pocketpod_server/src/generated/protocol.dart';
+
 import 'test_tools/serverpod_test_tools.dart';
 
 void main() {
@@ -91,8 +93,103 @@ void main() {
         posts.collection.fields.map((field) => field.control),
         contains('textarea'),
       );
+
+      final productId = products.rows.first.id;
+      await expectLater(
+        endpoints.admin.updateRecord(
+          sessionBuilder,
+          'products',
+          productId,
+          _cells({
+            'sku': 'SKU-1001',
+            'name': 'Blocked Update',
+            'description': 'Should not save.',
+            'price': '1.00',
+            'stock': '1',
+            'published': 'false',
+            'categoryId': '1',
+          }),
+        ),
+        throwsA(isA<ServerpodUnauthenticatedException>()),
+      );
+      await expectLater(
+        endpoints.admin.updateRecord(
+          nonAdminSession,
+          'products',
+          productId,
+          _cells({
+            'sku': 'SKU-1001',
+            'name': 'Blocked Update',
+            'description': 'Should not save.',
+            'price': '1.00',
+            'stock': '1',
+            'published': 'false',
+            'categoryId': '1',
+          }),
+        ),
+        throwsA(isA<ServerpodInsufficientAccessException>()),
+      );
+
+      final updatedProduct = await endpoints.admin.updateRecord(
+        adminSession,
+        'products',
+        productId,
+        _cells({
+          'sku': 'SKU-1001',
+          'name': 'Updated Starter License',
+          'description': 'Edited through the guarded admin endpoint.',
+          'price': '59.00',
+          'stock': '88',
+          'published': 'true',
+          'categoryId': '2',
+        }),
+      );
+      expect(_cellValue(updatedProduct, 'name'), 'Updated Starter License');
+      expect(_cellValue(updatedProduct, 'stock'), '88');
+
+      final reloadedProduct = await endpoints.admin.getRecord(
+        adminSession,
+        'products',
+        productId,
+      );
+      expect(_cellValue(reloadedProduct, 'name'), 'Updated Starter License');
+      expect(_cellValue(reloadedProduct, 'categoryId'), '2');
+
+      final postId = posts.rows.first.id;
+      final updatedPost = await endpoints.admin.updateRecord(
+        adminSession,
+        'posts',
+        postId,
+        _cells({
+          'title': 'Edited Serverpod SQLite Post',
+          'body': 'Saved from the Cycle 4B admin edit endpoint.',
+          'published': 'false',
+          'publishedAt': '',
+          'authorId': '1',
+        }),
+      );
+      expect(_cellValue(updatedPost, 'title'), 'Edited Serverpod SQLite Post');
+      expect(_cellValue(updatedPost, 'published'), 'false');
+
+      final reloadedPost = await endpoints.admin.getRecord(
+        adminSession,
+        'posts',
+        postId,
+      );
+      expect(_cellValue(reloadedPost, 'body'), contains('Cycle 4B'));
+      expect(_cellValue(reloadedPost, 'publishedAt'), isEmpty);
     });
   });
+}
+
+List<AdminRecordCell> _cells(Map<String, String> values) {
+  return values.entries
+      .map((entry) => AdminRecordCell(field: entry.key, value: entry.value))
+      .toList();
+}
+
+String _cellValue(AdminRecord record, String field) {
+  return record.cells.firstWhere((cell) => cell.field == field).value;
 }
 
 void _ensureTestAuthServices() {

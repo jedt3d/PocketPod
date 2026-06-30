@@ -15,10 +15,12 @@ import '../admin/admin_auth_endpoint.dart' as _i2;
 import '../admin/admin_endpoint.dart' as _i3;
 import '../benchmarks/benchmark_endpoint.dart' as _i4;
 import '../greetings/greeting_endpoint.dart' as _i5;
-import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+import 'package:pocketpod_server/src/generated/admin/admin_record_cell.dart'
     as _i6;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i7;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i8;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -120,6 +122,60 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async => (endpoints['admin'] as _i3.AdminEndpoint).listRecords(
                 session,
                 params['collectionKey'],
+              ),
+        ),
+        'getRecord': _i1.MethodConnector(
+          name: 'getRecord',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint).getRecord(
+                session,
+                params['collectionKey'],
+                params['id'],
+              ),
+        ),
+        'updateRecord': _i1.MethodConnector(
+          name: 'updateRecord',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'cells': _i1.ParameterDescription(
+              name: 'cells',
+              type: _i1.getType<List<_i6.AdminRecordCell>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint).updateRecord(
+                session,
+                params['collectionKey'],
+                params['id'],
+                params['cells'],
               ),
         ),
       },
@@ -255,9 +311,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i6.Endpoints()
+    modules['serverpod_auth_idp'] = _i7.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i7.Endpoints()
+    modules['serverpod_auth_core'] = _i8.Endpoints()
       ..initializeEndpoints(server);
   }
 }

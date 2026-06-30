@@ -1,0 +1,11 @@
+class: Product
+table: product
+fields:
+  sku: String
+  name: String
+  description: String
+  price: double
+  stock: int
+  published: bool
+  categoryId: int
+  updatedAt: DateTime

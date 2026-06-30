@@ -86,7 +86,7 @@ When the starter server is running, the first real PocketPod admin screen is ser
 http://localhost:8082/admin/index.html
 ```
 
-It signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts, with server-provided sample rows and generated field/control metadata.
+It signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. The current served screen includes clickable collection navigation for Admin Input Examples, Products, and Posts. Products and Posts are now SQLite-backed starter records with edit/save support through protected admin endpoints.
 
 This starter points to the in-repo Serverpod copy:
 

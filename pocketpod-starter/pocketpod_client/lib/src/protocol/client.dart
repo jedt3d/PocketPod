@@ -20,13 +20,16 @@ import 'package:pocketpod_client/src/protocol/admin/admin_collection.dart'
     as _i5;
 import 'package:pocketpod_client/src/protocol/admin/admin_collection_records.dart'
     as _i6;
+import 'package:pocketpod_client/src/protocol/admin/admin_record.dart' as _i7;
+import 'package:pocketpod_client/src/protocol/admin/admin_record_cell.dart'
+    as _i8;
 import 'package:pocketpod_client/src/protocol/benchmarks/benchmark_record.dart'
-    as _i7;
-import 'package:pocketpod_client/src/protocol/greetings/greeting.dart' as _i8;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i9;
-import 'package:http/http.dart' as _i10;
-import 'protocol.dart' as _i11;
+import 'package:pocketpod_client/src/protocol/greetings/greeting.dart' as _i10;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _i11;
+import 'package:http/http.dart' as _i12;
+import 'protocol.dart' as _i13;
 
 /// {@category Endpoint}
 class EndpointAdminAuth extends _i1.EndpointRef {
@@ -75,6 +78,32 @@ class EndpointAdmin extends _i1.EndpointRef {
         'listRecords',
         {'collectionKey': collectionKey},
       );
+
+  _i2.Future<_i7.AdminRecord> getRecord(
+    String collectionKey,
+    String id,
+  ) => caller.callServerEndpoint<_i7.AdminRecord>(
+    'admin',
+    'getRecord',
+    {
+      'collectionKey': collectionKey,
+      'id': id,
+    },
+  );
+
+  _i2.Future<_i7.AdminRecord> updateRecord(
+    String collectionKey,
+    String id,
+    List<_i8.AdminRecordCell> cells,
+  ) => caller.callServerEndpoint<_i7.AdminRecord>(
+    'admin',
+    'updateRecord',
+    {
+      'collectionKey': collectionKey,
+      'id': id,
+      'cells': cells,
+    },
+  );
 }
 
 /// {@category Endpoint}
@@ -96,15 +125,15 @@ class EndpointBenchmark extends _i1.EndpointRef {
     {'count': count},
   );
 
-  _i2.Future<_i7.BenchmarkRecord?> readOne(int id) =>
-      caller.callServerEndpoint<_i7.BenchmarkRecord?>(
+  _i2.Future<_i9.BenchmarkRecord?> readOne(int id) =>
+      caller.callServerEndpoint<_i9.BenchmarkRecord?>(
         'benchmark',
         'readOne',
         {'id': id},
       );
 
-  _i2.Future<List<_i7.BenchmarkRecord>> readList(int limit) =>
-      caller.callServerEndpoint<List<_i7.BenchmarkRecord>>(
+  _i2.Future<List<_i9.BenchmarkRecord>> readList(int limit) =>
+      caller.callServerEndpoint<List<_i9.BenchmarkRecord>>(
         'benchmark',
         'readList',
         {'limit': limit},
@@ -139,8 +168,8 @@ class EndpointGreeting extends _i1.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i2.Future<_i8.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i8.Greeting>(
+  _i2.Future<_i10.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i10.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -149,11 +178,11 @@ class EndpointGreeting extends _i1.EndpointRef {
 
 class Modules {
   Modules(Client client) {
-    serverpod_auth_idp = _i9.Caller(client);
+    serverpod_auth_idp = _i11.Caller(client);
     serverpod_auth_core = _i3.Caller(client);
   }
 
-  late final _i9.Caller serverpod_auth_idp;
+  late final _i11.Caller serverpod_auth_idp;
 
   late final _i3.Caller serverpod_auth_core;
 }
@@ -176,10 +205,10 @@ class Client extends _i1.ServerpodClientShared {
     onFailedCall,
     Function(_i1.MethodCallContext)? onSucceededCall,
     bool? disconnectStreamsOnLostInternetConnection,
-    _i10.Client? httpClientOverride,
+    _i12.Client? httpClientOverride,
   }) : super(
          host,
-         _i11.Protocol(),
+         _i13.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

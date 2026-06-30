@@ -362,10 +362,22 @@ Editing is intentionally deferred because the current Product/Post rows are serv
 
 ## Cycle 4B: Persistent Record Editing
 
-Status: started.
+Status: first editing slice complete; browser screenshot/manual acceptance still pending.
 
 Purpose:
 Cycle 4B should turn the current admin browsing screen into an editable starter admin by adding real SQLite-backed Product and Post records, protected update endpoints, smart edit forms, and persistence tests.
+
+Completed in this slice:
+- Added persistent `Product` and `Post` Serverpod models.
+- Created SQLite migration `20260630093909253-content-admin`.
+- Added deterministic seed data for local starter review.
+- Replaced Product/Post sample rows with database-backed `Product.db` and `Post.db` list queries.
+- Added protected `admin.getRecord` and `admin.updateRecord` methods.
+- Added a generated browser edit form for Product and Post rows.
+- Used textarea, checkbox, datetime, number, and select controls according to field metadata.
+- Added success/error UI for save attempts.
+- Added integration tests for unauthenticated rejection, non-admin rejection, and admin edit persistence.
+- Verified Product and Post edits over real HTTP against the running server.
 
 Planned validation:
 
@@ -376,6 +388,19 @@ dart run bin/serverpod_cli.dart generate \
 flutter analyze
 cd pocketpod_server && flutter test --reporter expanded
 git diff --check -- .
+```
+
+Current validation result:
+
+```text
+PASS
+serverpod generate: completed.
+content-admin migration: applied to local SQLite database.
+flutter analyze: No issues found.
+pocketpod_server admin endpoint integration test: passed.
+pocketpod_server full integration suite: passed.
+HTTP Product edit: persisted and reloaded.
+HTTP Post edit: persisted and reloaded.
 ```
 
 Acceptance target:
