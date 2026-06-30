@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:pocketpod_client/pocketpod_client.dart';
 
+import 'admin_api.dart';
+import 'session_store.dart';
+
 void main() {
   runApp(const PocketPodAdminApp());
 }
 
 class PocketPodAdminApp extends StatelessWidget {
-  const PocketPodAdminApp({super.key});
+  const PocketPodAdminApp({super.key, this.api, this.sessionStore});
+
+  final AdminApi? api;
+  final AdminSessionStore? sessionStore;
 
   @override
   Widget build(BuildContext context) {
@@ -31,23 +37,232 @@ class PocketPodAdminApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AdminShell(),
+      home: AdminAuthGate(
+        api: api ?? ServerpodAdminApi(),
+        sessionStore: sessionStore ?? SharedPreferencesAdminSessionStore(),
+      ),
+    );
+  }
+}
+
+class AdminAuthGate extends StatefulWidget {
+  const AdminAuthGate({
+    required this.api,
+    required this.sessionStore,
+    super.key,
+  });
+
+  final AdminApi api;
+  final AdminSessionStore sessionStore;
+
+  @override
+  State<AdminAuthGate> createState() => _AdminAuthGateState();
+}
+
+class _AdminAuthGateState extends State<AdminAuthGate> {
+  AdminSession? _session;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final session = await widget.sessionStore.read();
+    if (!mounted) return;
+
+    if (session == null) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    widget.api.setAuthToken(session.token);
+
+    try {
+      await widget.api.dashboard();
+      if (!mounted) return;
+      setState(() {
+        _session = session;
+        _loading = false;
+      });
+    } catch (_) {
+      await widget.sessionStore.clear();
+      widget.api.setAuthToken(null);
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _login(String email, String password) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final session = await widget.api.login(email: email, password: password);
+      await widget.sessionStore.save(session);
+      if (!mounted) return;
+      setState(() {
+        _session = session;
+        _loading = false;
+      });
+    } catch (error) {
+      widget.api.setAuthToken(null);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Sign in failed: $error';
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    await widget.sessionStore.clear();
+    widget.api.setAuthToken(null);
+    if (!mounted) return;
+    setState(() {
+      _session = null;
+      _error = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final session = _session;
+    if (session == null) {
+      return LoginScreen(error: _error, onSubmit: _login);
+    }
+
+    return AdminShell(session: session, onLogout: _logout);
+  }
+}
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({required this.onSubmit, this.error, super.key});
+
+  final String? error;
+  final Future<void> Function(String email, String password) onSubmit;
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController(
+    text: 'manual-check@example.com',
+  );
+  final _passwordController = TextEditingController(text: 'change-me-now');
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    await widget.onSubmit(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'PocketPod Admin',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Serverpod Auth required',
+                    style: TextStyle(color: Color(0xFF6B7280)),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    key: const Key('login_email'),
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.username],
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('login_password'),
+                    controller: _passwordController,
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.password],
+                    decoration: const InputDecoration(labelText: 'Password'),
+                  ),
+                  if (widget.error != null) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      widget.error!,
+                      key: const Key('login_error'),
+                      style: const TextStyle(
+                        color: Color(0xFFB42318),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  FilledButton(
+                    key: const Key('login_submit'),
+                    onPressed: _submitting ? null : _submit,
+                    child: Text(_submitting ? 'Signing in...' : 'Sign in'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class AdminShell extends StatelessWidget {
-  const AdminShell({super.key});
+  const AdminShell({required this.session, required this.onLogout, super.key});
+
+  final AdminSession session;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: SafeArea(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AdminSidebar(),
-            Expanded(child: AdminWorkspace()),
+            const AdminSidebar(),
+            Expanded(
+              child: AdminWorkspace(session: session, onLogout: onLogout),
+            ),
           ],
         ),
       ),
@@ -102,7 +317,14 @@ class AdminSidebar extends StatelessWidget {
 }
 
 class AdminWorkspace extends StatelessWidget {
-  const AdminWorkspace({super.key});
+  const AdminWorkspace({
+    required this.session,
+    required this.onLogout,
+    super.key,
+  });
+
+  final AdminSession session;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -123,22 +345,23 @@ class AdminWorkspace extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Cycle 1 baseline shell. Serverpod client wired.',
-                      key: Key('admin_status_line'),
-                      style: TextStyle(color: Color(0xFF6B7280)),
+                    Text(
+                      'Signed in as ${session.userId}',
+                      key: const Key('admin_status_line'),
+                      style: const TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ],
                 ),
               ),
               OutlinedButton(
-                onPressed: null,
-                child: const Text('Sign in pending'),
+                key: const Key('logout_button'),
+                onPressed: onLogout,
+                child: const Text('Sign out'),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const _MetricStrip(),
+          _MetricStrip(session: session),
           const SizedBox(height: 18),
           const Expanded(child: _CollectionPanel()),
         ],
@@ -148,22 +371,27 @@ class AdminWorkspace extends StatelessWidget {
 }
 
 class _MetricStrip extends StatelessWidget {
-  const _MetricStrip();
+  const _MetricStrip({required this.session});
+
+  final AdminSession session;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(
+        const Expanded(
           child: _MetricCard(label: 'Auth', value: 'Serverpod'),
         ),
-        SizedBox(width: 14),
-        Expanded(
+        const SizedBox(width: 14),
+        const Expanded(
           child: _MetricCard(label: 'Required Scope', value: 'admin'),
         ),
-        SizedBox(width: 14),
+        const SizedBox(width: 14),
         Expanded(
-          child: _MetricCard(label: 'Client', value: 'wired'),
+          child: _MetricCard(
+            label: 'Scopes',
+            value: session.scopeNames.join(', '),
+          ),
         ),
       ],
     );
@@ -252,6 +480,8 @@ class _MetricCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),

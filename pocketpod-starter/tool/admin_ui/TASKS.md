@@ -50,16 +50,16 @@ The admin UI app builds/tests independently and can be opened as a Flutter Web a
 
 ## Cycle 2: Auth Shell
 
-- [ ] Build a login screen matching the Phase 3 auth behavior.
-- [ ] Call `adminAuth.login` through the generated client or a typed service wrapper.
-- [ ] Persist the JWT/session state for browser refresh.
-- [ ] Add logout and expired-session handling.
-- [ ] Protect admin routes until login succeeds.
-- [ ] Show clear login loading and error states.
-- [ ] Add widget tests for login form states.
-- [ ] Add service tests for success/failure mapping where practical.
+- [x] Build a login screen matching the Phase 3 auth behavior.
+- [x] Call `adminAuth.login` through the generated client or a typed service wrapper.
+- [x] Persist the JWT/session state for browser refresh.
+- [x] Add logout and expired-session handling.
+- [x] Protect admin routes until login succeeds.
+- [x] Show clear login loading and error states.
+- [x] Add widget tests for login form states.
+- [x] Add service tests for success/failure mapping where practical.
 - [ ] Capture screenshot evidence.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 

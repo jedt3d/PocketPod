@@ -29,11 +29,13 @@ resolution: workspace
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  cupertino_icons: ^1.0.9
   flutter:
     sdk: flutter
   pocketpod_client:
     path: ../pocketpod_client
   serverpod_flutter: 3.5.0-beta.10
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

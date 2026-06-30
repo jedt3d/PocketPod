@@ -95,3 +95,42 @@ Note:
 ```text
 flutter build web emitted a non-fatal scaffold font warning mentioning CupertinoIcons, but the app does not use Cupertino icons and the build completed successfully.
 ```
+
+## Cycle 2: Auth Shell
+
+Status: complete except screenshot evidence.
+
+Changes:
+
+- Added a typed `AdminApi` boundary.
+- Added `ServerpodAdminApi` backed by the generated `pocketpod_client`.
+- Added a Serverpod `AuthenticationKeyManager` compatibility wrapper for the pinned generated client.
+- Added `SharedPreferencesAdminSessionStore` for browser/session persistence.
+- Added `MemoryAdminSessionStore` for tests.
+- Added login, loading, error, restore-session, protected-shell, and logout UI states.
+- Added widget tests for login, login failure, stored session restore, and logout.
+
+Validation:
+
+```sh
+dart format admin_ui/lib admin_ui/test
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd admin_ui && flutter build web
+```
+
+Result:
+
+```text
+PASS
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 5 tests passed.
+flutter build web: built build/web.
+```
+
+Notes:
+
+```text
+The pinned generated Serverpod client exposes `authenticationKeyManager` rather than the newer `authKeyProvider`, so the Flutter admin app uses a small local compatibility wrapper and scopes the deprecated API ignore to `admin_api.dart`.
+Screenshot evidence is still pending for Cycle 2 and can be captured once the app is run in Chrome.
+```
