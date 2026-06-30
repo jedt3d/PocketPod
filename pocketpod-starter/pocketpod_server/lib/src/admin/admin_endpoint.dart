@@ -117,6 +117,66 @@ class AdminEndpoint extends Endpoint {
       ),
     };
   }
+
+  Future<AdminRecord> createRecord(
+    Session session,
+    String collectionKey,
+    List<AdminRecordCell> cells,
+  ) async {
+    await _ensureSeedData(session);
+    final values = {for (final cell in cells) cell.field: cell.value};
+    final now = DateTime.now().toUtc();
+
+    return switch (collectionKey) {
+      'products' => _productRecord(
+        await Product.db.insertRow(
+          session,
+          Product(
+            sku: _requiredString(values, 'sku'),
+            name: _requiredString(values, 'name'),
+            description: _requiredString(values, 'description'),
+            price: _requiredDouble(values, 'price'),
+            stock: _requiredInt(values, 'stock'),
+            published: _requiredBool(values, 'published'),
+            categoryId: _requiredInt(values, 'categoryId'),
+            updatedAt: now,
+          ),
+        ),
+      ),
+      'posts' => _postRecord(
+        await Post.db.insertRow(
+          session,
+          Post(
+            title: _requiredString(values, 'title'),
+            body: _requiredString(values, 'body'),
+            published: _requiredBool(values, 'published'),
+            publishedAt: _optionalDateTime(values, 'publishedAt'),
+            authorId: _requiredInt(values, 'authorId'),
+            updatedAt: now,
+          ),
+        ),
+      ),
+      _ => throw UnsupportedError(
+        'Collection "$collectionKey" does not support creating records.',
+      ),
+    };
+  }
+
+  Future<bool> deleteRecord(
+    Session session,
+    String collectionKey,
+    String id,
+  ) async {
+    await _ensureSeedData(session);
+
+    return switch (collectionKey) {
+      'products' => await _deleteProduct(session, int.parse(id)),
+      'posts' => await _deletePost(session, int.parse(id)),
+      _ => throw UnsupportedError(
+        'Collection "$collectionKey" does not support deleting records.',
+      ),
+    };
+  }
 }
 
 Future<List<AdminCollection>> _collections(Session session) async {
@@ -307,6 +367,18 @@ Future<Post> _requirePost(Session session, int id) async {
     throw ArgumentError.value(id, 'id', 'Post record not found.');
   }
   return post;
+}
+
+Future<bool> _deleteProduct(Session session, int id) async {
+  final product = await _requireProduct(session, id);
+  await Product.db.deleteRow(session, product);
+  return true;
+}
+
+Future<bool> _deletePost(Session session, int id) async {
+  final post = await _requirePost(session, id);
+  await Post.db.deleteRow(session, post);
+  return true;
 }
 
 Future<void> _ensureSeedData(Session session) async {

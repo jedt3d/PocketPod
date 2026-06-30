@@ -6,6 +6,8 @@ admin:
   - listRecords:
   - getRecord:
   - updateRecord:
+  - createRecord:
+  - deleteRecord:
 benchmark:
   - reset:
   - seed:

@@ -134,6 +134,49 @@ void main() {
     expect(find.text('PocketPod Pro License'), findsWidgets);
   });
 
+  testWidgets('create and delete product records', (tester) async {
+    final store = MemoryAdminSessionStore();
+    await store.save(testSession);
+    final api = FakeAdminApi();
+
+    await tester.pumpWidget(PocketPodAdminApp(api: api, sessionStore: store));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('nav_Products')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('new_record')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Products'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('input_sku')), 'SKU-9999');
+    await tester.enterText(find.byKey(const Key('input_name')), 'New Product');
+    await tester.enterText(
+      find.byKey(const Key('input_description')),
+      'Created from the Phase 6 admin UI.',
+    );
+    await tester.enterText(find.byKey(const Key('input_price')), '99.00');
+    await tester.enterText(find.byKey(const Key('input_stock')), '5');
+    await tester.ensureVisible(find.byKey(const Key('save_record')));
+    await tester.tap(find.byKey(const Key('save_record')));
+    await tester.pumpAndSettle();
+
+    expect(api.createdRecords, 1);
+    expect(find.byKey(const Key('save_success')), findsOneWidget);
+    expect(find.text('New Product'), findsWidgets);
+
+    await tester.ensureVisible(find.byKey(const Key('delete_record')));
+    await tester.tap(find.byKey(const Key('delete_record')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Delete Products #'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirm_delete')));
+    await tester.pumpAndSettle();
+
+    expect(api.deletedRecords, 1);
+    expect(find.text('New Product'), findsNothing);
+  });
+
   testWidgets('logout clears the session and returns to login', (tester) async {
     final store = MemoryAdminSessionStore();
     await store.save(testSession);
@@ -163,6 +206,8 @@ class FakeAdminApi implements AdminApi {
   final bool loginShouldFail;
   String? token;
   int updatedRecords = 0;
+  int createdRecords = 0;
+  int deletedRecords = 0;
 
   @override
   void setAuthToken(String? token) {
@@ -239,6 +284,37 @@ class FakeAdminApi implements AdminApi {
     return updated;
   }
 
+  @override
+  Future<AdminRecord> createRecord(
+    String collectionKey,
+    List<AdminRecordCell> cells,
+  ) async {
+    _requireToken();
+    createdRecords += 1;
+    final rows = fakeRecords[collectionKey]!;
+    final nextId =
+        (rows
+                    .map((record) => int.tryParse(record.id) ?? 0)
+                    .fold<int>(0, (max, id) => id > max ? id : max) +
+                1)
+            .toString();
+    final created = AdminRecord(id: nextId, cells: cells);
+    fakeRecords[collectionKey] = [...rows, created];
+    return created;
+  }
+
+  @override
+  Future<bool> deleteRecord(String collectionKey, String id) async {
+    _requireToken();
+    deletedRecords += 1;
+    final rows = fakeRecords[collectionKey]!;
+    fakeRecords[collectionKey] = [
+      for (final row in rows)
+        if (row.id != id) row,
+    ];
+    return true;
+  }
+
   void _requireToken() {
     if (token == null) {
       throw StateError('missing token');
@@ -264,11 +340,14 @@ final fakeCollections = [
     description: 'SQLite-backed e-commerce product rows.',
     rowCount: 1,
     fields: [
+      _field('sku', 'SKU', 'String', 'text'),
       _field('name', 'Name', 'String', 'text'),
       _field('description', 'Description', 'String', 'textarea'),
       _field('price', 'Price', 'double', 'number'),
+      _field('stock', 'Stock', 'int', 'number'),
       _field('published', 'Published', 'bool', 'checkbox'),
       _field('categoryId', 'Category', 'int', 'relation'),
+      _field('updatedAt', 'Updated At', 'DateTime', 'datetime'),
     ],
   ),
   AdminCollection(
@@ -297,10 +376,13 @@ final fakeRecords = {
   'products': [
     _record('1', {
       'name': 'PocketPod Starter License',
+      'sku': 'SKU-1001',
       'description': 'Starter license for a PocketPod project.',
       'price': '49.00',
+      'stock': '100',
       'published': 'true',
       'categoryId': '1',
+      'updatedAt': '2026-06-30T09:00:00.000Z',
     }),
   ],
   'posts': [

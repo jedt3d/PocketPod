@@ -354,23 +354,83 @@ class _AdminShellState extends State<AdminShell> {
       throw StateError('No active collection.');
     }
 
-    final saved = await widget.api.updateRecord(
-      collection.key,
-      record.id,
-      record.cells,
-    );
+    final creating = record.id.isEmpty;
+    final saved = creating
+        ? await widget.api.createRecord(collection.key, record.cells)
+        : await widget.api.updateRecord(
+            collection.key,
+            record.id,
+            record.cells,
+          );
     if (!mounted) return saved;
 
     setState(() {
       _selectedRecord = saved;
-      _records = [
-        for (final row in _records)
-          if (row.id == saved.id) saved else row,
+      _records = creating
+          ? [..._records, saved]
+          : [
+              for (final row in _records)
+                if (row.id == saved.id) saved else row,
+            ];
+      _activeCollection = collection.copyWith(rowCount: _records.length);
+      _collections = [
+        for (final item in _collections)
+          if (item.key == collection.key) _activeCollection! else item,
       ];
       _error = null;
     });
 
     return saved;
+  }
+
+  void _newRecord() {
+    final collection = _activeCollection;
+    if (collection == null || !isEditableCollection(collection.key)) {
+      return;
+    }
+
+    setState(() {
+      _selectedRecord = AdminRecord(
+        id: '',
+        cells: [
+          for (final field in collection.fields)
+            AdminRecordCell(
+              field: field.name,
+              value: defaultValueForField(field),
+            ),
+        ],
+      );
+      _error = null;
+    });
+  }
+
+  Future<void> _deleteRecord(AdminRecord record) async {
+    final collection = _activeCollection;
+    if (collection == null || record.id.isEmpty) {
+      return;
+    }
+
+    try {
+      await widget.api.deleteRecord(collection.key, record.id);
+      if (!mounted) return;
+      setState(() {
+        _records = [
+          for (final row in _records)
+            if (row.id != record.id) row,
+        ];
+        _selectedRecord = null;
+        _activeCollection = collection.copyWith(rowCount: _records.length);
+        _collections = [
+          for (final item in _collections)
+            if (item.key == collection.key) _activeCollection! else item,
+        ];
+        _error = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = 'Delete failed: $error');
+      rethrow;
+    }
   }
 
   @override
@@ -397,7 +457,9 @@ class _AdminShellState extends State<AdminShell> {
                 loadingRecords: _loadingRecords,
                 error: _error,
                 onOpenRecord: _openRecord,
+                onNewRecord: _newRecord,
                 onSaveRecord: _saveRecord,
+                onDeleteRecord: _deleteRecord,
                 onLogout: widget.onLogout,
               );
 
@@ -509,7 +571,9 @@ class AdminWorkspace extends StatelessWidget {
     required this.selectedRecord,
     required this.loadingRecords,
     required this.onOpenRecord,
+    required this.onNewRecord,
     required this.onSaveRecord,
+    required this.onDeleteRecord,
     required this.onLogout,
     this.error,
     super.key,
@@ -523,7 +587,9 @@ class AdminWorkspace extends StatelessWidget {
   final bool loadingRecords;
   final String? error;
   final ValueChanged<AdminRecord> onOpenRecord;
+  final VoidCallback onNewRecord;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
+  final Future<void> Function(AdminRecord record) onDeleteRecord;
   final Future<void> Function() onLogout;
 
   @override
@@ -573,7 +639,9 @@ class AdminWorkspace extends StatelessWidget {
                         selectedRecord: selectedRecord,
                         loading: loadingRecords,
                         onOpenRecord: onOpenRecord,
+                        onNewRecord: onNewRecord,
                         onSaveRecord: onSaveRecord,
+                        onDeleteRecord: onDeleteRecord,
                       ),
               ),
             ],
@@ -682,7 +750,9 @@ class _CollectionPanel extends StatelessWidget {
     required this.selectedRecord,
     required this.loading,
     required this.onOpenRecord,
+    required this.onNewRecord,
     required this.onSaveRecord,
+    required this.onDeleteRecord,
   });
 
   final AdminCollection collection;
@@ -690,7 +760,9 @@ class _CollectionPanel extends StatelessWidget {
   final AdminRecord? selectedRecord;
   final bool loading;
   final ValueChanged<AdminRecord> onOpenRecord;
+  final VoidCallback onNewRecord;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
+  final Future<void> Function(AdminRecord record) onDeleteRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -708,12 +780,24 @@ class _CollectionPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    collection.title,
-                    key: const Key('active_collection_title'),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          collection.title,
+                          key: const Key('active_collection_title'),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      if (isEditableCollection(collection.key))
+                        FilledButton.icon(
+                          key: const Key('new_record'),
+                          onPressed: onNewRecord,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('New'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -752,6 +836,7 @@ class _CollectionPanel extends StatelessWidget {
                 collection: collection,
                 record: selectedRecord!,
                 onSaveRecord: onSaveRecord,
+                onDeleteRecord: onDeleteRecord,
               ),
           ],
         ),
@@ -889,11 +974,13 @@ class _RecordDetail extends StatefulWidget {
     required this.collection,
     required this.record,
     required this.onSaveRecord,
+    required this.onDeleteRecord,
   });
 
   final AdminCollection collection;
   final AdminRecord record;
   final Future<AdminRecord> Function(AdminRecord record) onSaveRecord;
+  final Future<void> Function(AdminRecord record) onDeleteRecord;
 
   @override
   State<_RecordDetail> createState() => _RecordDetailState();
@@ -906,8 +993,10 @@ class _RecordDetailState extends State<_RecordDetail> {
   String? _message;
   String? _error;
   bool _saving = false;
+  bool _deleting = false;
 
   bool get _editable => isEditableCollection(widget.collection.key);
+  bool get _creating => widget.record.id.isEmpty;
 
   @override
   void initState() {
@@ -921,8 +1010,11 @@ class _RecordDetailState extends State<_RecordDetail> {
     if (oldWidget.record.id != widget.record.id ||
         oldWidget.collection.key != widget.collection.key) {
       _hydrate(widget.record);
-      _message = null;
-      _error = null;
+      if (oldWidget.collection.key != widget.collection.key ||
+          oldWidget.record.id.isNotEmpty) {
+        _message = null;
+        _error = null;
+      }
     }
   }
 
@@ -983,13 +1075,64 @@ class _RecordDetailState extends State<_RecordDetail> {
       _hydrate(saved);
       setState(() {
         _saving = false;
-        _message = '${widget.collection.title} #${saved.id} saved.';
+        _message = _creating
+            ? '${widget.collection.title} #${saved.id} created.'
+            : '${widget.collection.title} #${saved.id} saved.';
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _saving = false;
         _error = 'Save failed: $error';
+      });
+    }
+  }
+
+  Future<void> _delete() async {
+    if (!_editable || _creating) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete ${widget.collection.title} #${widget.record.id}?'),
+        content: const Text('This action removes the record from SQLite.'),
+        actions: [
+          TextButton(
+            key: const Key('cancel_delete'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('confirm_delete'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFB42318),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _deleting = true;
+      _message = null;
+      _error = null;
+    });
+
+    try {
+      await widget.onDeleteRecord(widget.record);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _deleting = false;
+        _error = 'Delete failed: $error';
       });
     }
   }
@@ -1016,7 +1159,7 @@ class _RecordDetailState extends State<_RecordDetail> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${_editable ? 'Edit' : 'View'} ${widget.collection.title} #${widget.record.id}',
+              _detailTitle,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
@@ -1073,10 +1216,31 @@ class _RecordDetailState extends State<_RecordDetail> {
             ],
             const SizedBox(height: 16),
             if (_editable)
-              FilledButton(
-                key: const Key('save_record'),
-                onPressed: _saving ? null : _save,
-                child: Text(_saving ? 'Saving...' : 'Save changes'),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  FilledButton(
+                    key: const Key('save_record'),
+                    onPressed: _saving || _deleting ? null : _save,
+                    child: Text(
+                      _saving
+                          ? 'Saving...'
+                          : _creating
+                          ? 'Create record'
+                          : 'Save changes',
+                    ),
+                  ),
+                  if (!_creating)
+                    OutlinedButton(
+                      key: const Key('delete_record'),
+                      onPressed: _saving || _deleting ? null : _delete,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFB42318),
+                      ),
+                      child: Text(_deleting ? 'Deleting...' : 'Delete'),
+                    ),
+                ],
               )
             else
               const Text(
@@ -1087,6 +1251,16 @@ class _RecordDetailState extends State<_RecordDetail> {
         ),
       ),
     );
+  }
+
+  String get _detailTitle {
+    if (!_editable) {
+      return 'View ${widget.collection.title} #${widget.record.id}';
+    }
+    if (_creating) {
+      return 'Create ${widget.collection.title}';
+    }
+    return 'Edit ${widget.collection.title} #${widget.record.id}';
   }
 }
 
@@ -1422,6 +1596,20 @@ class _NavLabel extends StatelessWidget {
 }
 
 bool isEditableCollection(String key) => key == 'products' || key == 'posts';
+
+String defaultValueForField(AdminField field) {
+  if (field.name == 'updatedAt') {
+    return DateTime.now().toUtc().toIso8601String();
+  }
+  return switch (field.control) {
+    'checkbox' => 'false',
+    'number' when field.dartType == 'double' => '0.00',
+    'number' => '0',
+    'relation' => '1',
+    'datetime' => '',
+    _ => '',
+  };
+}
 
 String? primaryEditField(String key) {
   return switch (key) {

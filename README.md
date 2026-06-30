@@ -180,3 +180,10 @@ The generated artifact lives at:
 ```text
 pocketpod-starter/build/pocketpod-release/
 ```
+
+Phase 6 has started as admin CRUD hardening. The current completed slice adds protected create/delete for SQLite-backed Products and Posts:
+
+```text
+pocketpod-starter/tool/admin_ui/PHASE6_TASKS.md
+pocketpod-starter/tool/admin_ui/PHASE6_TEST_REPORT.md
+```

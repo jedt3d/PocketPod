@@ -192,7 +192,7 @@ The standalone Flutter Web admin app can exercise generated CRUD screens against
 ## Backlog Not Blocking Phase 4 Start
 
 - [ ] Add the older Phase 3 hardening test for promoting an existing non-admin auth user.
-- [ ] Add create/delete CRUD operations after edit flow is stable.
+- [x] Add create/delete CRUD operations after edit flow is stable.
 - [ ] Replace relation placeholders with live lookup endpoints.
 - [ ] Add pagination and search for larger collections.
 - [ ] Add role/permission UI beyond the initial `Scope.admin` gate.

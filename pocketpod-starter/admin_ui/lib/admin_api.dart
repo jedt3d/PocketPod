@@ -32,6 +32,13 @@ abstract interface class AdminApi {
     String id,
     List<AdminRecordCell> cells,
   );
+
+  Future<AdminRecord> createRecord(
+    String collectionKey,
+    List<AdminRecordCell> cells,
+  );
+
+  Future<bool> deleteRecord(String collectionKey, String id);
 }
 
 class ServerpodAdminApi implements AdminApi {
@@ -104,6 +111,19 @@ class ServerpodAdminApi implements AdminApi {
     List<AdminRecordCell> cells,
   ) {
     return _client.admin.updateRecord(collectionKey, id, cells);
+  }
+
+  @override
+  Future<AdminRecord> createRecord(
+    String collectionKey,
+    List<AdminRecordCell> cells,
+  ) {
+    return _client.admin.createRecord(collectionKey, cells);
+  }
+
+  @override
+  Future<bool> deleteRecord(String collectionKey, String id) {
+    return _client.admin.deleteRecord(collectionKey, id);
   }
 }
 

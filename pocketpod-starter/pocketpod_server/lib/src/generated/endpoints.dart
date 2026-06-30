@@ -178,6 +178,54 @@ class Endpoints extends _i1.EndpointDispatch {
                 params['cells'],
               ),
         ),
+        'createRecord': _i1.MethodConnector(
+          name: 'createRecord',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'cells': _i1.ParameterDescription(
+              name: 'cells',
+              type: _i1.getType<List<_i6.AdminRecordCell>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint).createRecord(
+                session,
+                params['collectionKey'],
+                params['cells'],
+              ),
+        ),
+        'deleteRecord': _i1.MethodConnector(
+          name: 'deleteRecord',
+          params: {
+            'collectionKey': _i1.ParameterDescription(
+              name: 'collectionKey',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['admin'] as _i3.AdminEndpoint).deleteRecord(
+                session,
+                params['collectionKey'],
+                params['id'],
+              ),
+        ),
       },
     );
     connectors['benchmark'] = _i1.EndpointConnector(

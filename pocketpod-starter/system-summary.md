@@ -221,6 +221,44 @@ The smoke script starts the compiled artifact in Serverpod `development` mode on
 tool/deploy/smoke_release.sh
 ```
 
+## Phase 6 Admin CRUD Hardening
+
+Phase 6 has started. The first completed slice adds real create/delete behavior to the Flutter admin app for SQLite-backed Product and Post records.
+
+New protected Serverpod admin endpoints:
+
+```text
+admin.createRecord
+admin.deleteRecord
+```
+
+Flutter admin behavior:
+
+```text
+Products and Posts show a New button.
+New opens a create form with safe default values.
+Saving a new form inserts a SQLite-backed row.
+Existing Product/Post records show Delete.
+Delete requires a confirmation dialog.
+Admin Input Examples remains read-only.
+```
+
+Validation:
+
+```text
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd pocketpod_server && flutter test test/integration/admin_endpoint_test.dart --reporter expanded
+flutter test test/admin_generator --reporter expanded
+```
+
+The detailed Phase 6 task and test ledgers are:
+
+```text
+tool/admin_ui/PHASE6_TASKS.md
+tool/admin_ui/PHASE6_TEST_REPORT.md
+```
+
 Current smart form-control mapping:
 
 | Serverpod Field Shape | Generated Control |

@@ -104,6 +104,30 @@ class EndpointAdmin extends _i1.EndpointRef {
       'cells': cells,
     },
   );
+
+  _i2.Future<_i7.AdminRecord> createRecord(
+    String collectionKey,
+    List<_i8.AdminRecordCell> cells,
+  ) => caller.callServerEndpoint<_i7.AdminRecord>(
+    'admin',
+    'createRecord',
+    {
+      'collectionKey': collectionKey,
+      'cells': cells,
+    },
+  );
+
+  _i2.Future<bool> deleteRecord(
+    String collectionKey,
+    String id,
+  ) => caller.callServerEndpoint<bool>(
+    'admin',
+    'deleteRecord',
+    {
+      'collectionKey': collectionKey,
+      'id': id,
+    },
+  );
 }
 
 /// {@category Endpoint}

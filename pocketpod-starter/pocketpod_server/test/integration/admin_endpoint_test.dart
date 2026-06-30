@@ -185,6 +185,51 @@ void main() {
       );
       expect(_cellValue(reloadedPost, 'body'), contains('Cycle 4B'));
       expect(_cellValue(reloadedPost, 'publishedAt'), isEmpty);
+
+      await expectLater(
+        endpoints.admin.createRecord(
+          nonAdminSession,
+          'products',
+          _cells({
+            'sku': 'SKU-BLOCKED',
+            'name': 'Blocked Create',
+            'description': 'Should not save.',
+            'price': '1.00',
+            'stock': '1',
+            'published': 'false',
+            'categoryId': '1',
+          }),
+        ),
+        throwsA(isA<ServerpodInsufficientAccessException>()),
+      );
+
+      final createdProduct = await endpoints.admin.createRecord(
+        adminSession,
+        'products',
+        _cells({
+          'sku': 'SKU-2001',
+          'name': 'Created Phase 6 Product',
+          'description': 'Created through the guarded admin endpoint.',
+          'price': '99.00',
+          'stock': '12',
+          'published': 'true',
+          'categoryId': '2',
+        }),
+      );
+      expect(_cellValue(createdProduct, 'name'), 'Created Phase 6 Product');
+
+      final createdProductId = createdProduct.id;
+      final deleteResult = await endpoints.admin.deleteRecord(
+        adminSession,
+        'products',
+        createdProductId,
+      );
+      expect(deleteResult, isTrue);
+
+      await expectLater(
+        endpoints.admin.getRecord(adminSession, 'products', createdProductId),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 }

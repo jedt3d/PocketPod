@@ -299,3 +299,27 @@ tool/deploy/TASKS.md
 
 Stop condition:
 ✅ A clean artifact can be built locally and smoke-tested against a SQLite database file.
+
+## Phase 6: Admin CRUD Hardening
+
+Goal:
+Harden the PocketPod admin app beyond edit-only CRUD so it can manage starter e-commerce and CMS records more realistically.
+
+Features:
+1. ✅ Add protected create/delete endpoints for SQLite-backed Product and Post records.
+2. ✅ Add New and Delete controls to the Flutter admin app for editable collections.
+3. ✅ Keep Admin Input Examples read-only as the control showcase.
+4. ✅ Add confirmation before destructive delete actions.
+5. ✅ Add widget and integration tests for create/delete.
+6. Add relation lookup endpoints to replace placeholder dropdown options.
+7. Add pagination and search for larger collections.
+8. Add role and permission hardening beyond the initial `Scope.admin` gate.
+
+Detailed task ledger:
+
+```text
+tool/admin_ui/PHASE6_TASKS.md
+```
+
+Current stop condition:
+Admins can create and delete Product/Post records through the Flutter admin UI, and the server endpoints are protected by Serverpod Auth with `Scope.admin`.

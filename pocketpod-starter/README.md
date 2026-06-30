@@ -115,6 +115,8 @@ http://localhost:8082/admin/index.html
 
 The Flutter admin app signs in through Serverpod Auth via `adminAuth.login`, stores the returned JWT in browser local storage, and calls protected `Scope.admin` endpoints. It includes clickable collection navigation for Admin Input Examples, Products, and Posts. Every collection opens records from its primary field: Admin Input Examples uses `title` in a view-only form, Products uses `name`, and Posts uses `title`. Products and Posts are SQLite-backed starter records with edit/save support through protected admin endpoints.
 
+Phase 6 adds the first CRUD hardening slice: Products and Posts now support protected create and delete actions in addition to edit/save. Admin Input Examples remains read-only.
+
 The app screenshot evidence is stored in:
 
 ```text
@@ -203,6 +205,13 @@ dart run tool/benchmarks/run_bench.dart --profile production --targets serverpod
 dart run tool/benchmarks/render_report.dart
 tool/deploy/build_release.sh
 tool/deploy/smoke_release.sh
+```
+
+Phase 6 task and test ledgers:
+
+```text
+tool/admin_ui/PHASE6_TASKS.md
+tool/admin_ui/PHASE6_TEST_REPORT.md
 ```
 
 Open the generated report:
