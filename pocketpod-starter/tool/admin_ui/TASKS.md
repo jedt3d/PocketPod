@@ -136,15 +136,15 @@ The generator can produce or refresh Flutter admin UI code from representative S
 
 ## Cycle 6: UX Polish And Accessibility
 
-- [ ] Refine the visual design toward the accepted PocketBase-inspired direction.
-- [ ] Keep the interface dense, practical, and work-focused.
-- [ ] Add keyboard focus states.
-- [ ] Ensure forms are usable by keyboard.
-- [ ] Ensure table text and buttons do not overflow on narrow screens.
-- [ ] Add accessible labels for icon-only or compact controls.
-- [ ] Add confirmation behavior for destructive future actions.
-- [ ] Capture desktop and mobile-width screenshots.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Refine the visual design toward the accepted PocketBase-inspired direction.
+- [x] Keep the interface dense, practical, and work-focused.
+- [x] Add keyboard focus states.
+- [x] Ensure forms are usable by keyboard.
+- [x] Ensure table text and buttons do not overflow on narrow screens.
+- [x] Add accessible labels for icon-only or compact controls.
+- [x] Add confirmation behavior for destructive future actions.
+- [x] Capture desktop and mobile-width screenshots.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 

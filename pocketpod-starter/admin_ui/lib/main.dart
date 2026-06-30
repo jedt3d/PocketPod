@@ -377,17 +377,18 @@ class _AdminShellState extends State<AdminShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AdminSidebar(
-              collections: _collections,
-              activeCollection: _activeCollection,
-              loading: _loadingCollections,
-              onSelect: _selectCollection,
-            ),
-            Expanded(
-              child: AdminWorkspace(
+        child: FocusTraversalGroup(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 820;
+              final sidebar = AdminSidebar(
+                collections: _collections,
+                activeCollection: _activeCollection,
+                loading: _loadingCollections,
+                compact: narrow,
+                onSelect: _selectCollection,
+              );
+              final workspace = AdminWorkspace(
                 session: widget.session,
                 collections: _collections,
                 activeCollection: _activeCollection,
@@ -398,9 +399,27 @@ class _AdminShellState extends State<AdminShell> {
                 onOpenRecord: _openRecord,
                 onSaveRecord: _saveRecord,
                 onLogout: widget.onLogout,
-              ),
-            ),
-          ],
+              );
+
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 220, child: sidebar),
+                    Expanded(child: workspace),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  sidebar,
+                  Expanded(child: workspace),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -413,6 +432,7 @@ class AdminSidebar extends StatelessWidget {
     required this.activeCollection,
     required this.loading,
     required this.onSelect,
+    this.compact = false,
     super.key,
   });
 
@@ -420,51 +440,61 @@ class AdminSidebar extends StatelessWidget {
   final AdminCollection? activeCollection;
   final bool loading;
   final ValueChanged<AdminCollection> onSelect;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 260,
-      decoration: const BoxDecoration(
-        color: Color(0xFFEEF2F6),
-        border: Border(right: BorderSide(color: Color(0xFFD9DEE7))),
+      width: compact ? double.infinity : 260,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2F6),
+        border: Border(
+          right: compact
+              ? BorderSide.none
+              : const BorderSide(color: Color(0xFFD9DEE7)),
+          bottom: compact
+              ? const BorderSide(color: Color(0xFFD9DEE7))
+              : BorderSide.none,
+        ),
       ),
       padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'PocketPod',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Flutter Admin',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
-          ),
-          const SizedBox(height: 28),
-          const _NavLabel('Collections'),
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: LinearProgressIndicator(),
-            )
-          else
-            for (final collection in collections)
-              _CollectionNavItem(
-                label: collection.title,
-                count: collection.rowCount,
-                selected: collection.key == activeCollection?.key,
-                onTap: () => onSelect(collection),
-              ),
-          const Spacer(),
-          const _NavLabel('System'),
-          const _CollectionNavItem(label: 'Auth', count: 1),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'PocketPod',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Flutter Admin',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xFF6B7280)),
+            ),
+            SizedBox(height: compact ? 16 : 28),
+            const _NavLabel('Collections'),
+            if (loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(),
+              )
+            else
+              for (final collection in collections)
+                _CollectionNavItem(
+                  label: collection.title,
+                  count: collection.rowCount,
+                  selected: collection.key == activeCollection?.key,
+                  onTap: () => onSelect(collection),
+                ),
+            if (!compact) const SizedBox(height: 28),
+            const _NavLabel('System'),
+            const _CollectionNavItem(label: 'Auth', count: 1),
+          ],
+        ),
       ),
     );
   }
@@ -500,58 +530,104 @@ class AdminWorkspace extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeCollection = this.activeCollection;
 
-    return Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 640;
+        return Padding(
+          padding: EdgeInsets.all(compact ? 16 : 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
+              if (compact)
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'PocketPod Admin',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Signed in as ${session.userId}',
-                      key: const Key('admin_status_line'),
-                      style: const TextStyle(color: Color(0xFF6B7280)),
-                    ),
+                    _WorkspaceTitle(session: session, compact: true),
+                    const SizedBox(height: 12),
+                    _SignOutButton(onLogout: onLogout),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(child: _WorkspaceTitle(session: session)),
+                    _SignOutButton(onLogout: onLogout),
                   ],
                 ),
+              const SizedBox(height: 20),
+              _MetricStrip(
+                session: session,
+                collectionCount: collections.length,
               ),
-              OutlinedButton(
-                key: const Key('logout_button'),
-                onPressed: onLogout,
-                child: const Text('Sign out'),
+              const SizedBox(height: 18),
+              if (error != null) ...[
+                _ErrorBanner(error!),
+                const SizedBox(height: 12),
+              ],
+              Expanded(
+                child: activeCollection == null
+                    ? const _EmptyPanel(message: 'No collections available.')
+                    : _CollectionPanel(
+                        collection: activeCollection,
+                        records: records,
+                        selectedRecord: selectedRecord,
+                        loading: loadingRecords,
+                        onOpenRecord: onOpenRecord,
+                        onSaveRecord: onSaveRecord,
+                      ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _MetricStrip(session: session, collectionCount: collections.length),
-          const SizedBox(height: 18),
-          if (error != null) ...[
-            _ErrorBanner(error!),
-            const SizedBox(height: 12),
-          ],
-          Expanded(
-            child: activeCollection == null
-                ? const _EmptyPanel(message: 'No collections available.')
-                : _CollectionPanel(
-                    collection: activeCollection,
-                    records: records,
-                    selectedRecord: selectedRecord,
-                    loading: loadingRecords,
-                    onOpenRecord: onOpenRecord,
-                    onSaveRecord: onSaveRecord,
-                  ),
+        );
+      },
+    );
+  }
+}
+
+class _WorkspaceTitle extends StatelessWidget {
+  const _WorkspaceTitle({required this.session, this.compact = false});
+
+  final AdminSession session;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          compact ? 'PocketPod\nAdmin' : 'PocketPod Admin',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            height: compact ? 1.05 : null,
           ),
-        ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          compact ? 'Signed in' : 'Signed in as ${session.userId}',
+          key: const Key('admin_status_line'),
+          softWrap: true,
+          style: const TextStyle(color: Color(0xFF6B7280)),
+        ),
+      ],
+    );
+  }
+}
+
+class _SignOutButton extends StatelessWidget {
+  const _SignOutButton({required this.onLogout});
+
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Sign out of PocketPod Admin',
+      child: OutlinedButton(
+        key: const Key('logout_button'),
+        onPressed: onLogout,
+        child: const Text('Sign out'),
       ),
     );
   }
@@ -565,23 +641,36 @@ class _MetricStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: _MetricCard(label: 'Auth', value: 'Serverpod'),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _MetricCard(label: 'Collections', value: '$collectionCount'),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _MetricCard(
-            label: 'Scopes',
-            value: session.scopeNames.join(', '),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth < 640
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 28) / 3;
+        return Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: [
+            SizedBox(
+              width: cardWidth,
+              child: const _MetricCard(label: 'Auth', value: 'Serverpod'),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _MetricCard(
+                label: 'Collections',
+                value: '$collectionCount',
+              ),
+            ),
+            SizedBox(
+              width: cardWidth,
+              child: _MetricCard(
+                label: 'Scopes',
+                value: session.scopeNames.join(', '),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

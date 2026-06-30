@@ -267,3 +267,46 @@ yaml_to_admin.dart: generated admin_input_example_admin.dart, post_admin.dart, p
 flutter test test/admin_generator: 7 tests passed.
 dart format --set-exit-if-changed tool/admin_generator test/admin_generator: pass.
 ```
+
+## Cycle 6: UX Polish And Accessibility
+
+Status: complete.
+
+Changes:
+
+- Added a responsive shell breakpoint below `820px`.
+- Switched narrow layouts from desktop row layout to stacked sidebar/workspace layout.
+- Made the sidebar scroll-safe and full-width on compact screens.
+- Made the workspace header stack on compact screens.
+- Shortened the compact auth status to avoid clipping long auth user ids.
+- Wrapped metric cards on narrow screens.
+- Kept table content horizontally scrollable.
+- Added a `FocusTraversalGroup` around the authenticated shell.
+- Added an explicit semantic label to the sign-out action.
+- Kept destructive-action confirmation as non-applicable for this cycle because Phase 4 still has no destructive CRUD actions.
+- Captured desktop and mobile-width screenshot evidence.
+
+Screenshots:
+
+```text
+tool/admin_ui/screenshots/cycle6-desktop.png
+tool/admin_ui/screenshots/cycle6-mobile.png
+```
+
+Validation:
+
+```sh
+dart format admin_ui/lib admin_ui/test
+flutter analyze admin_ui
+flutter test admin_ui --reporter expanded
+cd admin_ui && flutter build web
+```
+
+Result:
+
+```text
+PASS
+flutter analyze admin_ui: No issues found.
+flutter test admin_ui: 7 tests passed.
+flutter build web: built build/web.
+```
