@@ -4,7 +4,7 @@ This report will track Phase 4 validation cycle by cycle.
 
 ## Current Status
 
-Status: planned, not implemented.
+Status: Cycle 0 complete; implementation not scaffolded yet.
 
 Phase 3 is accepted as the reference behavior:
 
@@ -30,4 +30,30 @@ Each cycle should record:
 - known limitations.
 - commit hash.
 
-No Phase 4 validation has run yet.
+## Cycle 0: Phase Handoff And Baseline
+
+Status: complete.
+
+Decisions:
+
+- Phase 3 is accepted as the source behavior for Phase 4.
+- The served HTML admin remains the reference implementation until Flutter reaches parity.
+- The Flutter Web app will live at `pocketpod-starter/admin_ui/`.
+- The planning ledger and validation report remain in `pocketpod-starter/tool/admin_ui/`.
+
+Initial local commands:
+
+```sh
+cd pocketpod-starter/pocketpod_server
+dart run bin/main.dart --apply-migrations
+
+cd pocketpod-starter/admin_ui
+flutter run -d chrome --web-port 8090
+```
+
+Result:
+
+```text
+PASS
+Cycle 0 planning and app location are documented.
+```

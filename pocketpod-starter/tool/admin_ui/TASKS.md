@@ -9,7 +9,7 @@ Provide a standalone Flutter Web admin app that hosts generated CRUD screens and
 Target outcome:
 
 ```text
-admin_ui/ Flutter Web app
+pocketpod-starter/admin_ui/ Flutter Web app
   -> Serverpod Auth login
   -> protected admin shell
   -> generated collection navigation
@@ -18,11 +18,11 @@ admin_ui/ Flutter Web app
 
 ## Cycle 0: Phase Handoff And Baseline
 
-- [ ] Confirm Phase 3 is accepted as the source behavior for Phase 4.
-- [ ] Keep the existing served HTML admin as the reference behavior.
-- [ ] Decide whether `admin_ui/` lives under `pocketpod-starter/admin_ui` or another folder before scaffolding.
-- [ ] Document the local run commands for backend plus admin UI.
-- [ ] Record validation in `TEST_REPORT.md`.
+- [x] Confirm Phase 3 is accepted as the source behavior for Phase 4.
+- [x] Keep the existing served HTML admin as the reference behavior.
+- [x] Decide whether `admin_ui/` lives under `pocketpod-starter/admin_ui` or another folder before scaffolding.
+- [x] Document the local run commands for backend plus admin UI.
+- [x] Record validation in `TEST_REPORT.md`.
 
 Acceptance:
 

@@ -12,7 +12,7 @@ generated admin metadata + pocketpod_client -> Flutter Web admin app -> protecte
 
 Expected result:
 
-- a dedicated `admin_ui/` Flutter Web app.
+- a dedicated `pocketpod-starter/admin_ui/` Flutter Web app.
 - Serverpod Auth login and logout.
 - protected routes for admin users.
 - collection navigation for Admin Input Examples, Products, and Posts.
@@ -21,3 +21,9 @@ Expected result:
 - browser screenshots and validation notes for every cycle.
 
 The current Phase 3 served HTML page remains useful as a fast reference implementation while the Flutter app is built.
+
+The planning files for this phase live in `tool/admin_ui/`. The actual Flutter application should live at:
+
+```text
+pocketpod-starter/admin_ui/
+```
