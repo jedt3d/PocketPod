@@ -127,6 +127,7 @@ class AdminGenerator {
           final activeClass = model == firstModel ? ' active' : '';
           return '''
         <button class="nav-item$activeClass">
+          <span class="nav-dot"></span>
           <span>${_escapeHtml(model.title)}</span>
           <strong>${model.fields.length}</strong>
         </button>''';
@@ -147,15 +148,20 @@ class AdminGenerator {
   <style>
     :root {
       color-scheme: light;
-      --ink: #17212b;
-      --muted: #627085;
-      --line: #d4dce7;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --soft: #8a94a6;
+      --line: #d9e0ea;
       --panel: #ffffff;
-      --surface: #f3f6fa;
-      --accent: #0b6bcb;
-      --accent-strong: #084c94;
-      --success: #137a44;
-      --warning: #b45309;
+      --surface: #f6f8fb;
+      --sidebar: #eef3f8;
+      --sidebar-line: #d7e1eb;
+      --accent: #4fb7bf;
+      --accent-soft: #e4f7f8;
+      --accent-strong: #267d86;
+      --danger: #ef5350;
+      --success: #1c9b67;
+      --shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
     }
     * { box-sizing: border-box; }
     body {
@@ -167,71 +173,110 @@ class AdminGenerator {
     }
     .shell {
       display: grid;
-      grid-template-columns: 248px minmax(0, 1fr);
+      grid-template-columns: 260px minmax(0, 1fr);
       min-height: 100vh;
     }
     .sidebar {
-      background: #102033;
-      color: #f8fbff;
-      padding: 18px 14px;
-      border-right: 1px solid #091320;
+      background: var(--sidebar);
+      color: var(--ink);
+      padding: 20px 14px;
+      border-right: 1px solid var(--sidebar-line);
     }
     .brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      height: 40px;
+      height: 44px;
       padding: 0 8px;
-      margin-bottom: 18px;
-      font-weight: 700;
+      margin-bottom: 20px;
+      font-weight: 800;
+      letter-spacing: 0;
     }
     .brand-mark {
       display: grid;
       place-items: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 6px;
-      background: var(--accent);
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 8px 18px rgba(79, 183, 191, 0.28);
+      font-weight: 900;
+    }
+    .nav-label {
+      padding: 0 10px;
+      margin: 8px 0;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .nav-item {
-      display: flex;
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: space-between;
+      gap: 10px;
       width: 100%;
-      height: 38px;
-      padding: 0 10px;
-      margin-bottom: 4px;
-      border: 0;
-      border-radius: 6px;
-      color: #d8e3f2;
+      height: 40px;
+      padding: 0 11px;
+      margin-bottom: 5px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: #445064;
       background: transparent;
       text-align: left;
       font: inherit;
+      font-weight: 650;
+    }
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #aab7c8;
     }
     .nav-item strong {
-      color: #9db4d0;
+      min-width: 24px;
+      height: 22px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      color: #667387;
+      background: #dce6f0;
       font-size: 12px;
+      text-align: center;
     }
     .nav-item.active {
-      color: #ffffff;
-      background: #1f7bd8;
+      color: var(--accent-strong);
+      background: #ffffff;
+      border-color: #c2e7eb;
+      box-shadow: 0 6px 16px rgba(31, 41, 55, 0.08);
     }
-    .nav-item.active strong { color: #ffffff; }
+    .nav-item.active .nav-dot { background: var(--accent); }
+    .nav-item.active strong {
+      color: #ffffff;
+      background: var(--accent);
+    }
     .content {
-      padding: 24px;
+      padding: 26px 30px;
     }
     .toolbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
     h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 25px;
       line-height: 1.2;
       letter-spacing: 0;
+    }
+    .crumb {
+      margin-bottom: 6px;
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 700;
     }
     .meta {
       margin-top: 4px;
@@ -241,38 +286,73 @@ class AdminGenerator {
       height: 38px;
       padding: 0 14px;
       border: 0;
-      border-radius: 6px;
+      border-radius: 8px;
       color: #ffffff;
-      background: var(--accent);
+      background: #111827;
       font-weight: 700;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.16);
+    }
+    .button.secondary {
+      color: var(--accent-strong);
+      background: var(--accent-soft);
+      box-shadow: none;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.42fr) minmax(340px, 0.58fr);
+      gap: 20px;
     }
     .panel {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 58px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+    .panel-title {
+      font-weight: 800;
+    }
+    .search {
+      min-width: 260px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #f8fafc;
     }
     table {
       width: 100%;
       border-collapse: collapse;
     }
     th, td {
-      padding: 11px 12px;
+      padding: 13px 14px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       white-space: nowrap;
     }
     th {
-      color: #344257;
-      background: #eaf0f7;
-      font-size: 12px;
+      color: #697386;
+      background: #f8fafc;
+      font-size: 11px;
+      font-weight: 800;
       text-transform: uppercase;
     }
+    tr:last-child td { border-bottom: 0; }
     .form {
       padding: 16px;
     }
@@ -282,17 +362,17 @@ class AdminGenerator {
     label {
       display: block;
       margin-bottom: 5px;
-      color: #344257;
+      color: #384255;
       font-weight: 700;
     }
     .input {
       display: flex;
       align-items: center;
-      min-height: 36px;
-      padding: 0 10px;
+      min-height: 38px;
+      padding: 0 11px;
       border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #ffffff;
+      border-radius: 8px;
+      background: #f9fbfd;
       color: var(--muted);
     }
     .pill {
@@ -302,7 +382,7 @@ class AdminGenerator {
       padding: 0 8px;
       border-radius: 999px;
       color: #ffffff;
-      background: var(--success);
+      background: var(--accent-strong);
       font-size: 12px;
       font-weight: 700;
     }
@@ -320,6 +400,7 @@ class AdminGenerator {
         <div class="brand-mark">P</div>
         <span>PocketPod Admin</span>
       </div>
+      <div class="nav-label">Collections</div>
 $navItems
     </aside>
 $content
@@ -358,19 +439,29 @@ $content
     <main class="content">
       <div class="toolbar">
         <div>
+          <div class="crumb">Collections / ${_escapeHtml(model.title)}</div>
           <h1>${_escapeHtml(model.title)}</h1>
           <div class="meta">${_escapeHtml(model.className)} model · ${model.fields.length} fields · admin scope required</div>
         </div>
-        <button class="button">New ${_escapeHtml(_splitWords(model.className))}</button>
+        <div class="actions">
+          <button class="button secondary">API preview</button>
+          <button class="button">New ${_escapeHtml(_splitWords(model.className))}</button>
+        </div>
       </div>
       <div class="layout">
         <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Records</div>
+            <div class="search">Search ${_escapeHtml(model.title)}...</div>
+          </div>
           <table>
             <thead><tr>$headings</tr></thead>
             <tbody><tr>$cells</tr></tbody>
           </table>
         </section>
         <section class="panel form">
+          <div class="panel-title">Edit ${_escapeHtml(_splitWords(model.className))}</div>
+          <div style="height: 14px"></div>
 $fields
           <button class="button">Save ${_escapeHtml(_splitWords(model.className))}</button>
         </section>

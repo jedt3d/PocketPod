@@ -99,6 +99,20 @@ Screenshot:
 tool/admin_generator/screenshots/admin-preview.png
 ```
 
+Style revision:
+
+```text
+PASS
+Updated the generated preview CSS to a cleaner PocketBase-inspired collection admin style:
+- light sidebar instead of the earlier dark app shell.
+- active collection row with count badge.
+- breadcrumb-style collection header.
+- records panel with search affordance.
+- compact table treatment.
+- stronger primary action and softer API preview action.
+- refreshed screenshot at tool/admin_generator/screenshots/admin-preview.png.
+```
+
 Regression validation:
 
 ```sh

@@ -66,6 +66,10 @@ void main() {
 
       expect(html, contains('<title>PocketPod Admin Preview</title>'));
       expect(html, contains('PocketPod Admin'));
+      expect(html, contains('Collections / Products'));
+      expect(html, contains('API preview'));
+      expect(html, contains('Search Products...'));
+      expect(html, contains('Records'));
       expect(html, contains('Products'));
       expect(html, contains('Posts'));
       expect(html, contains('admin scope required'));
